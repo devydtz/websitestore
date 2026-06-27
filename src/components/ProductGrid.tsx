@@ -2,26 +2,15 @@ import type { LucideIcon } from "lucide-react";
 import { Check, Plus } from "lucide-react";
 import { useCart, priceToCents } from "@/lib/cart";
 
-type Rarity = "Common" | "Rare" | "Epic" | "Legendary" | "Mythic";
-
 export type Product = {
   id: string;
   category: "rank" | "key" | "bundle";
   name: string;
   tagline: string;
   price: string;
-  rarity: Rarity;
   Icon: LucideIcon;
   perks: string[];
   featured?: boolean;
-};
-
-const rarityClass: Record<Rarity, string> = {
-  Common: "bg-muted text-muted-foreground ring-1 ring-border",
-  Rare: "bg-rare/15 text-rare ring-1 ring-rare/40",
-  Epic: "bg-accent/15 text-accent ring-1 ring-accent/40",
-  Legendary: "bg-legendary/15 text-legendary ring-1 ring-legendary/40",
-  Mythic: "bg-destructive/15 text-destructive ring-1 ring-destructive/40",
 };
 
 export function ProductGrid({ products }: { products: Product[] }) {
@@ -45,9 +34,6 @@ export function ProductGrid({ products }: { products: Product[] }) {
               <div className="grid h-12 w-12 place-items-center rounded-lg bg-primary/10 text-accent ring-1 ring-accent/30">
                 <p.Icon className="h-6 w-6" />
               </div>
-              <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${rarityClass[p.rarity]}`}>
-                {p.rarity}
-              </span>
             </div>
             <h3 className="mt-5 text-xl font-bold text-foreground">{p.name}</h3>
             <p className="mt-1 text-sm text-muted-foreground">{p.tagline}</p>
@@ -69,7 +55,6 @@ export function ProductGrid({ products }: { products: Product[] }) {
                     category: p.category,
                     price: p.price,
                     priceCents: priceToCents(p.price),
-                    rarity: p.rarity,
                   })
                 }
                 className="group inline-flex items-center gap-1.5 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-accent hover:scale-105 active:scale-95"

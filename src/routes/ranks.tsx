@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Shield, Star, Crown, Sparkles, Moon } from "lucide-react";
+import { Crown, Moon, Shield, Sparkles, Star } from "lucide-react";
 import { Starfield } from "@/components/Starfield";
 import { Navbar } from "@/components/Navbar";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -8,28 +8,50 @@ import { ProductGrid, type Product } from "@/components/ProductGrid";
 
 const ranks: Product[] = [
   {
-    id: "rank-initiate", category: "rank", name: "Initiate", tagline: "First step into the moonlit realm.", price: "₱149", rarity: "Common", Icon: Shield,
-    perks: ["Colored chat name", "/hat command", "2 home points", "Access to /kit initiate"],
+    id: "rank-crescent",
+    category: "rank",
+    name: "Crescent",
+    tagline: "Your first step into the Lunaris realm.",
+    price: "₱99",
+    Icon: Shield,
+    perks: ["Crescent chat prefix", "2 home points", "Starter monthly kit", "Discord member role"],
   },
   {
-    id: "rank-vip", category: "rank", name: "VIP", tagline: "Access exclusive commands, colored chat, and VIP-only areas.", price: "₱249", rarity: "Rare", Icon: Star,
-    perks: ["All Initiate perks", "/fly in lobby", "5 home points", "VIP-only mining world", "Weekly VIP crate key"],
+    id: "rank-nebula",
+    category: "rank",
+    name: "Nebula",
+    tagline: "A stronger start with extra comfort perks.",
+    price: "₱199",
+    Icon: Star,
+    perks: ["All Crescent perks", "4 home points", "Nebula monthly kit", "Access to extra cosmetics"],
   },
   {
-    id: "rank-knight", category: "rank", name: "Knight", tagline: "Earn your seat at the round table.", price: "₱499", rarity: "Epic", Icon: Crown, featured: true,
-    perks: ["All VIP perks", "/nick custom nickname", "10 home points", "Private vault (54 slots)", "Monthly Lunar crate key"],
+    id: "rank-solstice",
+    category: "rank",
+    name: "Solstice",
+    tagline: "A balanced upgrade for active players.",
+    price: "₱299",
+    Icon: Moon,
+    featured: true,
+    perks: ["All Nebula perks", "6 home points", "Solstice monthly kit", "Priority support queue"],
   },
   {
-    id: "rank-lunar", category: "rank", name: "Lunar", tagline: "Touched by the moon's quiet power.", price: "₱749", rarity: "Legendary", Icon: Moon,
-    perks: ["All Knight perks", "/fly in survival", "20 home points", "Custom particle trails", "2 Lunar crate keys monthly"],
+    id: "rank-celestial",
+    category: "rank",
+    name: "Celestial",
+    tagline: "Premium perks for players who want to stand out.",
+    price: "₱399",
+    Icon: Sparkles,
+    perks: ["All Solstice perks", "8 home points", "Celestial monthly kit", "Custom chat color access"],
   },
   {
-    id: "rank-legend", category: "rank", name: "Legend", tagline: "The ultimate rank. Custom prefix, fly in survival, and more.", price: "₱999", rarity: "Legendary", Icon: Sparkles,
-    perks: ["All Lunar perks", "Custom prefix in chat", "Unlimited homes", "Personal /warp", "Exclusive Legend cosmetics"],
-  },
-  {
-    id: "rank-mythic", category: "rank", name: "Mythic", tagline: "Stories will be told.", price: "₱1,499", rarity: "Mythic", Icon: Sparkles,
-    perks: ["All Legend perks", "Early access to new features", "Custom join message", "Mythic-only Discord channel", "Personal staff support"],
+    id: "rank-monarch",
+    category: "rank",
+    name: "Monarch",
+    tagline: "The highest Lunaris rank package.",
+    price: "₱499",
+    Icon: Crown,
+    perks: ["All Celestial perks", "10 home points", "Monarch monthly kit", "Exclusive Monarch cosmetics"],
   },
 ];
 

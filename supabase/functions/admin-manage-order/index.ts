@@ -129,7 +129,18 @@ function commandsForItem(item: OrderItem, username: string): string[] {
   const cmds: string[] = [];
 
   // Ranks: detected by "rank" keyword or known rank names
-  if (name.includes("rank") || name.includes("vip") || name.includes("mythic") || name.includes("legend") || name.includes("overlord") || name.includes("cosmic") || name.includes("nova")) {
+  if (
+    !name.includes("bundle") &&
+    !name.includes("package") &&
+    (
+      name.includes("rank") ||
+      name.includes("crescent") ||
+      name.includes("nebula") ||
+      name.includes("solstice") ||
+      name.includes("celestial") ||
+      name.includes("monarch")
+    )
+  ) {
     // Give the rank via a permission plugin (LuckPerms style)
     const rank = extractRank(name);
     if (rank) cmds.push(`lp user ${username} parent add ${rank}`);
@@ -147,9 +158,10 @@ function commandsForItem(item: OrderItem, username: string): string[] {
 
   // Bundles: detected by "bundle" keyword
   if (name.includes("bundle") || name.includes("package") || name.includes("starter")) {
-    cmds.push(`lp user ${username} parent add vip`);
+    const rank = extractRank(name);
+    if (rank) cmds.push(`lp user ${username} parent add ${rank}`);
     for (let i = 0; i < qty; i++) {
-      cmds.push(`crazycrate give common 1 ${username}`);
+      cmds.push(`crazycrate give ${extractKeyType(name)} 1 ${username}`);
       cmds.push(`eco give ${username} 50000`);
     }
     return cmds;
@@ -161,20 +173,20 @@ function commandsForItem(item: OrderItem, username: string): string[] {
 }
 
 function extractRank(name: string): string | null {
-  if (name.includes("cosmic")) return "cosmic";
-  if (name.includes("nova")) return "nova";
-  if (name.includes("overlord")) return "overlord";
-  if (name.includes("legend")) return "legend";
-  if (name.includes("mythic")) return "mythic";
-  if (name.includes("vip")) return "vip";
+  if (name.includes("monarch")) return "monarch";
+  if (name.includes("celestial") || name.includes("lunar")) return "celestial";
+  if (name.includes("solstice") || name.includes("adventurer")) return "solstice";
+  if (name.includes("nebula")) return "nebula";
+  if (name.includes("crescent") || name.includes("starter") || name.includes("guild")) return "crescent";
   return null;
 }
 
 function extractKeyType(name: string): string {
-  if (name.includes("mythic") || name.includes("legendary")) return "mythic";
-  if (name.includes("rare")) return "rare";
-  if (name.includes("epic")) return "epic";
-  return "common";
+  if (name.includes("eclipse") || name.includes("monarch")) return "eclipse";
+  if (name.includes("lunar")) return "lunar";
+  if (name.includes("star") || name.includes("adventurer")) return "star";
+  if (name.includes("moon") || name.includes("starter") || name.includes("guild")) return "moon";
+  return "starter";
 }
 
 // ---- Main handler ----

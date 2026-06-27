@@ -6,7 +6,6 @@ export type CartItem = {
   category: "rank" | "key" | "bundle";
   price: string; // display, e.g. "₱249"
   priceCents: number;
-  rarity: string;
   qty: number;
 };
 

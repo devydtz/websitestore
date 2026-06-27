@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { X, Minus, Plus, ShoppingCart, Trash2, ArrowRight } from "lucide-react";
+import { ArrowRight, Minus, Plus, ShoppingCart, Trash2, X } from "lucide-react";
 import { useCart, lineTotalDisplay } from "@/lib/cart";
 
 export function CartDrawer() {
@@ -57,9 +57,9 @@ export function CartDrawer() {
                   key={item.id}
                   className="animate-fade-in flex items-center gap-3 rounded-xl border border-border/60 bg-background/40 p-3"
                 >
-                  <div className="flex-1 min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-foreground">{item.name}</p>
-                    <p className="text-xs text-muted-foreground capitalize">{item.category} · {item.rarity}</p>
+                    <p className="text-xs capitalize text-muted-foreground">{item.category}</p>
                     <div className="mt-2 inline-flex items-center gap-1 rounded-full border border-border/60 px-1 py-0.5">
                       <button
                         onClick={() => setQty(item.id, item.qty - 1)}
@@ -105,7 +105,7 @@ export function CartDrawer() {
             <Link
               to="/checkout"
               onClick={close}
-              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-[0_0_30px_-5px_oklch(0.85_0.13_295/0.6)] transition hover:bg-accent hover:scale-[1.01]"
+              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-[0_0_30px_-5px_oklch(0.85_0.13_295/0.6)] transition hover:scale-[1.01] hover:bg-accent"
             >
               Checkout
               <ArrowRight className="h-4 w-4" />

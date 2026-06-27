@@ -16,7 +16,7 @@ const paths = [
     label: "Crate Keys",
     tagline: "Unlock the Unknown",
     title: "Crate Keys",
-    copy: "Open mystical crates and discover rare loot, enchanted gear, and legendary treasures.",
+    copy: "Open mystical crates and discover loot, enchanted gear, and premium treasures.",
     cta: "Browse Crate Keys",
     Icon: KeyRound,
   },

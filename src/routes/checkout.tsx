@@ -364,9 +364,7 @@ function CheckoutPage() {
                     <li key={i.id} className="flex items-start justify-between gap-3 text-sm">
                       <div className="min-w-0">
                         <p className="truncate font-semibold text-foreground">{i.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Qty {i.qty} · {i.rarity}
-                        </p>
+                        <p className="text-xs text-muted-foreground">Qty {i.qty}</p>
                       </div>
                       <span className="font-bold text-foreground">{lineTotalDisplay(i.priceCents, i.qty)}</span>
                     </li>
