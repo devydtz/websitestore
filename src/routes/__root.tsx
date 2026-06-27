@@ -1,6 +1,5 @@
 import { type ReactNode } from "react";
 import { HeadContent, Outlet, Scripts, createRootRoute, useLocation, useRouter } from "@tanstack/react-router";
-import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Link } from "@tanstack/react-router";
 import { ShoppingCart } from "lucide-react";
 import appCss from "../styles.css?url";
@@ -83,7 +82,6 @@ function RootComponent() {
         <div className="relative">
           <HeadContent />
           <Outlet />
-          <TanStackRouterDevtools position="bottom-right" />
           <Scripts />
         </div>
       </CartProvider>
