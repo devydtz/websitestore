@@ -1,0 +1,7 @@
+download = true
+prefer = "latest"
+[install.git]
+# The 2 lines below have no effect since lockfile is checked in
+packages = ["vite"]
+minimumReleaseAge = 1
+minimumReleaseAgeExcludes = []
