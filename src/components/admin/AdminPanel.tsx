@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   ShieldCheck,
   Lock,
@@ -436,7 +436,7 @@ function StatCard({
   value,
   tone,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   value: string | number;
   tone: "warning" | "success" | "accent" | "primary";
@@ -457,7 +457,7 @@ function StatCard({
 }
 
 function StatusBadge({ status }: { status: OrderStatus }) {
-  const map: Record<OrderStatus, { label: string; cls: string; icon: React.ReactNode }> = {
+  const map: Record<OrderStatus, { label: string; cls: string; icon: ReactNode }> = {
     pending: {
       label: "Pending",
       cls: "bg-amber-500/15 text-amber-400 ring-amber-500/20",
