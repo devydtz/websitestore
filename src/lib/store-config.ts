@@ -6,7 +6,7 @@ export const STORE_GCASH_NUMBER = "09760064435";
 export const STORE_GCASH_DISPLAY = "0976 006 4435";
 export const STORE_GCASH_NAME = "Lunaris Craft Store";
 
-export const SERVER_IP = "mclunaris.fun";
+export const SERVER_IP = "mclunaris.fun:19075";
 
 export function formatMobileNumber(value: string): string {
   const d = value.replace(/\D/g, "").slice(0, 11);

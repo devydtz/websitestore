@@ -18,6 +18,7 @@ import { useAccount } from "@/lib/account";
 import { createOrder } from "@/lib/supabase";
 import {
   formatMobileNumber,
+  SERVER_IP,
   STORE_GCASH_DISPLAY,
   STORE_GCASH_NAME,
   STORE_GCASH_NUMBER,
@@ -148,7 +149,7 @@ function CheckoutPage() {
                 Order <span className="font-mono text-foreground">#{done}</span> is awaiting payment
                 verification by our team. Once your GCash payment is confirmed, your rewards will be
                 delivered automatically in-game when you join{" "}
-                <span className="font-mono text-foreground">mclunaris.fun</span>.
+                <span className="font-mono text-foreground">{SERVER_IP}</span>.
               </p>
               <div className="mt-6 flex flex-wrap justify-center gap-3">
                 <Link

@@ -20,6 +20,7 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { PageHero } from "@/components/PageHero";
 import { useAccount, type Edition } from "@/lib/account";
 import { getPasswordStrength, type PasswordStrength } from "@/lib/auth-utils";
+import { SERVER_IP } from "@/lib/store-config";
 
 export const Route = createFileRoute("/account")({
   head: () => ({
@@ -327,7 +328,7 @@ function AccountPage() {
               </p>
 
               <p className="mt-3 text-center text-[11px] text-muted-foreground">
-                You must have joined <span className="font-mono text-foreground">mclunaris.fun</span> at least once.
+                You must have joined <span className="font-mono text-foreground">{SERVER_IP}</span> at least once.
               </p>
             </form>
           </section>
