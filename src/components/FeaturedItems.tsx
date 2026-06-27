@@ -1,18 +1,18 @@
-import { Crown, KeyRound, Package, Plus, Sparkles } from "lucide-react";
+import { Crown, Moon, Plus, Shield, Sparkles } from "lucide-react";
 import { useCart, priceToCents } from "@/lib/cart";
 
 const items: Array<{
   id: string;
-  category: "rank" | "key" | "bundle";
+  category: "rank";
   name: string;
   copy: string;
   price: string;
   Icon: typeof Crown;
 }> = [
-  { id: "rank-crescent", category: "rank", name: "Crescent Rank", copy: "Your first step into the Lunaris realm.", price: "₱99", Icon: Crown },
-  { id: "rank-monarch", category: "rank", name: "Monarch Rank", copy: "The highest Lunaris rank package.", price: "₱499", Icon: Sparkles },
-  { id: "key-lunar", category: "key", name: "Lunar Key", copy: "Open the Lunar Crate for premium moonlit rewards.", price: "₱399", Icon: KeyRound },
-  { id: "bundle-starter", category: "bundle", name: "Starter Bundle", copy: "Crescent Rank + 3 Crate Keys + ₱120 store credit. Perfect start.", price: "₱499", Icon: Package },
+  { id: "rank-crescent", category: "rank", name: "Crescent Rank", copy: "Start with claim blocks, homes, vaults, PWarps, and /workbench.", price: "₱99", Icon: Shield },
+  { id: "rank-solstice", category: "rank", name: "Solstice Rank", copy: "Adds claim fly, /anvil, more homes, more vaults, and a cosmetic key draw.", price: "₱299", Icon: Moon },
+  { id: "rank-celestial", category: "rank", name: "Celestial Rank", copy: "Unlock /nick, /glow, chat colors, /repair, and bigger limits.", price: "₱399", Icon: Sparkles },
+  { id: "rank-monarch", category: "rank", name: "Monarch Rank", copy: "The highest rank with max limits, /resize, /itemname, and extra key draws.", price: "₱499", Icon: Crown },
 ];
 
 export function FeaturedItems() {

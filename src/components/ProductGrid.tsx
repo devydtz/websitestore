@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Check, Plus } from "lucide-react";
+import { Check, Clock, Plus } from "lucide-react";
 import { useCart, priceToCents } from "@/lib/cart";
 
 export type Product = {
@@ -38,14 +38,21 @@ export function ProductGrid({ products }: { products: Product[] }) {
             </div>
             <h3 className="mt-5 text-xl font-bold text-foreground">{p.name}</h3>
             <p className="mt-1 text-sm text-muted-foreground">{p.tagline}</p>
-            <ul className="mt-5 space-y-2 text-sm text-foreground/85">
-              {p.perks.map((perk) => (
-                <li key={perk} className="flex items-start gap-2">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
-                  <span>{perk}</span>
-                </li>
-              ))}
-            </ul>
+            {p.comingSoon ? (
+              <div className="mt-5 rounded-xl border border-accent/20 bg-accent/10 px-4 py-5 text-center text-sm font-semibold text-accent">
+                <Clock className="mx-auto mb-2 h-5 w-5" />
+                Details will be announced soon.
+              </div>
+            ) : (
+              <ul className="mt-5 space-y-2 text-sm text-foreground/85">
+                {p.perks.map((perk) => (
+                  <li key={perk} className="flex items-start gap-2">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+                    <span>{perk}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
             <div className="mt-6 flex flex-col items-center gap-3 border-t border-border/40 pt-5">
               <span className="text-2xl font-bold text-foreground">{p.comingSoon ? "Coming Soon" : p.price}</span>
               <button
