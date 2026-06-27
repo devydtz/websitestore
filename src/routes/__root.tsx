@@ -1,5 +1,5 @@
 import { type ReactNode } from "react";
-import { HeadContent, Outlet, Scripts, createRootRoute, useRouter } from "@tanstack/react-router";
+import { HeadContent, Outlet, Scripts, createRootRoute, useLocation, useRouter } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Link } from "@tanstack/react-router";
 import { ShoppingCart } from "lucide-react";
@@ -14,11 +14,19 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "theme-color", content: "#bda7ff" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-title", content: "Lunaris Admin" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { name: "description", content: "Lunaris Craft — Official Minecraft Server Store" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@LunarisCraft" },
     ],
     links: [
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "icon", type: "image/png", href: "/pwa-192.png" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
@@ -60,11 +68,18 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 function RootComponent() {
+  const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith("/admin");
+
   return (
     <AccountProvider>
       <CartProvider>
-        <CartButton />
-        <CartDrawer />
+        {!isAdminRoute && (
+          <>
+            <CartButton />
+            <CartDrawer />
+          </>
+        )}
         <div className="relative">
           <HeadContent />
           <Outlet />
