@@ -14,6 +14,7 @@ const bundles: Product[] = [
     tagline: "Crescent Rank + 3 Crate Keys + ₱120 store credit. Perfect start.",
     price: "₱499",
     Icon: Gift,
+    comingSoon: true,
     perks: ["Crescent Rank", "3× Moon Keys", "₱120 store credit", "Welcome cosmetic"],
   },
   {
@@ -24,6 +25,7 @@ const bundles: Product[] = [
     price: "₱999",
     Icon: Package,
     featured: true,
+    comingSoon: true,
     perks: ["Solstice Rank", "5× Moon Keys + 2× Star Keys", "₱300 store credit", "Exclusive cape"],
   },
   {
@@ -33,6 +35,7 @@ const bundles: Product[] = [
     tagline: "Walk in moonlight with the Lunar pack.",
     price: "₱1,749",
     Icon: Moon,
+    comingSoon: true,
     perks: ["Celestial Rank", "3× Lunar Keys", "Custom particle trail", "₱600 store credit"],
   },
   {
@@ -42,6 +45,7 @@ const bundles: Product[] = [
     tagline: "The ultimate package for serious players.",
     price: "₱2,499",
     Icon: Sparkles,
+    comingSoon: true,
     perks: ["Monarch Rank", "5× Lunar Keys", "1× Eclipse Key", "₱900 store credit", "Custom prefix"],
   },
   {
@@ -51,6 +55,7 @@ const bundles: Product[] = [
     tagline: "Limited. Powerful. Unforgettable.",
     price: "₱3,999",
     Icon: Sparkles,
+    comingSoon: true,
     perks: ["Monarch Rank", "3× Eclipse Keys", "Eclipse wings cosmetic", "₱1,500 store credit", "Personal /warp"],
   },
   {
@@ -60,6 +65,7 @@ const bundles: Product[] = [
     tagline: "Equip your squad with ranks at a discount.",
     price: "₱799",
     Icon: Gift,
+    comingSoon: true,
     perks: ["4× Crescent Ranks", "8× Moon Keys", "Shared guild vault unlock"],
   },
 ];

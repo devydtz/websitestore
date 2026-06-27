@@ -14,6 +14,7 @@ const keys: Product[] = [
     tagline: "Open the starter crate for useful survival rewards.",
     price: "₱99",
     Icon: Key,
+    comingSoon: true,
     perks: ["Enchanted tools", "Building blocks", "Food bundles", "Bonus reward chance"],
   },
   {
@@ -23,6 +24,7 @@ const keys: Product[] = [
     tagline: "Unlock upgraded gear and cosmetics.",
     price: "₱199",
     Icon: KeyRound,
+    comingSoon: true,
     perks: ["Diamond gear", "Cosmetics", "XP boosters", "Bonus crate drops"],
   },
   {
@@ -33,6 +35,7 @@ const keys: Product[] = [
     price: "₱299",
     Icon: KeyRound,
     featured: true,
+    comingSoon: true,
     perks: ["Netherite gear", "Custom enchants", "Pet eggs", "Particle trails"],
   },
   {
@@ -42,6 +45,7 @@ const keys: Product[] = [
     tagline: "Open the Lunar Crate for premium moonlit rewards.",
     price: "₱399",
     Icon: Moon,
+    comingSoon: true,
     perks: ["Powerful enchants", "Exclusive Lunar cosmetics", "Pet eggs", "High-tier gear chance"],
   },
   {
@@ -51,6 +55,7 @@ const keys: Product[] = [
     tagline: "The strongest crate key in the store.",
     price: "₱649",
     Icon: Sparkles,
+    comingSoon: true,
     perks: ["Guaranteed premium item", "Custom particle wings", "Eclipse-only cosmetics", "Bonus 1,000 server coins"],
   },
   {
@@ -60,6 +65,7 @@ const keys: Product[] = [
     tagline: "10 Moon Keys at a discount.",
     price: "₱1,499",
     Icon: KeyRound,
+    comingSoon: true,
     perks: ["10× Moon Keys", "Bonus 1 Star Key", "Stacks with rank multipliers"],
   },
 ];

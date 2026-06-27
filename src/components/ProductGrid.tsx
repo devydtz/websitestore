@@ -11,6 +11,7 @@ export type Product = {
   Icon: LucideIcon;
   perks: string[];
   featured?: boolean;
+  comingSoon?: boolean;
 };
 
 export function ProductGrid({ products }: { products: Product[] }) {
@@ -46,8 +47,9 @@ export function ProductGrid({ products }: { products: Product[] }) {
               ))}
             </ul>
             <div className="mt-6 flex flex-col items-center gap-3 border-t border-border/40 pt-5">
-              <span className="text-2xl font-bold text-foreground">{p.price}</span>
+              <span className="text-2xl font-bold text-foreground">{p.comingSoon ? "Coming Soon" : p.price}</span>
               <button
+                disabled={p.comingSoon}
                 onClick={() =>
                   add({
                     id: p.id,
@@ -57,10 +59,10 @@ export function ProductGrid({ products }: { products: Product[] }) {
                     priceCents: priceToCents(p.price),
                   })
                 }
-                className="group inline-flex items-center gap-1.5 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-accent hover:scale-105 active:scale-95"
+                className="group inline-flex items-center gap-1.5 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground transition hover:scale-105 hover:bg-accent active:scale-95 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:hover:scale-100"
               >
-                <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
-                Add
+                {!p.comingSoon && <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />}
+                {p.comingSoon ? "Coming Soon" : "Add"}
               </button>
             </div>
           </article>
