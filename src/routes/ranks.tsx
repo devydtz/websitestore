@@ -110,9 +110,9 @@ const ranks: Product[] = [
 export const Route = createFileRoute("/ranks")({
   head: () => ({
     meta: [
-      { title: "Ranks — Lunaris Craft" },
+      { title: "Ranks - Lunaris Craft" },
       { name: "description", content: "Rise through the ranks and unlock exclusive perks, commands, and cosmetics on Lunaris Craft." },
-      { property: "og:title", content: "Ranks — Lunaris Craft" },
+      { property: "og:title", content: "Ranks - Lunaris Craft" },
       { property: "og:description", content: "Rise through the ranks and unlock exclusive perks, commands, and cosmetics on Lunaris Craft." },
     ],
   }),

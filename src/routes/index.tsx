@@ -11,9 +11,9 @@ import { Sparkle } from "lucide-react";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Lunaris Craft — Official Minecraft Server Store" },
+      { title: "Lunaris Craft - Official Minecraft Server Store" },
       { name: "description", content: "Support the server and unlock ranks, cosmetic keys, and bundles to enhance your Lunaris Craft adventure." },
-      { property: "og:title", content: "Lunaris Craft — Official Minecraft Server Store" },
+      { property: "og:title", content: "Lunaris Craft - Official Minecraft Server Store" },
       { property: "og:description", content: "Support the server and unlock ranks, cosmetic keys, and bundles to enhance your Lunaris Craft adventure." },
       { property: "og:image", content: logoAsset },
       { name: "twitter:image", content: logoAsset },
@@ -51,7 +51,7 @@ function Hero() {
         <Sparkle className="h-3 w-3 text-accent" />
         Official Store
       </div>
-      <h1 className="sr-only">Lunaris Craft — Official Minecraft Server Store</h1>
+      <h1 className="sr-only">Lunaris Craft - Official Minecraft Server Store</h1>
       <p className="mt-6 max-w-xl text-balance text-base text-muted-foreground md:text-lg">
         Support the server and unlock ranks, cosmetic keys, to enhance your adventure.
       </p>

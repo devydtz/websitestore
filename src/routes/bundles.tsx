@@ -73,9 +73,9 @@ const bundles: Product[] = [
 export const Route = createFileRoute("/bundles")({
   head: () => ({
     meta: [
-      { title: "Bundles — Lunaris Craft" },
+      { title: "Bundles - Lunaris Craft" },
       { name: "description", content: "Curated packs combining ranks, keys, and exclusive items at unbeatable prices." },
-      { property: "og:title", content: "Bundles — Lunaris Craft" },
+      { property: "og:title", content: "Bundles - Lunaris Craft" },
       { property: "og:description", content: "Curated packs combining ranks, keys, and exclusive items at unbeatable prices." },
     ],
   }),
@@ -91,7 +91,7 @@ function BundlesPage() {
         <PageHero
           eyebrow="Maximum Value"
           title="Bundles"
-          description="Curated packs combining ranks, keys, and exclusive items at unbeatable prices — designed to launch you into the adventure."
+          description="Curated packs combining ranks, keys, and exclusive items at unbeatable prices, designed to launch you into the adventure."
         />
         <ProductGrid products={bundles} />
         <SiteFooter />

@@ -170,7 +170,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
         const users = readUsers();
         const user = users[key];
         if (!user) {
-          return { ok: false, error: "No account found. Create one first — sign up takes less than a minute." };
+          return { ok: false, error: "No account found. Create one first. Sign up takes less than a minute." };
         }
 
         const hash = await hashPassword(password, user.salt);

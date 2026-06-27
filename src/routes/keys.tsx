@@ -73,9 +73,9 @@ const keys: Product[] = [
 export const Route = createFileRoute("/keys")({
   head: () => ({
     meta: [
-      { title: "Crate Keys — Lunaris Craft" },
+      { title: "Crate Keys - Lunaris Craft" },
       { name: "description", content: "Open mystical crates and discover loot, enchanted gear, and premium treasures." },
-      { property: "og:title", content: "Crate Keys — Lunaris Craft" },
+      { property: "og:title", content: "Crate Keys - Lunaris Craft" },
       { property: "og:description", content: "Open mystical crates and discover loot, enchanted gear, and premium treasures." },
     ],
   }),

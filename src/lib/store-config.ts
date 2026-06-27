@@ -1,4 +1,4 @@
-/** Lunaris Craft store-wide settings — update here to keep checkout, nav, and footer in sync. */
+/** Lunaris Craft store-wide settings - update here to keep checkout, nav, and footer in sync. */
 
 export const DISCORD_INVITE_URL = "https://discord.gg/MEmcUGBgDw";
 

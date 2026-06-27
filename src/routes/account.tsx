@@ -25,12 +25,12 @@ import { SERVER_IP } from "@/lib/store-config";
 export const Route = createFileRoute("/account")({
   head: () => ({
     meta: [
-      { title: "Account — Lunaris Craft" },
+      { title: "Account - Lunaris Craft" },
       {
         name: "description",
         content: "Create your Lunaris Craft account or sign in to manage purchases and track your progress.",
       },
-      { property: "og:title", content: "Account — Lunaris Craft" },
+      { property: "og:title", content: "Account - Lunaris Craft" },
       {
         property: "og:description",
         content: "Create your Lunaris Craft account or sign in to manage purchases and track your progress.",
@@ -114,7 +114,7 @@ function AccountPage() {
                   <h2 className="text-lg font-bold">{mode === "signup" ? "Create Account" : "Sign In"}</h2>
                   <p className="text-xs text-muted-foreground">
                     {mode === "signup"
-                      ? "Sign up first — you'll need an account before checkout."
+                      ? "Sign up first. You'll need an account before checkout."
                       : "Welcome back. Enter your credentials to continue."}
                   </p>
                 </div>
@@ -204,7 +204,7 @@ function AccountPage() {
               </div>
               {edition === "bedrock" && (
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Bedrock players appear in-game with a leading dot — e.g.{" "}
+                  Bedrock players appear in-game with a leading dot, e.g.{" "}
                   <span className="font-mono text-foreground">.Devydtz</span>.
                 </p>
               )}

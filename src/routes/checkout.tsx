@@ -27,9 +27,9 @@ import {
 export const Route = createFileRoute("/checkout")({
   head: () => ({
     meta: [
-      { title: "Checkout — Lunaris Craft" },
+      { title: "Checkout - Lunaris Craft" },
       { name: "description", content: "Pay securely with GCash. Items deliver in-game within minutes." },
-      { property: "og:title", content: "Checkout — Lunaris Craft" },
+      { property: "og:title", content: "Checkout - Lunaris Craft" },
       { property: "og:description", content: "Pay securely with GCash. Items deliver in-game within minutes." },
     ],
   }),
@@ -191,7 +191,7 @@ function CheckoutPage() {
             </Link>
             <h1 className="font-display text-5xl">Checkout</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Pay in Philippine Peso (₱) via GCash — fast, secure, and local.
+              Pay in Philippine Peso (₱) via GCash. Fast, secure, and local.
             </p>
 
             {!account && (

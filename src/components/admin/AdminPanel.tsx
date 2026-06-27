@@ -331,7 +331,7 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
                   <tr key={order.id} className="transition hover:bg-background/30">
                     <td className="px-4 py-3">
                       <div className="font-mono text-xs text-foreground">{order.id}</div>
-                      <div className="text-xs text-muted-foreground">{order.reference_no || "—"}</div>
+                      <div className="text-xs text-muted-foreground">{order.reference_no || "N/A"}</div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
@@ -568,9 +568,9 @@ function OrderDrawer({
             </h3>
             <dl className="space-y-2 text-sm">
               <Row label="Method" value={order.method.toUpperCase()} />
-              <Row label="GCash Number" value={order.gcash_number || "—"} />
-              <Row label="GCash Name" value={order.gcash_name || "—"} />
-              <Row label="Reference No." value={order.reference_no || "—"} mono />
+              <Row label="GCash Number" value={order.gcash_number || "N/A"} />
+              <Row label="GCash Name" value={order.gcash_name || "N/A"} />
+              <Row label="Reference No." value={order.reference_no || "N/A"} mono />
               <Row label="Total" value={order.total_display} bold />
             </dl>
           </div>

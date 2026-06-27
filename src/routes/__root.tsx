@@ -18,7 +18,7 @@ export const Route = createRootRoute({
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-title", content: "Lunaris Admin" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
-      { name: "description", content: "Lunaris Craft — Official Minecraft Server Store" },
+      { name: "description", content: "Lunaris Craft - Official Minecraft Server Store" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@LunarisCraft" },
     ],

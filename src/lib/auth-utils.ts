@@ -2,7 +2,7 @@ export type PasswordStrength = "weak" | "fair" | "good" | "strong";
 
 export function validateUsername(raw: string): string | null {
   const clean = raw.trim().replace(/^\.+/, "");
-  if (clean.length < 3 || clean.length > 16) return "Username must be 3–16 characters.";
+  if (clean.length < 3 || clean.length > 16) return "Username must be 3-16 characters.";
   if (!/^[A-Za-z0-9_]+$/.test(clean)) return "Only letters, numbers, and underscores.";
   return null;
 }
