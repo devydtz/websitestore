@@ -31,6 +31,18 @@ function networkError(error: unknown, urls: string[]) {
   return `Could not reach Supabase (${message}). Tried: ${urls.join(", ")}. Check VITE_SUPABASE_URL and redeploy Cloudflare.`;
 }
 
+function databaseSetupError(table: string) {
+  return `Database setup needed: missing '${table}' table. Open Supabase SQL Editor, paste SUPABASE-ADMIN-FIX.sql, run it, then refresh this page.`;
+}
+
+function formatSupabaseError(url: string, message: string) {
+  if (/Could not find the table 'public\.(orders|accounts)'/i.test(message)) {
+    const table = message.match(/public\.(orders|accounts)/i)?.[1] ?? "orders";
+    return databaseSetupError(table);
+  }
+  return `${url}: ${message}`;
+}
+
 function getSupabase() {
   if (!supabaseUrl || !supabaseAnonKey) {
     return { ok: false as const, error: missingSupabaseConfigMessage };
@@ -134,7 +146,7 @@ export async function createOrder(order: NewOrder): Promise<{ ok: true } | { ok:
         status: "pending",
       });
       if (!error) return { ok: true };
-      lastError = `${url}: ${error.message}`;
+      lastError = formatSupabaseError(url, error.message);
     } catch (error) {
       lastError = networkError(error, [url]);
     }
@@ -179,7 +191,7 @@ export async function upsertAccountProfile(account: {
         .select("*")
         .maybeSingle();
       if (!error && data) return { ok: true, account: data as StoreAccount };
-      if (error) lastError = `${url}: ${error.message}`;
+      if (error) lastError = formatSupabaseError(url, error.message);
 
       const insertRes = await client
         .from("accounts")
@@ -192,7 +204,7 @@ export async function upsertAccountProfile(account: {
         .select("*")
         .maybeSingle();
       if (!insertRes.error) return { ok: true, account: insertRes.data as StoreAccount | null };
-      lastError = `${url}: ${insertRes.error.message}`;
+      lastError = formatSupabaseError(url, insertRes.error.message);
     } catch (error) {
       lastError = networkError(error, [url]);
     }
@@ -215,7 +227,7 @@ export async function getAccountProfile(
       const client = createClient(url, supabaseAnonKey);
       const { data, error } = await client.from("accounts").select("*").eq("id", id).maybeSingle();
       if (!error) return { ok: true, account: data as StoreAccount | null };
-      lastError = `${url}: ${error.message}`;
+      lastError = formatSupabaseError(url, error.message);
     } catch (error) {
       lastError = networkError(error, [url]);
     }
@@ -237,7 +249,7 @@ export async function listAccounts(): Promise<{ ok: true; accounts: StoreAccount
         .select("*")
         .order("created_at", { ascending: false });
       if (!error) return { ok: true, accounts: (data ?? []) as StoreAccount[] };
-      lastError = `${url}: ${error.message}`;
+      lastError = formatSupabaseError(url, error.message);
     } catch (error) {
       lastError = networkError(error, [url]);
     }
@@ -264,7 +276,7 @@ export async function setAccountFlags(
       const client = createClient(url, supabaseAnonKey);
       const { data, error } = await client.from("accounts").update(flags).eq("id", id).select("*").maybeSingle();
       if (!error && data) return { ok: true, account: data as StoreAccount };
-      lastError = error ? `${url}: ${error.message}` : "Account not found.";
+      lastError = error ? formatSupabaseError(url, error.message) : "Account not found.";
     } catch (error) {
       lastError = networkError(error, [url]);
     }
@@ -283,7 +295,7 @@ export async function getOrder(orderId: string): Promise<{ ok: true; order: Orde
       const client = createClient(url, supabaseAnonKey);
       const { data, error } = await client.from("orders").select("*").eq("id", orderId).maybeSingle();
       if (!error) return { ok: true, order: data as Order | null };
-      lastError = `${url}: ${error.message}`;
+      lastError = formatSupabaseError(url, error.message);
     } catch (error) {
       lastError = networkError(error, [url]);
     }
@@ -305,7 +317,7 @@ export async function listOrders(): Promise<{ ok: true; orders: Order[] } | { ok
         .select("*")
         .order("created_at", { ascending: false });
       if (!error) return { ok: true, orders: (data ?? []) as Order[] };
-      lastError = `${url}: ${error.message}`;
+      lastError = formatSupabaseError(url, error.message);
     } catch (error) {
       lastError = networkError(error, [url]);
     }
@@ -340,7 +352,7 @@ export async function saveAdminNote(
         .maybeSingle();
 
       if (error) {
-        lastError = `${url}: ${error.message}`;
+        lastError = formatSupabaseError(url, error.message);
         continue;
       }
       if (!data) {
@@ -402,7 +414,7 @@ export async function adminAction(
         .maybeSingle();
 
       if (error) {
-        lastError = `${url}: ${error.message}`;
+        lastError = formatSupabaseError(url, error.message);
         continue;
       }
       if (!data) {
