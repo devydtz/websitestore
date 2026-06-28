@@ -3,13 +3,13 @@ import { Copy, Check, Pickaxe } from "lucide-react";
 import { DISCORD_INVITE_URL, SERVER_HOST, SERVER_IP, SERVER_PORT } from "@/lib/store-config";
 
 export function JoinCTA() {
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<"ip" | "port" | null>(null);
 
-  const copy = async () => {
+  const copy = async (value: string, type: "ip" | "port") => {
     try {
-      await navigator.clipboard.writeText(SERVER_IP);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      await navigator.clipboard.writeText(value);
+      setCopied(type);
+      setTimeout(() => setCopied(null), 1500);
     } catch {
       // ignore
     }
@@ -24,24 +24,19 @@ export function JoinCTA() {
           Step into the world of Lunaris Craft and write your own story beneath the moonlit skies.
         </p>
 
-        <div className="mx-auto mt-10 flex max-w-md flex-col items-stretch gap-3 rounded-2xl border border-border bg-card/60 p-3 backdrop-blur md:flex-row md:items-center">
-          <div className="flex flex-1 flex-col gap-1 px-3 py-1 text-left">
-            <div className="flex items-center gap-3">
-              <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Server IP</span>
-              <span className="font-mono text-base font-semibold text-foreground">{SERVER_HOST}</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Port</span>
-              <span className="font-mono text-base font-semibold text-foreground">{SERVER_PORT}</span>
-            </div>
-          </div>
-          <button
-            onClick={copy}
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-background/40 px-4 py-2 text-sm font-medium text-foreground transition hover:border-accent hover:text-accent"
-          >
-            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-            {copied ? "Copied" : "Copy"}
-          </button>
+        <div className="mx-auto mt-10 grid max-w-xl gap-3 sm:grid-cols-2">
+          <ServerInfoCard
+            label="Server IP"
+            value={SERVER_HOST}
+            copied={copied === "ip"}
+            onCopy={() => copy(SERVER_HOST, "ip")}
+          />
+          <ServerInfoCard
+            label="Port"
+            value={SERVER_PORT}
+            copied={copied === "port"}
+            onCopy={() => copy(SERVER_PORT, "port")}
+          />
         </div>
 
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
@@ -64,5 +59,33 @@ export function JoinCTA() {
         <p className="mt-5 text-xs text-muted-foreground">Java Edition 1.20+ · Bedrock supported</p>
       </div>
     </section>
+  );
+}
+
+function ServerInfoCard({
+  label,
+  value,
+  copied,
+  onCopy,
+}: {
+  label: string;
+  value: string;
+  copied: boolean;
+  onCopy: () => void;
+}) {
+  return (
+    <div className="rounded-2xl border border-border bg-card/60 p-4 text-left backdrop-blur">
+      <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{label}</span>
+      <div className="mt-2 flex items-center justify-between gap-3">
+        <span className="truncate font-mono text-base font-semibold text-foreground">{value}</span>
+        <button
+          onClick={onCopy}
+          className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-border bg-background/40 px-3 py-2 text-xs font-medium text-foreground transition hover:border-accent hover:text-accent"
+        >
+          {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+          {copied ? "Copied" : "Copy"}
+        </button>
+      </div>
+    </div>
   );
 }
