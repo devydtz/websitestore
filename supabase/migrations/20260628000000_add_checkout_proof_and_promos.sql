@@ -14,7 +14,3 @@ SET
   proof_confirmed = COALESCE(proof_confirmed, false),
   subtotal_cents = COALESCE(subtotal_cents, total_cents),
   subtotal_display = COALESCE(subtotal_display, total_display);
-
-DROP POLICY IF EXISTS "anon_update_orders" ON orders;
-CREATE POLICY "anon_update_orders" ON orders FOR UPDATE
-  TO anon, authenticated USING (true) WITH CHECK (true);

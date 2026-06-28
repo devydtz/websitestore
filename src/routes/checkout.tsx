@@ -1,25 +1,29 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, type ReactNode } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import {
-  Lock,
-  ShoppingBag,
-  ArrowLeft,
-  CheckCircle2,
-  User as UserIcon,
   AlertCircle,
-  Copy,
+  ArrowLeft,
   Check,
+  CheckCircle2,
   Clock3,
+  Copy,
   FileText,
+  Lock,
   ReceiptText,
   ShieldCheck,
+  ShoppingBag,
+  Tag,
+  UploadCloud,
+  User as UserIcon,
+  X,
 } from "lucide-react";
 import { Starfield } from "@/components/Starfield";
 import { Navbar } from "@/components/Navbar";
 import { SiteFooter } from "@/components/SiteFooter";
-import { useCart, lineTotalDisplay } from "@/lib/cart";
+import { centsToDisplay, lineTotalDisplay, useCart } from "@/lib/cart";
 import { useAccount } from "@/lib/account";
 import { createOrder } from "@/lib/supabase";
+import { applyPromo } from "@/lib/promos";
 import {
   formatMobileNumber,
   STORE_GCASH_DISPLAY,
@@ -41,13 +45,19 @@ export const Route = createFileRoute("/checkout")({
 });
 
 function CheckoutPage() {
-  const { items, totalDisplay, clear } = useCart();
+  const { items, clear } = useCart();
   const { account, recordPurchase } = useAccount();
   const navigate = useNavigate();
 
   const [gcashNumber, setGcashNumber] = useState("");
   const [referenceNo, setReferenceNo] = useState("");
   const [confirmed, setConfirmed] = useState(false);
+  const [promoInput, setPromoInput] = useState("");
+  const [promoCode, setPromoCode] = useState<string | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [proofImage, setProofImage] = useState<string | null>(null);
+  const [proofName, setProofName] = useState("");
+  const [proofConfirmed, setProofConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState<string | null>(null);
   const [submittedTotal, setSubmittedTotal] = useState<string | null>(null);
@@ -56,10 +66,19 @@ function CheckoutPage() {
 
   const gcashDigits = gcashNumber.replace(/\D/g, "");
   const referenceDigits = referenceNo.replace(/\D/g, "");
+  const subtotalCents = items.reduce((sum, i) => sum + i.priceCents * i.qty, 0);
+  const subtotalDisplay = centsToDisplay(subtotalCents);
+  const appliedPromo = promoCode ? applyPromo(promoCode, subtotalCents) : null;
+  const discountCents = appliedPromo?.ok ? appliedPromo.discountCents : 0;
+  const discountDisplay = appliedPromo?.ok ? appliedPromo.discountDisplay : centsToDisplay(0);
+  const checkoutTotalCents = Math.max(0, subtotalCents - discountCents);
+  const checkoutTotalDisplay = centsToDisplay(checkoutTotalCents);
   const paymentReady =
     Boolean(account) &&
     /^09\d{9}$/.test(gcashDigits) &&
     referenceDigits.length >= 10 &&
+    Boolean(proofImage) &&
+    proofConfirmed &&
     confirmed;
 
   const copyNumber = async () => {
@@ -70,7 +89,46 @@ function CheckoutPage() {
     } catch {}
   };
 
-  const onSubmit = async (e: React.FormEvent) => {
+  const applyPromoCode = () => {
+    setPromoError(null);
+    const result = applyPromo(promoInput, subtotalCents);
+    if (!result.ok) {
+      setPromoCode(null);
+      setPromoError(result.error);
+      return;
+    }
+    setPromoCode(result.code);
+    setPromoInput(result.code);
+  };
+
+  const removePromo = () => {
+    setPromoCode(null);
+    setPromoInput("");
+    setPromoError(null);
+  };
+
+  const handleProofUpload = (file: File | undefined) => {
+    setError(null);
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError("Upload an image proof from your GCash receipt.");
+      return;
+    }
+    if (file.size > 1_500_000) {
+      setError("Receipt image is too large. Upload a screenshot under 1.5 MB.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setProofImage(typeof reader.result === "string" ? reader.result : null);
+      setProofName(file.name);
+    };
+    reader.onerror = () => setError("Could not read receipt image. Try another screenshot.");
+    reader.readAsDataURL(file);
+  };
+
+  const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -78,14 +136,20 @@ function CheckoutPage() {
       setError("Please sign in or create an account before checking out.");
       return;
     }
-
-    const digits = gcashNumber.replace(/\D/g, "");
-    if (!/^09\d{9}$/.test(digits)) {
+    if (!/^09\d{9}$/.test(gcashDigits)) {
       setError("Enter a valid GCash mobile number (09XX XXX XXXX).");
       return;
     }
-    if (referenceNo.replace(/\D/g, "").length < 10) {
+    if (referenceDigits.length < 10) {
       setError("Enter your GCash reference number (at least 10 digits).");
+      return;
+    }
+    if (!proofImage) {
+      setError("Upload your GCash receipt screenshot before submitting.");
+      return;
+    }
+    if (!proofConfirmed) {
+      setError("Confirm that your receipt proof is from GCash and shows the exact amount.");
       return;
     }
     if (!confirmed) {
@@ -96,7 +160,6 @@ function CheckoutPage() {
     setSubmitting(true);
     await new Promise((r) => setTimeout(r, 1200));
     const orderId = "LC-" + Math.random().toString(36).slice(2, 8).toUpperCase();
-
     const orderItems = items.map((i) => ({
       id: i.id,
       name: i.name,
@@ -110,11 +173,18 @@ function CheckoutPage() {
       edition: account.edition,
       email: account.email,
       items: orderItems,
-      total_cents: items.reduce((sum, i) => sum + i.priceCents * i.qty, 0),
-      total_display: totalDisplay,
+      total_cents: checkoutTotalCents,
+      total_display: checkoutTotalDisplay,
       method: "gcash",
       gcash_number: formatMobileNumber(gcashNumber),
       reference_no: referenceNo.trim(),
+      proof_image: proofImage,
+      proof_confirmed: proofConfirmed,
+      promo_code: promoCode,
+      discount_cents: discountCents,
+      discount_display: discountDisplay,
+      subtotal_cents: subtotalCents,
+      subtotal_display: subtotalDisplay,
     });
 
     if (!supa.ok) {
@@ -128,13 +198,15 @@ function CheckoutPage() {
       date: new Date().toISOString(),
       items: items.map((i) => ({
         id: i.id,
-        name: `${i.name} ×${i.qty}`,
+        name: `${i.name} x${i.qty}`,
         price: lineTotalDisplay(i.priceCents, i.qty),
       })),
-      total: totalDisplay,
+      total: checkoutTotalDisplay,
       method: "gcash",
+      promoCode: promoCode ?? undefined,
+      discount: discountDisplay,
     });
-    setSubmittedTotal(totalDisplay);
+    setSubmittedTotal(checkoutTotalDisplay);
     setDone(orderId);
     clear();
     setSubmitting(false);
@@ -154,8 +226,8 @@ function CheckoutPage() {
               </div>
               <h1 className="mt-5 font-display text-5xl">Order Submitted</h1>
               <p className="mt-2 text-sm text-muted-foreground">
-                Order <span className="font-mono text-foreground">#{done}</span> is awaiting payment
-                verification by our team. Once your GCash payment is confirmed, your rewards will be delivered in-game.
+                Order <span className="font-mono text-foreground">#{done}</span> is awaiting payment verification by
+                our team. Once your GCash payment is confirmed, your rewards will be delivered in-game.
               </p>
               <div className="mt-6 rounded-2xl border border-border/60 bg-background/40 p-4 text-left">
                 <div className="flex items-center gap-2 text-sm font-bold text-foreground">
@@ -163,18 +235,9 @@ function CheckoutPage() {
                   Receipt Snapshot
                 </div>
                 <div className="mt-3 space-y-2 text-sm text-muted-foreground">
-                  <div className="flex justify-between gap-3">
-                    <span>Order ID</span>
-                    <span className="font-mono text-foreground">#{done}</span>
-                  </div>
-                  <div className="flex justify-between gap-3">
-                    <span>Status</span>
-                    <span className="font-semibold text-amber-400">Pending Verification</span>
-                  </div>
-                  <div className="flex justify-between gap-3">
-                    <span>Total</span>
-                    <span className="font-bold text-foreground">{submittedTotal ?? totalDisplay}</span>
-                  </div>
+                  <InfoLine label="Order ID" value={`#${done}`} mono />
+                  <InfoLine label="Status" value="Pending Verification" valueClass="font-semibold text-amber-400" />
+                  <InfoLine label="Total" value={submittedTotal ?? checkoutTotalDisplay} valueClass="font-bold text-foreground" />
                 </div>
               </div>
               <div className="mt-6 flex flex-wrap justify-center gap-3">
@@ -224,7 +287,7 @@ function CheckoutPage() {
             </Link>
             <h1 className="font-display text-5xl">Checkout</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Pay in Philippine Peso (₱) via GCash. Fast, secure, and local.
+              Pay in Philippine Peso (PHP) via GCash. Fast, secure, and local.
             </p>
 
             <div className="mt-6 grid gap-3 md:grid-cols-3">
@@ -236,8 +299,8 @@ function CheckoutPage() {
               />
               <CheckoutStep
                 icon={<FileText className="h-4 w-4" />}
-                title="2. Payment Details"
-                copy={paymentReady ? "Ready to submit" : "Enter GCash receipt info"}
+                title="2. Receipt Details"
+                copy={paymentReady ? "Ready to submit" : "Add GCash proof"}
                 active={paymentReady}
               />
               <CheckoutStep
@@ -285,7 +348,7 @@ function CheckoutPage() {
                       <div>
                         <p className="font-semibold text-foreground">{account.displayName}</p>
                         <p className="text-xs text-muted-foreground">
-                          {account.edition === "bedrock" ? "Bedrock" : "Java"} · {account.email}
+                          {account.edition === "bedrock" ? "Bedrock" : "Java"} / {account.email}
                         </p>
                       </div>
                     </div>
@@ -298,7 +361,7 @@ function CheckoutPage() {
                       <GcashLogo />
                       <div>
                         <h2 className="text-lg font-bold text-foreground">Pay with GCash</h2>
-                        <p className="text-xs text-muted-foreground">Send the exact total to our merchant number</p>
+                        <p className="text-xs text-muted-foreground">Scan the QR, then upload your receipt proof.</p>
                       </div>
                     </div>
                   </div>
@@ -306,7 +369,11 @@ function CheckoutPage() {
                   <div className="space-y-5 p-6">
                     <div className="grid gap-4 rounded-xl border border-[#007DFF]/25 bg-background/50 p-4 md:grid-cols-[180px_1fr]">
                       <div className="rounded-2xl border border-white/10 bg-white p-3 shadow-[0_0_30px_-12px_rgba(0,125,255,0.7)]">
-                        <img src={STORE_GCASH_QR} alt="GCash QR code" className="aspect-square w-full rounded-xl object-cover" />
+                        <img
+                          src={STORE_GCASH_QR}
+                          alt="GCash QR code"
+                          className="aspect-square w-full rounded-xl object-cover"
+                        />
                       </div>
                       <div className="flex flex-col justify-center">
                         <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
@@ -327,31 +394,50 @@ function CheckoutPage() {
                           </button>
                         </div>
                         <p className="mt-4 rounded-xl border border-[#007DFF]/20 bg-[#007DFF]/10 px-4 py-3 text-lg font-bold text-foreground">
-                          Send exactly <span className="text-[#007DFF]">{totalDisplay}</span>
+                          Send exactly <span className="text-[#007DFF]">{checkoutTotalDisplay}</span>
                         </p>
                       </div>
                     </div>
 
-                    <ol className="space-y-2 text-sm text-muted-foreground">
-                      <li className="flex gap-2">
-                        <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#007DFF]/15 text-[10px] font-bold text-[#007DFF]">
-                          1
-                        </span>
-                        Open GCash and tap <span className="font-semibold text-foreground">Send Money</span>.
-                      </li>
-                      <li className="flex gap-2">
-                        <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#007DFF]/15 text-[10px] font-bold text-[#007DFF]">
-                          2
-                        </span>
-                        Enter our number and send exactly <span className="font-semibold text-foreground">{totalDisplay}</span>.
-                      </li>
-                      <li className="flex gap-2">
-                        <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#007DFF]/15 text-[10px] font-bold text-[#007DFF]">
-                          3
-                        </span>
-                        Fill in your details below and submit your reference number.
-                      </li>
-                    </ol>
+                    <div className="rounded-xl border border-border/60 bg-background/30 p-4">
+                      <label className="block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                        Promo Code
+                      </label>
+                      <div className="mt-2 flex gap-2">
+                        <input
+                          value={promoInput}
+                          onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+                          placeholder="LAUNCH10"
+                          disabled={!account || Boolean(promoCode)}
+                          className="min-w-0 flex-1 rounded-xl border border-border bg-background/60 px-4 py-3 font-mono text-sm uppercase tracking-wider focus:border-accent focus:outline-none disabled:opacity-50"
+                        />
+                        {promoCode ? (
+                          <button
+                            type="button"
+                            onClick={removePromo}
+                            className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 text-sm font-semibold text-red-400"
+                          >
+                            Remove
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={applyPromoCode}
+                            disabled={!account || !promoInput.trim()}
+                            className="rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                          >
+                            Apply
+                          </button>
+                        )}
+                      </div>
+                      {appliedPromo?.ok && (
+                        <p className="mt-2 flex items-center gap-1.5 text-xs text-emerald-400">
+                          <Tag className="h-3.5 w-3.5" />
+                          {appliedPromo.code} applied. You saved {appliedPromo.discountDisplay}.
+                        </p>
+                      )}
+                      {promoError && <p className="mt-2 text-xs text-destructive">{promoError}</p>}
+                    </div>
 
                     <label className="block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                       Your GCash Number
@@ -377,10 +463,62 @@ function CheckoutPage() {
                       className="w-full rounded-xl border border-border bg-background/60 px-4 py-3 font-mono text-sm tracking-wider focus:border-[#007DFF] focus:outline-none disabled:opacity-50"
                     />
 
+                    <div className="rounded-xl border border-border/60 bg-background/30 p-4">
+                      <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-border/80 bg-card/30 p-5 text-center transition hover:border-accent">
+                        <UploadCloud className="h-8 w-8 text-accent" />
+                        <span className="mt-2 text-sm font-semibold text-foreground">Upload GCash receipt proof</span>
+                        <span className="mt-1 text-xs text-muted-foreground">PNG/JPG/WebP, max 1.5 MB</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          disabled={!account}
+                          onChange={(e) => handleProofUpload(e.target.files?.[0])}
+                          className="sr-only"
+                        />
+                      </label>
+                      {proofImage && (
+                        <div className="mt-4 flex items-center gap-3 rounded-xl border border-border/60 bg-background/50 p-3">
+                          <img src={proofImage} alt="GCash receipt proof" className="h-16 w-16 rounded-lg object-cover" />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold text-foreground">{proofName || "Receipt uploaded"}</p>
+                            <p className="text-xs text-emerald-400">Proof attached</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setProofImage(null);
+                              setProofName("");
+                              setProofConfirmed(false);
+                            }}
+                            className="grid h-8 w-8 place-items-center rounded-full border border-border text-muted-foreground hover:text-destructive"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#007DFF]/25 bg-[#007DFF]/10 p-4">
+                      <input
+                        type="checkbox"
+                        checked={proofConfirmed}
+                        onChange={(e) => setProofConfirmed(e.target.checked)}
+                        disabled={!account || !proofImage}
+                        className="mt-1 h-4 w-4 rounded border-border accent-[#007DFF]"
+                      />
+                      <span className="text-sm text-muted-foreground">
+                        My uploaded screenshot is from GCash and clearly shows the exact payment amount{" "}
+                        <span className="font-semibold text-foreground">{checkoutTotalDisplay}</span>, the reference
+                        number, and the payment date.
+                      </span>
+                    </label>
+
                     <div className="grid gap-2 rounded-xl border border-border/60 bg-background/30 p-4 text-xs text-muted-foreground sm:grid-cols-2">
                       <VerificationCheck ok={Boolean(account)} label="Account selected" />
                       <VerificationCheck ok={/^09\d{9}$/.test(gcashDigits)} label="Valid GCash number" />
                       <VerificationCheck ok={referenceDigits.length >= 10} label="Reference number entered" />
+                      <VerificationCheck ok={Boolean(proofImage)} label="Receipt proof uploaded" />
+                      <VerificationCheck ok={proofConfirmed} label="Proof amount confirmed" />
                       <VerificationCheck ok={confirmed} label="Payment confirmation checked" />
                     </div>
 
@@ -393,8 +531,8 @@ function CheckoutPage() {
                         className="mt-1 h-4 w-4 rounded border-border accent-[#007DFF]"
                       />
                       <span className="text-sm text-muted-foreground">
-                        I confirm I have sent <span className="font-semibold text-foreground">{totalDisplay}</span> via
-                        GCash to <span className="font-mono text-foreground">{STORE_GCASH_DISPLAY}</span>.
+                        I confirm I have sent <span className="font-semibold text-foreground">{checkoutTotalDisplay}</span>{" "}
+                        via GCash to <span className="font-mono text-foreground">{STORE_GCASH_DISPLAY}</span>.
                       </span>
                     </label>
 
@@ -426,21 +564,13 @@ function CheckoutPage() {
                   ))}
                 </ul>
                 <div className="mt-5 border-t border-border/60 pt-4">
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <span>Subtotal</span>
-                    <span>{totalDisplay}</span>
-                  </div>
-                  <div className="mt-1 flex items-center justify-between text-sm text-muted-foreground">
-                    <span>Payment method</span>
-                    <span className="font-semibold text-[#007DFF]">GCash</span>
-                  </div>
-                  <div className="mt-1 flex items-center justify-between text-sm text-muted-foreground">
-                    <span>Currency</span>
-                    <span>PHP (₱)</span>
-                  </div>
+                  <InfoLine label="Subtotal" value={subtotalDisplay} />
+                  {discountCents > 0 && <InfoLine label={`Discount ${promoCode ?? ""}`} value={`-${discountDisplay}`} valueClass="font-semibold text-emerald-400" />}
+                  <InfoLine label="Payment method" value="GCash" valueClass="font-semibold text-[#007DFF]" />
+                  <InfoLine label="Currency" value="PHP" />
                   <div className="mt-3 flex items-center justify-between text-base font-bold">
                     <span>Total</span>
-                    <span className="text-xl">{totalDisplay}</span>
+                    <span className="text-xl">{checkoutTotalDisplay}</span>
                   </div>
                 </div>
                 <div className="mt-5 rounded-2xl border border-border/60 bg-background/35 p-4">
@@ -449,7 +579,7 @@ function CheckoutPage() {
                     What happens next
                   </h3>
                   <ol className="mt-3 space-y-2 text-xs text-muted-foreground">
-                    <li>1. Submit your GCash reference number.</li>
+                    <li>1. Submit your GCash reference and receipt proof.</li>
                     <li>2. Admin verifies the payment in the panel.</li>
                     <li>3. Your rank is delivered in-game after approval.</li>
                   </ol>
@@ -489,9 +619,7 @@ function CheckoutStep({ icon, title, copy, active }: { icon: ReactNode; title: s
   return (
     <div
       className={`rounded-2xl border px-4 py-3 ${
-        active
-          ? "border-accent/40 bg-accent/10 text-foreground"
-          : "border-border/60 bg-card/45 text-muted-foreground"
+        active ? "border-accent/40 bg-accent/10 text-foreground" : "border-border/60 bg-card/45 text-muted-foreground"
       }`}
     >
       <div className="flex items-center gap-2 text-sm font-bold">
@@ -508,6 +636,25 @@ function VerificationCheck({ ok, label }: { ok: boolean; label: string }) {
     <div className={`flex items-center gap-2 ${ok ? "text-emerald-400" : "text-muted-foreground"}`}>
       {ok ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Clock3 className="h-3.5 w-3.5" />}
       <span>{label}</span>
+    </div>
+  );
+}
+
+function InfoLine({
+  label,
+  value,
+  mono,
+  valueClass,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+  valueClass?: string;
+}) {
+  return (
+    <div className="flex justify-between gap-3 text-sm text-muted-foreground">
+      <span>{label}</span>
+      <span className={`${mono ? "font-mono" : ""} ${valueClass ?? "text-foreground"}`}>{value}</span>
     </div>
   );
 }

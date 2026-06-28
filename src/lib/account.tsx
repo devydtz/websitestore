@@ -15,6 +15,8 @@ export type PurchaseRecord = {
   items: { id: string; name: string; price: string }[];
   total: string;
   method?: "gcash";
+  promoCode?: string;
+  discount?: string;
 };
 
 export type Account = {

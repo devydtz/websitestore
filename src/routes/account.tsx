@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import {
   User,
   Lock,
@@ -13,6 +13,10 @@ import {
   UserPlus,
   ShieldCheck,
   Sparkles,
+  ReceiptText,
+  Tag,
+  TrendingUp,
+  Trophy,
 } from "lucide-react";
 import { Starfield } from "@/components/Starfield";
 import { Navbar } from "@/components/Navbar";
@@ -64,6 +68,7 @@ function AccountPage() {
 
   const strength = getPasswordStrength(password);
   const strengthInfo = strengthMeta[strength];
+  const profileStats = account ? getProfileStats(account.history) : null;
 
   const resetForm = (nextMode: AuthMode) => {
     setMode(nextMode);
@@ -72,7 +77,7 @@ function AccountPage() {
     setConfirmPassword("");
   };
 
-  const submit = async (e: React.FormEvent) => {
+  const submit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
@@ -334,7 +339,7 @@ function AccountPage() {
           </section>
         ) : (
           <section className="px-6 pb-24">
-            <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[1fr_2fr]">
+            <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[1fr_2fr]">
               <div className="pixel-card rounded-2xl p-6 text-center animate-fade-in">
                 <div className="mx-auto mb-4 grid h-72 w-full place-items-center overflow-hidden rounded-xl bg-background/60">
                   <img
@@ -351,6 +356,11 @@ function AccountPage() {
                   {account.edition === "bedrock" ? "Bedrock Edition" : "Java Edition"}
                 </p>
                 <p className="mt-2 text-xs text-muted-foreground">{account.email}</p>
+                <div className="mt-5 grid gap-3 text-left">
+                  <MiniProfileStat label="Best Rank" value={profileStats?.ownedRank ?? "None yet"} />
+                  <MiniProfileStat label="Favorite Category" value={profileStats?.favoriteCategory ?? "None yet"} />
+                  <MiniProfileStat label="Latest Order" value={profileStats?.latestOrder ?? "No orders"} mono />
+                </div>
                 <button
                   onClick={signOut}
                   className="mt-5 inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-4 py-2 text-xs font-semibold text-muted-foreground transition hover:border-destructive hover:text-destructive"
@@ -360,59 +370,80 @@ function AccountPage() {
                 </button>
               </div>
 
-              <div className="pixel-card rounded-2xl p-6 animate-fade-in">
-                <div className="mb-5 flex items-center gap-3">
-                  <div className="grid h-10 w-10 place-items-center rounded-lg bg-primary/10 text-accent ring-1 ring-accent/30">
-                    <ShoppingBag className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold">Purchase History</h3>
-                    <p className="text-xs text-muted-foreground">Orders paid via GCash deliver in-game within minutes.</p>
-                  </div>
+              <div className="space-y-6">
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                  <ProfileStatCard icon={<ReceiptText className="h-5 w-5" />} label="Orders" value={profileStats?.orderCount ?? 0} />
+                  <ProfileStatCard icon={<TrendingUp className="h-5 w-5" />} label="Total Spent" value={profileStats?.totalSpent ?? "PHP 0"} />
+                  <ProfileStatCard icon={<TagIcon />} label="Promo Saved" value={profileStats?.promoSaved ?? "PHP 0"} />
+                  <ProfileStatCard icon={<Trophy className="h-5 w-5" />} label="Rank Level" value={profileStats?.ownedRank ?? "Starter"} />
                 </div>
-                {account.history.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-border/60 p-8 text-center text-sm text-muted-foreground">
-                    No purchases yet.{" "}
-                    <Link to="/ranks" className="font-semibold text-accent hover:underline">
-                      Browse the store
-                    </Link>{" "}
-                    to get started.
+
+                <div className="pixel-card rounded-2xl p-6 animate-fade-in">
+                  <div className="mb-5 flex items-center gap-3">
+                    <div className="grid h-10 w-10 place-items-center rounded-lg bg-primary/10 text-accent ring-1 ring-accent/30">
+                      <ShoppingBag className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold">Purchase History</h3>
+                      <p className="text-xs text-muted-foreground">Track orders, promos, and rewards from your profile.</p>
+                    </div>
                   </div>
-                ) : (
-                  <ul className="space-y-3">
-                    {account.history.map((p) => (
-                      <li key={p.id} className="rounded-xl border border-border/60 bg-background/40 p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-xs font-mono text-muted-foreground">#{p.id}</p>
-                            <p className="text-xs text-muted-foreground">{new Date(p.date).toLocaleString("en-PH")}</p>
+                  {account.history.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-border/60 p-8 text-center text-sm text-muted-foreground">
+                      No purchases yet.{" "}
+                      <Link to="/ranks" className="font-semibold text-accent hover:underline">
+                        Browse the store
+                      </Link>{" "}
+                      to get started.
+                    </div>
+                  ) : (
+                    <ul className="space-y-3">
+                      {account.history.map((p) => (
+                        <li key={p.id} className="rounded-xl border border-border/60 bg-background/40 p-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <p className="text-xs font-mono text-muted-foreground">#{p.id}</p>
+                              <p className="text-xs text-muted-foreground">{new Date(p.date).toLocaleString("en-PH")}</p>
+                            </div>
+                            <div className="text-right">
+                              <span className="text-lg font-bold text-foreground">{p.total}</span>
+                              <div className="mt-1 flex flex-wrap justify-end gap-1.5">
+                                {p.method === "gcash" && (
+                                  <span className="rounded-full bg-[#007DFF]/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[#007DFF]">
+                                    GCash
+                                  </span>
+                                )}
+                                {p.promoCode && (
+                                  <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-400">
+                                    {p.promoCode}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <span className="text-lg font-bold text-foreground">{p.total}</span>
-                            {p.method === "gcash" && (
-                              <p className="text-[10px] font-semibold uppercase tracking-wider text-[#007DFF]">GCash</p>
-                            )}
-                          </div>
-                        </div>
-                        <ul className="mt-2 space-y-1 text-sm text-foreground/85">
-                          {p.items.map((i) => (
-                            <li key={i.id} className="flex justify-between">
-                              <span>{i.name}</span>
-                              <span className="text-muted-foreground">{i.price}</span>
-                            </li>
-                          ))}
-                        </ul>
-                        <Link
-                          to="/order/$orderId"
-                          params={{ orderId: p.id }}
-                          className="mt-3 inline-flex rounded-full border border-border bg-card/60 px-4 py-2 text-xs font-semibold text-foreground transition hover:border-accent hover:text-accent"
-                        >
-                          Track Order
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                          <ul className="mt-3 space-y-1 text-sm text-foreground/85">
+                            {p.items.map((i) => (
+                              <li key={i.id} className="flex justify-between gap-3">
+                                <span>{i.name}</span>
+                                <span className="text-muted-foreground">{i.price}</span>
+                              </li>
+                            ))}
+                          </ul>
+                          {p.discount && displayToCents(p.discount) > 0 && (
+                            <p className="mt-2 text-xs text-emerald-400">Saved {p.discount} with promo.</p>
+                          )}
+                          <Link
+                            to="/order/$orderId"
+                            params={{ orderId: p.id }}
+                            className="mt-3 inline-flex rounded-full border border-border bg-card/60 px-4 py-2 text-xs font-semibold text-foreground transition hover:border-accent hover:text-accent"
+                          >
+                            Track Order
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </div>
             </div>
           </section>
@@ -421,4 +452,72 @@ function AccountPage() {
       </div>
     </div>
   );
+}
+
+function MiniProfileStat({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="rounded-xl border border-border/60 bg-background/40 px-4 py-3">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{label}</p>
+      <p className={`${mono ? "font-mono" : ""} mt-1 text-sm font-bold text-foreground`}>{value}</p>
+    </div>
+  );
+}
+
+function ProfileStatCard({ icon, label, value }: { icon: ReactNode; label: string; value: string | number }) {
+  return (
+    <div className="pixel-card rounded-2xl p-5">
+      <div className="inline-flex rounded-xl bg-primary/10 p-2.5 text-accent ring-1 ring-accent/20">{icon}</div>
+      <div className="mt-3 truncate text-xl font-bold text-foreground">{value}</div>
+      <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</div>
+    </div>
+  );
+}
+
+function TagIcon() {
+  return <Tag className="h-5 w-5" />;
+}
+
+function getProfileStats(history: Array<{ id: string; date: string; items: { id: string; name: string; price: string }[]; total: string; discount?: string }>) {
+  const orderCount = history.length;
+  const totalSpentCents = history.reduce((sum, purchase) => sum + displayToCents(purchase.total), 0);
+  const promoSavedCents = history.reduce((sum, purchase) => sum + displayToCents(purchase.discount ?? "PHP 0"), 0);
+  const rankOrder = ["Crescent", "Nebula", "Solstice", "Celestial", "Monarch"];
+  const ownedRank =
+    [...history]
+      .flatMap((purchase) => purchase.items)
+      .map((item) => rankOrder.find((rank) => item.name.toLowerCase().includes(rank.toLowerCase())))
+      .filter(Boolean)
+      .sort((a, b) => rankOrder.indexOf(b as string) - rankOrder.indexOf(a as string))[0] ?? "Starter";
+  const categoryCounts = history.reduce<Record<string, number>>((counts, purchase) => {
+    purchase.items.forEach((item) => {
+      const category = item.id.startsWith("rank") ? "Ranks" : item.id.startsWith("key") ? "Keys" : "Bundles";
+      counts[category] = (counts[category] ?? 0) + 1;
+    });
+    return counts;
+  }, {});
+  const favoriteCategory =
+    Object.entries(categoryCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "None yet";
+
+  return {
+    orderCount,
+    totalSpent: centsToPhp(totalSpentCents),
+    promoSaved: centsToPhp(promoSavedCents),
+    ownedRank,
+    favoriteCategory,
+    latestOrder: history[0]?.id ?? "No orders",
+  };
+}
+
+function displayToCents(value: string): number {
+  const amount = Number(value.replace(/[^0-9.]/g, ""));
+  return Math.round((Number.isFinite(amount) ? amount : 0) * 100);
+}
+
+function centsToPhp(cents: number): string {
+  return new Intl.NumberFormat("en-PH", {
+    style: "currency",
+    currency: "PHP",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(cents / 100);
 }
