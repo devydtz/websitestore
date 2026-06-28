@@ -5,6 +5,7 @@ export const DISCORD_INVITE_URL = "https://discord.gg/MEmcUGBgDw";
 export const STORE_GCASH_NUMBER = "09760064435";
 export const STORE_GCASH_DISPLAY = "0976 006 4435";
 export const STORE_GCASH_NAME = "Lunaris Craft Store";
+export const STORE_GCASH_QR = "/gcash-qr.webp";
 
 export const SERVER_HOST = "mclunaris.fun";
 export const SERVER_PORT = "19075";

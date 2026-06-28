@@ -402,6 +402,13 @@ function AccountPage() {
                             </li>
                           ))}
                         </ul>
+                        <Link
+                          to="/order/$orderId"
+                          params={{ orderId: p.id }}
+                          className="mt-3 inline-flex rounded-full border border-border bg-card/60 px-4 py-2 text-xs font-semibold text-foreground transition hover:border-accent hover:text-accent"
+                        >
+                          Track Order
+                        </Link>
                       </li>
                     ))}
                   </ul>

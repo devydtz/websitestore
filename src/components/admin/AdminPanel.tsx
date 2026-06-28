@@ -18,12 +18,12 @@ import {
   AlertCircle,
   Loader2,
   Gamepad2,
+  FileText,
 } from "lucide-react";
 import { Starfield } from "@/components/Starfield";
 import { Navbar } from "@/components/Navbar";
 import { SiteFooter } from "@/components/SiteFooter";
-import { listOrders, adminAction, type Order, type OrderStatus } from "@/lib/supabase";
-import { SERVER_IP } from "@/lib/store-config";
+import { listOrders, adminAction, saveAdminNote, type Order, type OrderStatus } from "@/lib/supabase";
 
 const ADMIN_TOKEN_KEY = "lunaris.admin.token.v1";
 const DEFAULT_ADMIN_PASSWORD = "lunaris-admin-2024";
@@ -149,6 +149,7 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Order | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [noteSaving, setNoteSaving] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [note, setNote] = useState("");
 
@@ -207,6 +208,20 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
 
   const refreshSelected = (order: Order) => {
     setSelected((prev) => (prev && prev.id === order.id ? order : prev));
+  };
+
+  const doSaveNote = async (order: Order) => {
+    setNoteSaving(true);
+    setActionError(null);
+    const res = await saveAdminNote(order.id, token, note);
+    if (res.ok) {
+      setOrders((prev) => prev.map((o) => (o.id === res.order.id ? res.order : o)));
+      setSelected(res.order);
+      setNote(res.order.admin_note ?? "");
+    } else {
+      setActionError(res.error);
+    }
+    setNoteSaving(false);
   };
 
   return (
@@ -423,6 +438,8 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
           actionError={actionError}
           note={note}
           setNote={setNote}
+          noteSaving={noteSaving}
+          onSaveNote={doSaveNote}
           onUpdate={refreshSelected}
         />
       )}
@@ -498,6 +515,8 @@ function OrderDrawer({
   actionError,
   note,
   setNote,
+  noteSaving,
+  onSaveNote,
 }: {
   order: Order;
   onClose: () => void;
@@ -506,6 +525,8 @@ function OrderDrawer({
   actionError: string | null;
   note: string;
   setNote: (v: string) => void;
+  noteSaving: boolean;
+  onSaveNote: (order: Order) => void;
   onUpdate: (order: Order) => void;
 }) {
   return (
@@ -634,6 +655,15 @@ function OrderDrawer({
               rows={2}
               className="w-full rounded-xl border border-border bg-card/60 px-4 py-2.5 text-sm text-foreground outline-none transition focus:border-accent"
             />
+            <button
+              type="button"
+              onClick={() => onSaveNote(order)}
+              disabled={noteSaving}
+              className="mt-3 inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-4 py-2 text-xs font-semibold text-accent transition hover:bg-accent/20 disabled:opacity-50"
+            >
+              {noteSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+              {noteSaving ? "Saving..." : "Save Note"}
+            </button>
           </div>
 
           {actionError && (
@@ -676,8 +706,7 @@ function OrderDrawer({
           )}
 
           <p className="text-center text-xs text-muted-foreground">
-            Confirmed orders are delivered automatically to{" "}
-            <span className="font-mono text-foreground">{SERVER_IP}</span> after approval.
+            Confirmed orders are queued for in-game delivery after approval.
           </p>
         </div>
       </div>

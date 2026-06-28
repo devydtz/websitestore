@@ -25,6 +25,7 @@ import {
   STORE_GCASH_DISPLAY,
   STORE_GCASH_NAME,
   STORE_GCASH_NUMBER,
+  STORE_GCASH_QR,
 } from "@/lib/store-config";
 
 export const Route = createFileRoute("/checkout")({
@@ -178,8 +179,15 @@ function CheckoutPage() {
               </div>
               <div className="mt-6 flex flex-wrap justify-center gap-3">
                 <Link
-                  to="/account"
+                  to="/order/$orderId"
+                  params={{ orderId: done }}
                   className="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-accent"
+                >
+                  Track Order
+                </Link>
+                <Link
+                  to="/account"
+                  className="rounded-full border border-border bg-card/60 px-5 py-2.5 text-sm font-semibold text-foreground transition hover:border-accent"
                 >
                   View Account
                 </Link>
@@ -296,27 +304,32 @@ function CheckoutPage() {
                   </div>
 
                   <div className="space-y-5 p-6">
-                    <div className="rounded-xl border border-[#007DFF]/25 bg-background/50 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                        Send payment to
-                      </p>
-                      <p className="mt-1 text-sm font-medium text-foreground">{STORE_GCASH_NAME}</p>
-                      <div className="mt-2 flex items-center justify-between gap-3">
-                        <p className="font-mono text-2xl font-bold tracking-wide text-[#007DFF]">
-                          {STORE_GCASH_DISPLAY}
-                        </p>
-                        <button
-                          type="button"
-                          onClick={copyNumber}
-                          className="inline-flex items-center gap-1.5 rounded-full border border-[#007DFF]/30 bg-[#007DFF]/10 px-3 py-1.5 text-xs font-semibold text-[#007DFF] transition hover:bg-[#007DFF]/20"
-                        >
-                          {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                          {copied ? "Copied" : "Copy"}
-                        </button>
+                    <div className="grid gap-4 rounded-xl border border-[#007DFF]/25 bg-background/50 p-4 md:grid-cols-[180px_1fr]">
+                      <div className="rounded-2xl border border-white/10 bg-white p-3 shadow-[0_0_30px_-12px_rgba(0,125,255,0.7)]">
+                        <img src={STORE_GCASH_QR} alt="GCash QR code" className="aspect-square w-full rounded-xl object-cover" />
                       </div>
-                      <p className="mt-3 text-lg font-bold text-foreground">
-                        Amount: <span className="text-[#007DFF]">{totalDisplay}</span>
-                      </p>
+                      <div className="flex flex-col justify-center">
+                        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                          Scan or send payment to
+                        </p>
+                        <p className="mt-1 text-sm font-medium text-foreground">{STORE_GCASH_NAME}</p>
+                        <div className="mt-3 flex flex-wrap items-center gap-3">
+                          <p className="font-mono text-2xl font-bold tracking-wide text-[#007DFF]">
+                            {STORE_GCASH_DISPLAY}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={copyNumber}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-[#007DFF]/30 bg-[#007DFF]/10 px-3 py-1.5 text-xs font-semibold text-[#007DFF] transition hover:bg-[#007DFF]/20"
+                          >
+                            {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                            {copied ? "Copied" : "Copy"}
+                          </button>
+                        </div>
+                        <p className="mt-4 rounded-xl border border-[#007DFF]/20 bg-[#007DFF]/10 px-4 py-3 text-lg font-bold text-foreground">
+                          Send exactly <span className="text-[#007DFF]">{totalDisplay}</span>
+                        </p>
+                      </div>
                     </div>
 
                     <ol className="space-y-2 text-sm text-muted-foreground">

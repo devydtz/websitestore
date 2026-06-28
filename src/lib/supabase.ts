@@ -114,6 +114,25 @@ export async function createOrder(order: NewOrder): Promise<{ ok: true } | { ok:
   return { ok: false, error: lastError || networkError("No Supabase URL responded", supabase.urls) };
 }
 
+export async function getOrder(orderId: string): Promise<{ ok: true; order: Order | null } | { ok: false; error: string }> {
+  const supabase = getSupabase();
+  if (!supabase.ok) return { ok: false, error: supabase.error };
+
+  let lastError = "";
+  for (const url of supabase.urls) {
+    try {
+      const client = createClient(url, supabaseAnonKey);
+      const { data, error } = await client.from("orders").select("*").eq("id", orderId).maybeSingle();
+      if (!error) return { ok: true, order: data as Order | null };
+      lastError = `${url}: ${error.message}`;
+    } catch (error) {
+      lastError = networkError(error, [url]);
+    }
+  }
+
+  return { ok: false, error: lastError || networkError("No Supabase URL responded", supabase.urls) };
+}
+
 export async function listOrders(): Promise<{ ok: true; orders: Order[] } | { ok: false; error: string }> {
   const supabase = getSupabase();
   if (!supabase.ok) return { ok: false, error: supabase.error };
@@ -137,6 +156,47 @@ export async function listOrders(): Promise<{ ok: true; orders: Order[] } | { ok
 }
 
 export type AdminAction = "confirm" | "reject";
+
+export async function saveAdminNote(
+  orderId: string,
+  adminToken: string,
+  note: string,
+): Promise<{ ok: true; order: Order } | { ok: false; error: string }> {
+  const supabase = getSupabase();
+  if (!supabase.ok) return { ok: false, error: supabase.error };
+
+  if (adminToken !== "lunaris-admin-2024") {
+    return { ok: false, error: "Incorrect admin password." };
+  }
+
+  let lastError = "";
+  for (const url of supabase.urls) {
+    try {
+      const client = createClient(url, supabaseAnonKey);
+      const { data, error } = await client
+        .from("orders")
+        .update({ admin_note: note.trim() || null })
+        .eq("id", orderId)
+        .select("*")
+        .maybeSingle();
+
+      if (error) {
+        lastError = `${url}: ${error.message}`;
+        continue;
+      }
+      if (!data) {
+        lastError = "Order not found. Refresh the admin panel.";
+        continue;
+      }
+
+      return { ok: true, order: data as Order };
+    } catch (error) {
+      lastError = networkError(error, [url]);
+    }
+  }
+
+  return { ok: false, error: lastError || networkError("No Supabase URL responded", supabase.urls) };
+}
 
 export async function adminAction(
   orderId: string,
