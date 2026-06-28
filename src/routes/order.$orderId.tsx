@@ -192,14 +192,10 @@ function OrderStatusPage() {
                     <InfoRow label="GCash Number" value={order.gcash_number ?? "N/A"} mono />
                     <InfoRow label="Reference" value={order.reference_no ?? "N/A"} mono />
                     <InfoRow label="Subtotal" value={order.subtotal_display ?? order.total_display} />
-                    {order.promo_code && <InfoRow label="Promo" value={order.promo_code} mono />}
+                    {order.promo_code && <InfoRow label="Promo" value="Applied" />}
                     {(order.discount_cents ?? 0) > 0 && order.discount_display && (
                       <InfoRow label="Discount" value={`-${order.discount_display}`} />
                     )}
-                    <InfoRow
-                      label="Proof"
-                      value={order.proof_image ? (order.proof_confirmed ? "Uploaded and confirmed" : "Uploaded") : "Not uploaded"}
-                    />
                     <InfoRow label="Total" value={order.total_display} bold />
                   </dl>
                   <div className="mt-5 border-t border-border/60 pt-5">

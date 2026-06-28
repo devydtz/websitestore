@@ -62,8 +62,6 @@ export type Order = {
   gcash_number: string | null;
   gcash_name: string | null;
   reference_no: string | null;
-  proof_image: string | null;
-  proof_confirmed: boolean | null;
   promo_code: string | null;
   discount_cents: number | null;
   discount_display: string | null;
@@ -87,8 +85,6 @@ export type NewOrder = {
   method: string;
   gcash_number: string;
   reference_no: string;
-  proof_image: string | null;
-  proof_confirmed: boolean;
   promo_code: string | null;
   discount_cents: number;
   discount_display: string;
@@ -116,8 +112,6 @@ export async function createOrder(order: NewOrder): Promise<{ ok: true } | { ok:
         gcash_number: order.gcash_number,
         gcash_name: null,
         reference_no: order.reference_no,
-        proof_image: order.proof_image,
-        proof_confirmed: order.proof_confirmed,
         promo_code: order.promo_code,
         discount_cents: order.discount_cents,
         discount_display: order.discount_display,

@@ -19,8 +19,6 @@ import {
   Loader2,
   Gamepad2,
   FileText,
-  Image as ImageIcon,
-  Tag,
 } from "lucide-react";
 import { Starfield } from "@/components/Starfield";
 import { Navbar } from "@/components/Navbar";
@@ -601,31 +599,6 @@ function OrderDrawer({
               <Row label="Total" value={order.total_display} bold />
             </dl>
           </div>
-
-          {order.proof_image && (
-            <div className="pixel-card rounded-2xl p-5">
-              <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                <ImageIcon className="h-4 w-4" /> GCash Receipt Proof
-              </h3>
-              <div className="mb-3 grid gap-2 rounded-xl border border-[#007DFF]/25 bg-[#007DFF]/10 p-3 text-xs sm:grid-cols-2">
-                <Row label="Expected Amount" value={order.total_display} bold />
-                <Row label="Reference" value={order.reference_no || "N/A"} mono />
-                <Row label="Buyer Confirmed" value={order.proof_confirmed ? "GCash + exact amount" : "Not confirmed"} />
-                <Row label="Action" value="Reject if proof amount does not match" />
-              </div>
-              <a href={order.proof_image} target="_blank" rel="noopener noreferrer" className="block">
-                <img
-                  src={order.proof_image}
-                  alt="GCash receipt proof"
-                  className="max-h-96 w-full rounded-xl border border-border object-contain"
-                />
-              </a>
-              <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Tag className="h-3.5 w-3.5" />
-                Click the image to open it larger.
-              </p>
-            </div>
-          )}
 
           {/* Items */}
           <div className="pixel-card rounded-2xl p-5">

@@ -415,7 +415,7 @@ function AccountPage() {
                                 )}
                                 {p.promoCode && (
                                   <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-400">
-                                    {p.promoCode}
+                                    Promo Applied
                                   </span>
                                 )}
                               </div>

@@ -45,8 +45,6 @@ CREATE TABLE IF NOT EXISTS orders (
   gcash_number text,
   gcash_name text,
   reference_no text,
-  proof_image text,
-  proof_confirmed boolean DEFAULT false,
   promo_code text,
   discount_cents integer DEFAULT 0,
   discount_display text DEFAULT 'PHP 0',

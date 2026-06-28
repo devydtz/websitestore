@@ -1,6 +1,4 @@
 ALTER TABLE orders
-  ADD COLUMN IF NOT EXISTS proof_image text,
-  ADD COLUMN IF NOT EXISTS proof_confirmed boolean DEFAULT false,
   ADD COLUMN IF NOT EXISTS promo_code text,
   ADD COLUMN IF NOT EXISTS discount_cents integer DEFAULT 0,
   ADD COLUMN IF NOT EXISTS discount_display text DEFAULT 'PHP 0',
@@ -11,6 +9,5 @@ UPDATE orders
 SET
   discount_cents = COALESCE(discount_cents, 0),
   discount_display = COALESCE(discount_display, 'PHP 0'),
-  proof_confirmed = COALESCE(proof_confirmed, false),
   subtotal_cents = COALESCE(subtotal_cents, total_cents),
   subtotal_display = COALESCE(subtotal_display, total_display);

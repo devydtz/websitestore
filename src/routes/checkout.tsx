@@ -13,9 +13,7 @@ import {
   ShieldCheck,
   ShoppingBag,
   Tag,
-  UploadCloud,
   User as UserIcon,
-  X,
 } from "lucide-react";
 import { Starfield } from "@/components/Starfield";
 import { Navbar } from "@/components/Navbar";
@@ -55,9 +53,6 @@ function CheckoutPage() {
   const [promoInput, setPromoInput] = useState("");
   const [promoCode, setPromoCode] = useState<string | null>(null);
   const [promoError, setPromoError] = useState<string | null>(null);
-  const [proofImage, setProofImage] = useState<string | null>(null);
-  const [proofName, setProofName] = useState("");
-  const [proofConfirmed, setProofConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState<string | null>(null);
   const [submittedTotal, setSubmittedTotal] = useState<string | null>(null);
@@ -77,8 +72,6 @@ function CheckoutPage() {
     Boolean(account) &&
     /^09\d{9}$/.test(gcashDigits) &&
     referenceDigits.length >= 10 &&
-    Boolean(proofImage) &&
-    proofConfirmed &&
     confirmed;
 
   const copyNumber = async () => {
@@ -107,27 +100,6 @@ function CheckoutPage() {
     setPromoError(null);
   };
 
-  const handleProofUpload = (file: File | undefined) => {
-    setError(null);
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setError("Upload an image proof from your GCash receipt.");
-      return;
-    }
-    if (file.size > 1_500_000) {
-      setError("Receipt image is too large. Upload a screenshot under 1.5 MB.");
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      setProofImage(typeof reader.result === "string" ? reader.result : null);
-      setProofName(file.name);
-    };
-    reader.onerror = () => setError("Could not read receipt image. Try another screenshot.");
-    reader.readAsDataURL(file);
-  };
-
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -142,14 +114,6 @@ function CheckoutPage() {
     }
     if (referenceDigits.length < 10) {
       setError("Enter your GCash reference number (at least 10 digits).");
-      return;
-    }
-    if (!proofImage) {
-      setError("Upload your GCash receipt screenshot before submitting.");
-      return;
-    }
-    if (!proofConfirmed) {
-      setError("Confirm that your receipt proof is from GCash and shows the exact amount.");
       return;
     }
     if (!confirmed) {
@@ -178,8 +142,6 @@ function CheckoutPage() {
       method: "gcash",
       gcash_number: formatMobileNumber(gcashNumber),
       reference_no: referenceNo.trim(),
-      proof_image: proofImage,
-      proof_confirmed: proofConfirmed,
       promo_code: promoCode,
       discount_cents: discountCents,
       discount_display: discountDisplay,
@@ -299,8 +261,8 @@ function CheckoutPage() {
               />
               <CheckoutStep
                 icon={<FileText className="h-4 w-4" />}
-                title="2. Receipt Details"
-                copy={paymentReady ? "Ready to submit" : "Add GCash proof"}
+                title="2. Payment Details"
+                copy={paymentReady ? "Ready to submit" : "Enter GCash receipt info"}
                 active={paymentReady}
               />
               <CheckoutStep
@@ -361,7 +323,7 @@ function CheckoutPage() {
                       <GcashLogo />
                       <div>
                         <h2 className="text-lg font-bold text-foreground">Pay with GCash</h2>
-                        <p className="text-xs text-muted-foreground">Scan the QR, then upload your receipt proof.</p>
+                        <p className="text-xs text-muted-foreground">Scan the QR, pay the exact total, then enter your reference number.</p>
                       </div>
                     </div>
                   </div>
@@ -407,7 +369,7 @@ function CheckoutPage() {
                         <input
                           value={promoInput}
                           onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
-                          placeholder="LAUNCH10"
+                          placeholder="Enter code"
                           disabled={!account || Boolean(promoCode)}
                           className="min-w-0 flex-1 rounded-xl border border-border bg-background/60 px-4 py-3 font-mono text-sm uppercase tracking-wider focus:border-accent focus:outline-none disabled:opacity-50"
                         />
@@ -433,7 +395,7 @@ function CheckoutPage() {
                       {appliedPromo?.ok && (
                         <p className="mt-2 flex items-center gap-1.5 text-xs text-emerald-400">
                           <Tag className="h-3.5 w-3.5" />
-                          {appliedPromo.code} applied. You saved {appliedPromo.discountDisplay}.
+                          Promo applied. You saved {appliedPromo.discountDisplay}.
                         </p>
                       )}
                       {promoError && <p className="mt-2 text-xs text-destructive">{promoError}</p>}
@@ -463,62 +425,10 @@ function CheckoutPage() {
                       className="w-full rounded-xl border border-border bg-background/60 px-4 py-3 font-mono text-sm tracking-wider focus:border-[#007DFF] focus:outline-none disabled:opacity-50"
                     />
 
-                    <div className="rounded-xl border border-border/60 bg-background/30 p-4">
-                      <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-border/80 bg-card/30 p-5 text-center transition hover:border-accent">
-                        <UploadCloud className="h-8 w-8 text-accent" />
-                        <span className="mt-2 text-sm font-semibold text-foreground">Upload GCash receipt proof</span>
-                        <span className="mt-1 text-xs text-muted-foreground">PNG/JPG/WebP, max 1.5 MB</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          disabled={!account}
-                          onChange={(e) => handleProofUpload(e.target.files?.[0])}
-                          className="sr-only"
-                        />
-                      </label>
-                      {proofImage && (
-                        <div className="mt-4 flex items-center gap-3 rounded-xl border border-border/60 bg-background/50 p-3">
-                          <img src={proofImage} alt="GCash receipt proof" className="h-16 w-16 rounded-lg object-cover" />
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-semibold text-foreground">{proofName || "Receipt uploaded"}</p>
-                            <p className="text-xs text-emerald-400">Proof attached</p>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setProofImage(null);
-                              setProofName("");
-                              setProofConfirmed(false);
-                            }}
-                            className="grid h-8 w-8 place-items-center rounded-full border border-border text-muted-foreground hover:text-destructive"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#007DFF]/25 bg-[#007DFF]/10 p-4">
-                      <input
-                        type="checkbox"
-                        checked={proofConfirmed}
-                        onChange={(e) => setProofConfirmed(e.target.checked)}
-                        disabled={!account || !proofImage}
-                        className="mt-1 h-4 w-4 rounded border-border accent-[#007DFF]"
-                      />
-                      <span className="text-sm text-muted-foreground">
-                        My uploaded screenshot is from GCash and clearly shows the exact payment amount{" "}
-                        <span className="font-semibold text-foreground">{checkoutTotalDisplay}</span>, the reference
-                        number, and the payment date.
-                      </span>
-                    </label>
-
                     <div className="grid gap-2 rounded-xl border border-border/60 bg-background/30 p-4 text-xs text-muted-foreground sm:grid-cols-2">
                       <VerificationCheck ok={Boolean(account)} label="Account selected" />
                       <VerificationCheck ok={/^09\d{9}$/.test(gcashDigits)} label="Valid GCash number" />
                       <VerificationCheck ok={referenceDigits.length >= 10} label="Reference number entered" />
-                      <VerificationCheck ok={Boolean(proofImage)} label="Receipt proof uploaded" />
-                      <VerificationCheck ok={proofConfirmed} label="Proof amount confirmed" />
                       <VerificationCheck ok={confirmed} label="Payment confirmation checked" />
                     </div>
 
@@ -565,7 +475,7 @@ function CheckoutPage() {
                 </ul>
                 <div className="mt-5 border-t border-border/60 pt-4">
                   <InfoLine label="Subtotal" value={subtotalDisplay} />
-                  {discountCents > 0 && <InfoLine label={`Discount ${promoCode ?? ""}`} value={`-${discountDisplay}`} valueClass="font-semibold text-emerald-400" />}
+                  {discountCents > 0 && <InfoLine label="Discount" value={`-${discountDisplay}`} valueClass="font-semibold text-emerald-400" />}
                   <InfoLine label="Payment method" value="GCash" valueClass="font-semibold text-[#007DFF]" />
                   <InfoLine label="Currency" value="PHP" />
                   <div className="mt-3 flex items-center justify-between text-base font-bold">
@@ -579,7 +489,7 @@ function CheckoutPage() {
                     What happens next
                   </h3>
                   <ol className="mt-3 space-y-2 text-xs text-muted-foreground">
-                    <li>1. Submit your GCash reference and receipt proof.</li>
+                    <li>1. Submit your GCash number and reference number.</li>
                     <li>2. Admin verifies the payment in the panel.</li>
                     <li>3. Your rank is delivered in-game after approval.</li>
                   </ol>
