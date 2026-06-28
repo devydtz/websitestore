@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Copy, Check, Pickaxe } from "lucide-react";
-import { DISCORD_INVITE_URL, SERVER_IP } from "@/lib/store-config";
+import { DISCORD_INVITE_URL, SERVER_HOST, SERVER_IP, SERVER_PORT } from "@/lib/store-config";
 
 export function JoinCTA() {
   const [copied, setCopied] = useState(false);
@@ -25,9 +25,15 @@ export function JoinCTA() {
         </p>
 
         <div className="mx-auto mt-10 flex max-w-md flex-col items-stretch gap-3 rounded-2xl border border-border bg-card/60 p-3 backdrop-blur md:flex-row md:items-center">
-          <div className="flex flex-1 items-center gap-3 px-3">
-            <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Server IP</span>
-            <span className="font-mono text-base font-semibold text-foreground">{SERVER_IP}</span>
+          <div className="flex flex-1 flex-col gap-1 px-3 py-1 text-left">
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Server IP</span>
+              <span className="font-mono text-base font-semibold text-foreground">{SERVER_HOST}</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Port</span>
+              <span className="font-mono text-base font-semibold text-foreground">{SERVER_PORT}</span>
+            </div>
           </div>
           <button
             onClick={copy}
