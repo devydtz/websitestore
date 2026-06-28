@@ -32,6 +32,7 @@ import {
   adminAction,
   saveAdminNote,
   setAccountFlags,
+  syncAccountsFromOrders,
   type Order,
   type OrderStatus,
   type StoreAccount,
@@ -174,8 +175,15 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
     setError(null);
     setAccountError(null);
     const res = await listOrders();
-    if (res.ok) setOrders(res.orders);
-    else setError(res.error);
+    if (res.ok) {
+      setOrders(res.orders);
+      if (res.orders.length > 0) {
+        const syncRes = await syncAccountsFromOrders(res.orders);
+        if (!syncRes.ok) setAccountError(syncRes.error);
+      }
+    } else {
+      setError(res.error);
+    }
     const accountRes = await listAccounts();
     if (accountRes.ok) setAccounts(accountRes.accounts);
     else setAccountError(accountRes.error);

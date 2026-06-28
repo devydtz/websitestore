@@ -158,8 +158,12 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     if (!session) return;
     const users = readUsers();
     const user = users[userKey(session.username, session.edition)];
-    if (user) setAccount(buildAccount(user));
-    else localStorage.removeItem(SESSION_KEY);
+    if (user) {
+      setAccount(buildAccount(user));
+      void syncAccount(user);
+    } else {
+      localStorage.removeItem(SESSION_KEY);
+    }
   }, []);
 
   const value = useMemo<AccountCtx>(

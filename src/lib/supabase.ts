@@ -258,6 +258,72 @@ export async function listAccounts(): Promise<{ ok: true; accounts: StoreAccount
   return { ok: false, error: lastError || networkError("No Supabase URL responded", supabase.urls) };
 }
 
+function formatPhp(cents: number) {
+  return new Intl.NumberFormat("en-PH", {
+    style: "currency",
+    currency: "PHP",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(cents / 100);
+}
+
+function accountId(username: string, edition: "java" | "bedrock") {
+  return `${edition}:${username.trim().replace(/^\.+/, "").toLowerCase()}`;
+}
+
+function displayName(username: string, edition: "java" | "bedrock") {
+  const clean = username.trim().replace(/^\.+/, "");
+  return edition === "bedrock" ? `.${clean}` : clean;
+}
+
+export async function syncAccountsFromOrders(
+  orders: Order[],
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const grouped = new Map<
+    string,
+    {
+      username: string;
+      edition: "java" | "bedrock";
+      email: string;
+      total: number;
+      count: number;
+    }
+  >();
+
+  for (const order of orders) {
+    const id = accountId(order.username, order.edition);
+    const current = grouped.get(id);
+    if (current) {
+      current.total += order.total_cents || 0;
+      current.count += 1;
+    } else {
+      grouped.set(id, {
+        username: order.username.trim().replace(/^\.+/, ""),
+        edition: order.edition,
+        email: order.email,
+        total: order.total_cents || 0,
+        count: 1,
+      });
+    }
+  }
+
+  for (const account of grouped.values()) {
+    const res = await upsertAccountProfile({
+      username: account.username,
+      edition: account.edition,
+      email: account.email,
+      displayName: displayName(account.username, account.edition),
+      emailVerified: false,
+      historyCount: account.count,
+      totalSpentCents: account.total,
+      totalSpentDisplay: formatPhp(account.total),
+    });
+    if (!res.ok) return res;
+  }
+
+  return { ok: true };
+}
+
 export async function setAccountFlags(
   id: string,
   adminToken: string,
