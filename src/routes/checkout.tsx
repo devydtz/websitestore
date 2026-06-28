@@ -55,6 +55,12 @@ function CheckoutPage() {
   const [promoCode, setPromoCode] = useState<string | null>(null);
   const [promoError, setPromoError] = useState<string | null>(null);
   const [promoChecking, setPromoChecking] = useState(false);
+  const [promoDiscount, setPromoDiscount] = useState<{
+    discountCents: number;
+    discountDisplay: string;
+    totalCents: number;
+    totalDisplay: string;
+  } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState<string | null>(null);
   const [submittedTotal, setSubmittedTotal] = useState<string | null>(null);
@@ -65,9 +71,8 @@ function CheckoutPage() {
   const referenceDigits = referenceNo.replace(/\D/g, "");
   const subtotalCents = items.reduce((sum, i) => sum + i.priceCents * i.qty, 0);
   const subtotalDisplay = centsToDisplay(subtotalCents);
-  const appliedPromo = promoCode ? applyPromo(promoCode, subtotalCents) : null;
-  const discountCents = appliedPromo?.ok ? appliedPromo.discountCents : 0;
-  const discountDisplay = appliedPromo?.ok ? appliedPromo.discountDisplay : centsToDisplay(0);
+  const discountCents = promoDiscount ? promoDiscount.discountCents : 0;
+  const discountDisplay = promoDiscount ? promoDiscount.discountDisplay : centsToDisplay(0);
   const checkoutTotalCents = Math.max(0, subtotalCents - discountCents);
   const checkoutTotalDisplay = centsToDisplay(checkoutTotalCents);
   const paymentReady =
@@ -97,17 +102,25 @@ function CheckoutPage() {
 
     if (!result.ok) {
       setPromoCode(null);
+      setPromoDiscount(null);
       setPromoError(result.error);
       setPromoChecking(false);
       return;
     }
     setPromoCode(result.code);
+    setPromoDiscount({
+      discountCents: result.discountCents,
+      discountDisplay: result.discountDisplay,
+      totalCents: result.totalCents,
+      totalDisplay: result.totalDisplay,
+    });
     setPromoInput(result.code);
     setPromoChecking(false);
   };
 
   const removePromo = () => {
     setPromoCode(null);
+    setPromoDiscount(null);
     setPromoInput("");
     setPromoError(null);
   };
@@ -142,67 +155,72 @@ function CheckoutPage() {
     }
 
     setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 1200));
-    const orderId = "LC-" + Math.random().toString(36).slice(2, 8).toUpperCase();
-    const orderItems = items.map((i) => ({
-      id: i.id,
-      name: i.name,
-      price: lineTotalDisplay(i.priceCents, i.qty),
-      qty: i.qty,
-    }));
-
-    const supa = await createOrder({
-      id: orderId,
-      username: account.username,
-      edition: account.edition,
-      email: account.email,
-      items: orderItems,
-      total_cents: checkoutTotalCents,
-      total_display: checkoutTotalDisplay,
-      method: "gcash",
-      gcash_number: formatMobileNumber(gcashNumber),
-      reference_no: referenceNo.trim(),
-      promo_code: promoCode,
-      discount_cents: discountCents,
-      discount_display: discountDisplay,
-      subtotal_cents: subtotalCents,
-      subtotal_display: subtotalDisplay,
-    });
-
-    if (!supa.ok) {
-      setError(`Could not submit order: ${supa.error}. Please try again.`);
-      setSubmitting(false);
-      return;
-    }
-
-    void notifyDiscord({
-      title: "New Lunaris Order",
-      description: `Order #${orderId} is waiting for payment verification.`,
-      color: 12429311,
-      fields: [
-        { name: "Player", value: account.displayName, inline: true },
-        { name: "Total", value: checkoutTotalDisplay, inline: true },
-        { name: "Reference", value: referenceNo.trim(), inline: true },
-      ],
-    });
-
-    recordPurchase({
-      id: orderId,
-      date: new Date().toISOString(),
-      items: items.map((i) => ({
+    try {
+      await new Promise((r) => setTimeout(r, 500));
+      const orderId = "LC-" + Math.random().toString(36).slice(2, 8).toUpperCase();
+      const orderItems = items.map((i) => ({
         id: i.id,
-        name: `${i.name} x${i.qty}`,
+        name: i.name,
         price: lineTotalDisplay(i.priceCents, i.qty),
-      })),
-      total: checkoutTotalDisplay,
-      method: "gcash",
-      promoCode: promoCode ?? undefined,
-      discount: discountDisplay,
-    });
-    setSubmittedTotal(checkoutTotalDisplay);
-    setDone(orderId);
-    clear();
-    setSubmitting(false);
+        qty: i.qty,
+      }));
+
+      const supa = await createOrder({
+        id: orderId,
+        username: account.username,
+        edition: account.edition,
+        email: account.email,
+        items: orderItems,
+        total_cents: checkoutTotalCents,
+        total_display: checkoutTotalDisplay,
+        method: "gcash",
+        gcash_number: formatMobileNumber(gcashNumber),
+        reference_no: referenceNo.trim(),
+        promo_code: promoCode,
+        discount_cents: discountCents,
+        discount_display: discountDisplay,
+        subtotal_cents: subtotalCents,
+        subtotal_display: subtotalDisplay,
+      });
+
+      if (!supa.ok) {
+        setError(`Could not submit order: ${supa.error}. Please try again.`);
+        return;
+      }
+
+      void notifyDiscord({
+        title: "New Lunaris Order",
+        description: `Order #${orderId} is waiting for payment verification.`,
+        color: 12429311,
+        fields: [
+          { name: "Player", value: account.displayName, inline: true },
+          { name: "Total", value: checkoutTotalDisplay, inline: true },
+          { name: "Reference", value: referenceNo.trim(), inline: true },
+        ],
+      });
+
+      recordPurchase({
+        id: orderId,
+        date: new Date().toISOString(),
+        items: items.map((i) => ({
+          id: i.id,
+          name: `${i.name} x${i.qty}`,
+          price: lineTotalDisplay(i.priceCents, i.qty),
+        })),
+        total: checkoutTotalDisplay,
+        method: "gcash",
+        promoCode: promoCode ?? undefined,
+        discount: discountDisplay,
+      });
+      setSubmittedTotal(checkoutTotalDisplay);
+      setDone(orderId);
+      clear();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setError(`Could not submit order: ${message}. Please try again.`);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -452,10 +470,10 @@ function CheckoutPage() {
                           </button>
                         )}
                       </div>
-                      {appliedPromo?.ok && (
+                      {promoDiscount && (
                         <p className="mt-2 flex items-center gap-1.5 text-xs text-emerald-400">
                           <Tag className="h-3.5 w-3.5" />
-                          Promo applied. You saved {appliedPromo.discountDisplay}.
+                          Promo applied. You saved {promoDiscount.discountDisplay}.
                         </p>
                       )}
                       {promoError && <p className="mt-2 text-xs text-destructive">{promoError}</p>}

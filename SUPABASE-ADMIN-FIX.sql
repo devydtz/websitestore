@@ -58,7 +58,7 @@ SET
     ELSE status_history
   END;
 
-CREATE UNIQUE INDEX IF NOT EXISTS orders_reference_no_key
+CREATE INDEX IF NOT EXISTS orders_reference_no_idx
   ON orders (reference_no)
   WHERE reference_no IS NOT NULL AND length(reference_no) > 0;
 

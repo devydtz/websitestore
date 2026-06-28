@@ -33,6 +33,22 @@ function networkError(error: unknown, urls: string[]) {
   return `Could not reach Supabase (${message}). Tried: ${urls.join(", ")}. Check VITE_SUPABASE_URL and redeploy Cloudflare.`;
 }
 
+function withTimeout<T>(promise: PromiseLike<T>, label: string, ms = 15000): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(() => reject(new Error(`${label} timed out after ${ms / 1000}s`)), ms);
+    promise.then(
+      (value) => {
+        window.clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        window.clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
 function databaseSetupError(table: string) {
   return `Database setup needed: missing '${table}' table. Open Supabase SQL Editor, paste SUPABASE-ADMIN-FIX.sql, run it, then refresh this page.`;
 }
@@ -171,12 +187,11 @@ export async function createOrder(order: NewOrder): Promise<{ ok: true } | { ok:
   for (const url of supabase.urls) {
     try {
       const client = createClient(url, supabaseAnonKey);
-      const referenceTaken = await client
-        .from("orders")
-        .select("id")
-        .eq("reference_no", order.reference_no)
-        .maybeSingle();
-      if (!referenceTaken.error && referenceTaken.data) {
+      const referenceTaken = await withTimeout(
+        client.from("orders").select("id").eq("reference_no", order.reference_no).limit(1),
+        "Checking GCash reference",
+      );
+      if (!referenceTaken.error && referenceTaken.data && referenceTaken.data.length > 0) {
         return {
           ok: false,
           error: "That GCash reference number was already used on another order. Check the number or contact support.",
@@ -184,7 +199,7 @@ export async function createOrder(order: NewOrder): Promise<{ ok: true } | { ok:
       }
 
       const now = new Date().toISOString();
-      const { error } = await client.from("orders").insert({
+      const baseInsert = {
         id: order.id,
         username: order.username,
         edition: order.edition,
@@ -202,6 +217,8 @@ export async function createOrder(order: NewOrder): Promise<{ ok: true } | { ok:
         subtotal_cents: order.subtotal_cents,
         subtotal_display: order.subtotal_display,
         status: "pending",
+      };
+      const timelineInsert = {
         status_history: [
           {
             status: "submitted",
@@ -215,7 +232,22 @@ export async function createOrder(order: NewOrder): Promise<{ ok: true } | { ok:
           },
         ],
         receipt_issued_at: now,
-      });
+      };
+      const insertRes = await withTimeout(
+        client.from("orders").insert({ ...baseInsert, ...timelineInsert }),
+        "Submitting order",
+      );
+      let error = insertRes.error;
+      if (
+        error &&
+        /status_history|receipt_issued_at|schema cache|column/i.test(error.message)
+      ) {
+        const fallbackRes = await withTimeout(
+          client.from("orders").insert(baseInsert),
+          "Submitting order without receipt timeline",
+        );
+        error = fallbackRes.error;
+      }
       if (!error) return { ok: true };
       lastError = formatSupabaseError(url, error.message);
     } catch (error) {
