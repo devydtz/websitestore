@@ -1,18 +1,28 @@
 import { useState } from "react";
-import { Copy, Check, Pickaxe } from "lucide-react";
-import { DISCORD_INVITE_URL, SERVER_HOST, SERVER_IP, SERVER_PORT } from "@/lib/store-config";
+import { Check, Copy, MonitorSmartphone, Pickaxe } from "lucide-react";
+import { DISCORD_INVITE_URL, SERVER_HOST, SERVER_PORT } from "@/lib/store-config";
 
 export function JoinCTA() {
-  const [copied, setCopied] = useState<"ip" | "port" | null>(null);
+  const [copied, setCopied] = useState<"ip" | "port" | "server" | null>(null);
+  const [connectHelp, setConnectHelp] = useState(false);
 
-  const copy = async (value: string, type: "ip" | "port") => {
+  const copy = async (value: string, type: "ip" | "port" | "server") => {
     try {
       await navigator.clipboard.writeText(value);
       setCopied(type);
       setTimeout(() => setCopied(null), 1500);
     } catch {
-      // ignore
+      // Ignore clipboard failures. The visible IP and port stay on screen.
     }
+  };
+
+  const connectNow = () => {
+    const fullAddress = `${SERVER_HOST}:${SERVER_PORT}`;
+    const launchUrl = `minecraft://?addExternalServer=${encodeURIComponent(`Lunaris Craft|${fullAddress}`)}`;
+
+    void copy(fullAddress, "server");
+    setConnectHelp(true);
+    window.location.href = launchUrl;
   };
 
   return (
@@ -40,13 +50,14 @@ export function JoinCTA() {
         </div>
 
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-          <a
-            href={`minecraft://${SERVER_IP}`}
+          <button
+            type="button"
+            onClick={connectNow}
             className="inline-flex items-center gap-2 rounded-full bg-primary px-7 py-3 text-sm font-semibold text-primary-foreground shadow-[0_0_40px_-8px_oklch(0.85_0.13_295/0.7)] transition hover:scale-[1.03] hover:bg-accent"
           >
             <Pickaxe className="h-4 w-4" />
-            Connect Now
-          </a>
+            {copied === "server" ? "Copied Server" : "Connect Now"}
+          </button>
           <a
             href={DISCORD_INVITE_URL}
             target="_blank"
@@ -56,7 +67,24 @@ export function JoinCTA() {
             Join Discord
           </a>
         </div>
-        <p className="mt-5 text-xs text-muted-foreground">Java Edition 1.20+ · Bedrock supported</p>
+
+        {connectHelp && (
+          <div className="mx-auto mt-5 max-w-xl rounded-2xl border border-accent/25 bg-accent/10 p-4 text-left">
+            <div className="flex items-start gap-3">
+              <MonitorSmartphone className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
+              <div>
+                <p className="text-sm font-semibold text-foreground">Opening Minecraft if your browser allows it.</p>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  If nothing opens on PC, the server address was copied. Open Minecraft manually, add a server, then use
+                  IP <span className="font-mono text-foreground">{SERVER_HOST}</span> and port{" "}
+                  <span className="font-mono text-foreground">{SERVER_PORT}</span>.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <p className="mt-5 text-xs text-muted-foreground">Java Edition 1.20+ / Bedrock supported</p>
       </div>
     </section>
   );
