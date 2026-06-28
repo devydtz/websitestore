@@ -70,6 +70,8 @@ function CheckoutPage() {
   const checkoutTotalDisplay = centsToDisplay(checkoutTotalCents);
   const paymentReady =
     Boolean(account) &&
+    Boolean(account.emailVerified) &&
+    !account.disabled &&
     /^09\d{9}$/.test(gcashDigits) &&
     referenceDigits.length >= 10 &&
     confirmed;
@@ -106,6 +108,14 @@ function CheckoutPage() {
 
     if (!account) {
       setError("Please sign in or create an account before checking out.");
+      return;
+    }
+    if (account.disabled) {
+      setError("This account is disabled. Contact support before checking out.");
+      return;
+    }
+    if (!account.emailVerified) {
+      setError("Verify your email before checking out. Ask an admin to verify the account, then refresh your account page.");
       return;
     }
     if (!/^09\d{9}$/.test(gcashDigits)) {
@@ -287,6 +297,35 @@ function CheckoutPage() {
                   >
                     Sign Up / Sign In
                   </Link>
+                </div>
+              </div>
+            )}
+
+            {account && !account.emailVerified && (
+              <div className="mt-6 flex items-start gap-3 rounded-2xl border border-amber-400/30 bg-amber-400/10 px-5 py-4 text-amber-200">
+                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold">Email verification required</p>
+                  <p className="mt-1 text-sm opacity-90">
+                    This prevents people from checking out with random emails. Ask an admin to verify your account,
+                    then refresh your account page.
+                  </p>
+                  <Link
+                    to="/account"
+                    className="mt-3 inline-flex rounded-full border border-amber-300/30 bg-background/30 px-4 py-2 text-xs font-semibold transition hover:bg-background/50"
+                  >
+                    View Account Status
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {account?.disabled && (
+              <div className="mt-6 flex items-start gap-3 rounded-2xl border border-red-500/30 bg-red-500/10 px-5 py-4 text-red-300">
+                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold">Account disabled</p>
+                  <p className="mt-1 text-sm opacity-90">Contact support before checking out.</p>
                 </div>
               </div>
             )}

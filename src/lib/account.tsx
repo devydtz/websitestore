@@ -6,6 +6,7 @@ import {
   validatePassword,
   validateUsername,
 } from "@/lib/auth-utils";
+import { getAccountProfile, upsertAccountProfile } from "@/lib/supabase";
 
 export type Edition = "java" | "bedrock";
 
@@ -27,6 +28,8 @@ export type Account = {
   avatarUrl: string;
   bodyUrl: string;
   history: PurchaseRecord[];
+  emailVerified: boolean;
+  disabled: boolean;
 };
 
 type StoredUser = {
@@ -37,6 +40,8 @@ type StoredUser = {
   salt: string;
   history: PurchaseRecord[];
   createdAt: string;
+  emailVerified?: boolean;
+  disabled?: boolean;
 };
 
 type AccountCtx = {
@@ -55,6 +60,7 @@ type AccountCtx = {
   }) => Promise<{ ok: true } | { ok: false; error: string }>;
   signOut: () => void;
   recordPurchase: (purchase: PurchaseRecord) => void;
+  refreshVerification: () => Promise<{ ok: true } | { ok: false; error: string }>;
 };
 
 const Ctx = createContext<AccountCtx | null>(null);
@@ -80,7 +86,40 @@ function buildAccount(user: StoredUser): Account {
     avatarUrl,
     bodyUrl,
     history: user.history,
+    emailVerified: Boolean(user.emailVerified),
+    disabled: Boolean(user.disabled),
   };
+}
+
+function displayToCents(value: string): number {
+  const amount = Number(value.replace(/[^0-9.]/g, ""));
+  return Math.round((Number.isFinite(amount) ? amount : 0) * 100);
+}
+
+function accountTotals(history: PurchaseRecord[]) {
+  const totalSpentCents = history.reduce((sum, purchase) => sum + displayToCents(purchase.total), 0);
+  const totalSpentDisplay = new Intl.NumberFormat("en-PH", {
+    style: "currency",
+    currency: "PHP",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(totalSpentCents / 100);
+  return { totalSpentCents, totalSpentDisplay };
+}
+
+async function syncAccount(user: StoredUser) {
+  const built = buildAccount(user);
+  const totals = accountTotals(user.history);
+  await upsertAccountProfile({
+    username: built.username,
+    edition: built.edition,
+    email: built.email,
+    displayName: built.displayName,
+    emailVerified: built.emailVerified,
+    historyCount: user.history.length,
+    totalSpentCents: totals.totalSpentCents,
+    totalSpentDisplay: totals.totalSpentDisplay,
+  });
 }
 
 function readUsers(): Record<string, StoredUser> {
@@ -155,11 +194,14 @@ export function AccountProvider({ children }: { children: ReactNode }) {
           salt,
           history: [],
           createdAt: new Date().toISOString(),
+          emailVerified: false,
+          disabled: false,
         };
         users[key] = stored;
         writeUsers(users);
         writeSession(clean, edition);
         setAccount(buildAccount(stored));
+        void syncAccount(stored);
         return { ok: true };
       },
       signIn: async ({ username, edition, password }) => {
@@ -180,8 +222,21 @@ export function AccountProvider({ children }: { children: ReactNode }) {
           return { ok: false, error: "Incorrect password. Try again or create a new account." };
         }
 
+        const profile = await getAccountProfile(clean, edition);
+        if (profile.ok && profile.account) {
+          user.emailVerified = profile.account.email_verified;
+          user.disabled = profile.account.disabled;
+          users[key] = user;
+          writeUsers(users);
+        }
+
+        if (user.disabled) {
+          return { ok: false, error: "This account is disabled. Contact support if this is a mistake." };
+        }
+
         writeSession(clean, edition);
         setAccount(buildAccount(user));
+        void syncAccount(user);
         return { ok: true };
       },
       signOut: () => {
@@ -201,6 +256,29 @@ export function AccountProvider({ children }: { children: ReactNode }) {
         users[key] = { ...user, history };
         writeUsers(users);
         setAccount(buildAccount(users[key]));
+        void syncAccount(users[key]);
+      },
+      refreshVerification: async () => {
+        const session = readSession();
+        if (!session) return { ok: false, error: "Sign in first." };
+
+        const users = readUsers();
+        const key = userKey(session.username, session.edition);
+        const user = users[key];
+        if (!user) return { ok: false, error: "Account not found." };
+
+        const profile = await getAccountProfile(user.username, user.edition);
+        if (!profile.ok) return { ok: false, error: profile.error };
+        if (!profile.account) return { ok: false, error: "Account is not in the admin registry yet." };
+
+        users[key] = {
+          ...user,
+          emailVerified: profile.account.email_verified,
+          disabled: profile.account.disabled,
+        };
+        writeUsers(users);
+        setAccount(buildAccount(users[key]));
+        return { ok: true };
       },
     }),
     [account],

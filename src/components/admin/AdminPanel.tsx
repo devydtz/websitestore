@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import {
   ShieldCheck,
   Lock,
@@ -19,11 +19,23 @@ import {
   Loader2,
   Gamepad2,
   FileText,
+  BadgeCheck,
+  BadgeAlert,
+  Ban,
 } from "lucide-react";
 import { Starfield } from "@/components/Starfield";
 import { Navbar } from "@/components/Navbar";
 import { SiteFooter } from "@/components/SiteFooter";
-import { listOrders, adminAction, saveAdminNote, type Order, type OrderStatus } from "@/lib/supabase";
+import {
+  listAccounts,
+  listOrders,
+  adminAction,
+  saveAdminNote,
+  setAccountFlags,
+  type Order,
+  type OrderStatus,
+  type StoreAccount,
+} from "@/lib/supabase";
 
 const ADMIN_TOKEN_KEY = "lunaris.admin.token.v1";
 const DEFAULT_ADMIN_PASSWORD = "lunaris-admin-2024";
@@ -36,7 +48,7 @@ export function AdminPanel() {
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loggingIn, setLoggingIn] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = (e: FormEvent) => {
     e.preventDefault();
     setLoginError(null);
     setLoggingIn(true);
@@ -95,7 +107,7 @@ function LoginScreen({
   setPassword: (v: string) => void;
   loginError: string | null;
   loggingIn: boolean;
-  onSubmit: (e: React.FormEvent) => void;
+  onSubmit: (e: FormEvent) => void;
 }) {
   return (
     <section className="relative flex min-h-[calc(100vh-4rem)] items-center justify-center px-6 py-20">
@@ -143,8 +155,11 @@ function LoginScreen({
 
 function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => void }) {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [accounts, setAccounts] = useState<StoreAccount[]>([]);
   const [loading, setLoading] = useState(true);
+  const [accountsLoading, setAccountsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [accountError, setAccountError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("all");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Order | null>(null);
@@ -155,11 +170,17 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
 
   const load = useCallback(async () => {
     setLoading(true);
+    setAccountsLoading(true);
     setError(null);
+    setAccountError(null);
     const res = await listOrders();
     if (res.ok) setOrders(res.orders);
     else setError(res.error);
+    const accountRes = await listAccounts();
+    if (accountRes.ok) setAccounts(accountRes.accounts);
+    else setAccountError(accountRes.error);
     setLoading(false);
+    setAccountsLoading(false);
   }, []);
 
   useEffect(() => {
@@ -222,6 +243,16 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
       setActionError(res.error);
     }
     setNoteSaving(false);
+  };
+
+  const doAccountFlag = async (account: StoreAccount, flags: { email_verified?: boolean; disabled?: boolean }) => {
+    setAccountError(null);
+    const res = await setAccountFlags(account.id, token, flags);
+    if (res.ok) {
+      setAccounts((prev) => prev.map((a) => (a.id === res.account.id ? res.account : a)));
+    } else {
+      setAccountError(res.error);
+    }
   };
 
   return (
@@ -428,6 +459,15 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
         )}
       </div>
 
+      <AccountsManager
+        accounts={accounts}
+        loading={accountsLoading}
+        error={accountError}
+        onVerify={(account) => doAccountFlag(account, { email_verified: true })}
+        onUnverify={(account) => doAccountFlag(account, { email_verified: false })}
+        onToggleDisabled={(account) => doAccountFlag(account, { disabled: !account.disabled })}
+      />
+
       {/* Detail drawer */}
       {selected && (
         <OrderDrawer
@@ -470,6 +510,149 @@ function StatCard({
       <div className="mt-3 text-2xl font-bold text-foreground">{value}</div>
       <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</div>
     </div>
+  );
+}
+
+function AccountsManager({
+  accounts,
+  loading,
+  error,
+  onVerify,
+  onUnverify,
+  onToggleDisabled,
+}: {
+  accounts: StoreAccount[];
+  loading: boolean;
+  error: string | null;
+  onVerify: (account: StoreAccount) => void;
+  onUnverify: (account: StoreAccount) => void;
+  onToggleDisabled: (account: StoreAccount) => void;
+}) {
+  const verified = accounts.filter((a) => a.email_verified).length;
+  const disabled = accounts.filter((a) => a.disabled).length;
+
+  return (
+    <section className="mt-10 rounded-2xl border border-border bg-card/40 p-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="grid h-10 w-10 place-items-center rounded-lg bg-primary/10 text-accent ring-1 ring-accent/30">
+            <Users className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold">Manage Accounts</h2>
+            <p className="text-xs text-muted-foreground">
+              Verify emails, block bad accounts, and review customer spending.
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2 text-xs">
+          <span className="rounded-full border border-border bg-background/40 px-3 py-1 text-muted-foreground">
+            {accounts.length} total
+          </span>
+          <span className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-emerald-300">
+            {verified} verified
+          </span>
+          <span className="rounded-full border border-red-400/30 bg-red-400/10 px-3 py-1 text-red-300">
+            {disabled} disabled
+          </span>
+        </div>
+      </div>
+
+      {error && (
+        <div className="mt-4 flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {error}
+        </div>
+      )}
+
+      <div className="mt-5 overflow-hidden rounded-xl border border-border/70">
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : accounts.length === 0 ? (
+          <div className="py-12 text-center text-sm text-muted-foreground">No synced accounts yet.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-border bg-background/40 text-xs uppercase tracking-wider text-muted-foreground">
+                <tr>
+                  <th className="px-4 py-3 font-semibold">Player</th>
+                  <th className="px-4 py-3 font-semibold">Email</th>
+                  <th className="px-4 py-3 font-semibold">Status</th>
+                  <th className="px-4 py-3 font-semibold">Orders</th>
+                  <th className="px-4 py-3 font-semibold">Spent</th>
+                  <th className="px-4 py-3 text-right font-semibold">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/50">
+                {accounts.map((account) => (
+                  <tr key={account.id} className="transition hover:bg-background/30">
+                    <td className="px-4 py-3">
+                      <div className="font-semibold text-foreground">{account.display_name}</div>
+                      <div className="text-xs capitalize text-muted-foreground">{account.edition}</div>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground">{account.email}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-1.5">
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                            account.email_verified
+                              ? "bg-emerald-400/10 text-emerald-300"
+                              : "bg-amber-400/10 text-amber-300"
+                          }`}
+                        >
+                          {account.email_verified ? "Verified" : "Unverified"}
+                        </span>
+                        {account.disabled && (
+                          <span className="rounded-full bg-red-400/10 px-2.5 py-1 text-xs font-semibold text-red-300">
+                            Disabled
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 font-semibold text-foreground">{account.history_count}</td>
+                    <td className="px-4 py-3 font-semibold text-foreground">{account.total_spent_display}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap justify-end gap-2">
+                        {account.email_verified ? (
+                          <button
+                            onClick={() => onUnverify(account)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-1.5 text-xs font-semibold text-amber-300 transition hover:bg-amber-400/20"
+                          >
+                            <BadgeAlert className="h-3.5 w-3.5" />
+                            Unverify
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => onVerify(account)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-3 py-1.5 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-400/20"
+                          >
+                            <BadgeCheck className="h-3.5 w-3.5" />
+                            Verify
+                          </button>
+                        )}
+                        <button
+                          onClick={() => onToggleDisabled(account)}
+                          className={`inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
+                            account.disabled
+                              ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-300 hover:bg-emerald-400/20"
+                              : "border-red-400/30 bg-red-400/10 text-red-300 hover:bg-red-400/20"
+                          }`}
+                        >
+                          <Ban className="h-3.5 w-3.5" />
+                          {account.disabled ? "Enable" : "Disable"}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
 

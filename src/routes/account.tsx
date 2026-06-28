@@ -17,6 +17,9 @@ import {
   Tag,
   TrendingUp,
   Trophy,
+  RefreshCw,
+  BadgeCheck,
+  BadgeAlert,
 } from "lucide-react";
 import { Starfield } from "@/components/Starfield";
 import { Navbar } from "@/components/Navbar";
@@ -54,7 +57,7 @@ const strengthMeta: Record<PasswordStrength, { label: string; width: string; col
 };
 
 function AccountPage() {
-  const { account, signUp, signIn, signOut } = useAccount();
+  const { account, signUp, signIn, signOut, refreshVerification } = useAccount();
   const [mode, setMode] = useState<AuthMode>("signup");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -65,6 +68,7 @@ function AccountPage() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [refreshingVerification, setRefreshingVerification] = useState(false);
 
   const strength = getPasswordStrength(password);
   const strengthInfo = strengthMeta[strength];
@@ -92,6 +96,14 @@ function AccountPage() {
       setError(result.error);
       return;
     }
+  };
+
+  const refreshEmailStatus = async () => {
+    setRefreshingVerification(true);
+    setError(null);
+    const result = await refreshVerification();
+    if (!result.ok) setError(result.error);
+    setRefreshingVerification(false);
   };
 
   return (
@@ -356,6 +368,42 @@ function AccountPage() {
                   {account.edition === "bedrock" ? "Bedrock Edition" : "Java Edition"}
                 </p>
                 <p className="mt-2 text-xs text-muted-foreground">{account.email}</p>
+                <div
+                  className={`mt-4 rounded-xl border px-4 py-3 text-left ${
+                    account.emailVerified
+                      ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-300"
+                      : "border-amber-400/30 bg-amber-400/10 text-amber-300"
+                  }`}
+                >
+                  <div className="flex items-start gap-2">
+                    {account.emailVerified ? (
+                      <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0" />
+                    ) : (
+                      <BadgeAlert className="mt-0.5 h-4 w-4 shrink-0" />
+                    )}
+                    <div>
+                      <p className="text-xs font-bold">
+                        {account.emailVerified ? "Email verified" : "Email not verified"}
+                      </p>
+                      <p className="mt-1 text-[11px] opacity-90">
+                        {account.emailVerified
+                          ? "Checkout is unlocked for this account."
+                          : "Ask an admin to verify this account before checkout."}
+                      </p>
+                    </div>
+                  </div>
+                  {!account.emailVerified && (
+                    <button
+                      type="button"
+                      onClick={refreshEmailStatus}
+                      disabled={refreshingVerification}
+                      className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-amber-300/30 bg-background/30 px-3 py-1.5 text-[11px] font-semibold transition hover:bg-background/50 disabled:opacity-50"
+                    >
+                      <RefreshCw className={`h-3.5 w-3.5 ${refreshingVerification ? "animate-spin" : ""}`} />
+                      Refresh Status
+                    </button>
+                  )}
+                </div>
                 <div className="mt-5 grid gap-3 text-left">
                   <MiniProfileStat label="Best Rank" value={profileStats?.ownedRank ?? "None yet"} />
                   <MiniProfileStat label="Favorite Category" value={profileStats?.favoriteCategory ?? "None yet"} />
