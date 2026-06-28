@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import {
   Lock,
   ShoppingBag,
@@ -9,6 +9,10 @@ import {
   AlertCircle,
   Copy,
   Check,
+  Clock3,
+  FileText,
+  ReceiptText,
+  ShieldCheck,
 } from "lucide-react";
 import { Starfield } from "@/components/Starfield";
 import { Navbar } from "@/components/Navbar";
@@ -49,6 +53,15 @@ function CheckoutPage() {
   const [done, setDone] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  const gcashDigits = gcashNumber.replace(/\D/g, "");
+  const referenceDigits = referenceNo.replace(/\D/g, "");
+  const paymentReady =
+    Boolean(account) &&
+    /^09\d{9}$/.test(gcashDigits) &&
+    gcashName.trim().length >= 2 &&
+    referenceDigits.length >= 10 &&
+    confirmed;
 
   const copyNumber = async () => {
     try {
@@ -151,6 +164,26 @@ function CheckoutPage() {
                 delivered automatically in-game when you join{" "}
                 <span className="font-mono text-foreground">{SERVER_IP}</span>.
               </p>
+              <div className="mt-6 rounded-2xl border border-border/60 bg-background/40 p-4 text-left">
+                <div className="flex items-center gap-2 text-sm font-bold text-foreground">
+                  <ReceiptText className="h-4 w-4 text-accent" />
+                  Receipt Snapshot
+                </div>
+                <div className="mt-3 space-y-2 text-sm text-muted-foreground">
+                  <div className="flex justify-between gap-3">
+                    <span>Order ID</span>
+                    <span className="font-mono text-foreground">#{done}</span>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <span>Status</span>
+                    <span className="font-semibold text-amber-400">Pending Verification</span>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <span>Total</span>
+                    <span className="font-bold text-foreground">{totalDisplay}</span>
+                  </div>
+                </div>
+              </div>
               <div className="mt-6 flex flex-wrap justify-center gap-3">
                 <Link
                   to="/account"
@@ -193,6 +226,27 @@ function CheckoutPage() {
             <p className="mt-1 text-sm text-muted-foreground">
               Pay in Philippine Peso (₱) via GCash. Fast, secure, and local.
             </p>
+
+            <div className="mt-6 grid gap-3 md:grid-cols-3">
+              <CheckoutStep
+                icon={<UserIcon className="h-4 w-4" />}
+                title="1. Account"
+                copy={account ? `${account.displayName} is selected` : "Sign in before paying"}
+                active={Boolean(account)}
+              />
+              <CheckoutStep
+                icon={<FileText className="h-4 w-4" />}
+                title="2. Payment Details"
+                copy={paymentReady ? "Ready to submit" : "Enter GCash receipt info"}
+                active={paymentReady}
+              />
+              <CheckoutStep
+                icon={<ShieldCheck className="h-4 w-4" />}
+                title="3. Admin Verify"
+                copy="We confirm, then deliver in-game"
+                active={false}
+              />
+            </div>
 
             {!account && (
               <div className="mt-6 flex items-start gap-3 rounded-2xl border border-accent/30 bg-accent/5 px-5 py-4">
@@ -329,6 +383,14 @@ function CheckoutPage() {
                       className="w-full rounded-xl border border-border bg-background/60 px-4 py-3 font-mono text-sm tracking-wider focus:border-[#007DFF] focus:outline-none disabled:opacity-50"
                     />
 
+                    <div className="grid gap-2 rounded-xl border border-border/60 bg-background/30 p-4 text-xs text-muted-foreground sm:grid-cols-2">
+                      <VerificationCheck ok={Boolean(account)} label="Account selected" />
+                      <VerificationCheck ok={/^09\d{9}$/.test(gcashDigits)} label="Valid GCash number" />
+                      <VerificationCheck ok={gcashName.trim().length >= 2} label="GCash name entered" />
+                      <VerificationCheck ok={referenceDigits.length >= 10} label="Reference number entered" />
+                      <VerificationCheck ok={confirmed} label="Payment confirmation checked" />
+                    </div>
+
                     <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border/60 bg-background/30 p-4">
                       <input
                         type="checkbox"
@@ -388,20 +450,31 @@ function CheckoutPage() {
                     <span className="text-xl">{totalDisplay}</span>
                   </div>
                 </div>
+                <div className="mt-5 rounded-2xl border border-border/60 bg-background/35 p-4">
+                  <h3 className="flex items-center gap-2 text-sm font-bold text-foreground">
+                    <Clock3 className="h-4 w-4 text-accent" />
+                    What happens next
+                  </h3>
+                  <ol className="mt-3 space-y-2 text-xs text-muted-foreground">
+                    <li>1. Submit your GCash reference number.</li>
+                    <li>2. Admin verifies the payment in the panel.</li>
+                    <li>3. Your rank is delivered in-game through RCON.</li>
+                  </ol>
+                </div>
                 <button
                   type="submit"
-                  disabled={submitting || !account}
+                  disabled={submitting || !paymentReady}
                   className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#007DFF] px-5 py-3 text-sm font-semibold text-white shadow-[0_0_30px_-5px_rgba(0,125,255,0.5)] transition hover:bg-[#0066d6] disabled:opacity-60"
                 >
                   {submitting ? (
                     <>
                       <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-                      Verifying payment…
+                      Submitting order...
                     </>
                   ) : (
                     <>
                       <Lock className="h-4 w-4" />
-                      Confirm GCash Payment
+                      {paymentReady ? "Confirm GCash Payment" : "Complete Details"}
                     </>
                   )}
                 </button>
@@ -415,6 +488,33 @@ function CheckoutPage() {
 
         <SiteFooter />
       </div>
+    </div>
+  );
+}
+
+function CheckoutStep({ icon, title, copy, active }: { icon: ReactNode; title: string; copy: string; active: boolean }) {
+  return (
+    <div
+      className={`rounded-2xl border px-4 py-3 ${
+        active
+          ? "border-accent/40 bg-accent/10 text-foreground"
+          : "border-border/60 bg-card/45 text-muted-foreground"
+      }`}
+    >
+      <div className="flex items-center gap-2 text-sm font-bold">
+        <span className={active ? "text-accent" : "text-muted-foreground"}>{icon}</span>
+        {title}
+      </div>
+      <p className="mt-1 text-xs">{copy}</p>
+    </div>
+  );
+}
+
+function VerificationCheck({ ok, label }: { ok: boolean; label: string }) {
+  return (
+    <div className={`flex items-center gap-2 ${ok ? "text-emerald-400" : "text-muted-foreground"}`}>
+      {ok ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Clock3 className="h-3.5 w-3.5" />}
+      <span>{label}</span>
     </div>
   );
 }
