@@ -24,6 +24,8 @@ import {
   Ban,
   Trash2,
   UserPlus,
+  BellRing,
+  Percent,
 } from "lucide-react";
 import { Starfield } from "@/components/Starfield";
 import { Navbar } from "@/components/Navbar";
@@ -36,11 +38,16 @@ import {
   saveAdminNote,
   setAccountFlags,
   deleteAccount,
+  listPromoCodes,
+  savePromoCode,
   syncAccountsFromOrders,
   type Order,
   type OrderStatus,
+  type PromoCodeRow,
   type StoreAccount,
 } from "@/lib/supabase";
+import { enableLocalAdminNotifications } from "@/lib/pwa-notifications";
+import { notifyDiscord } from "@/lib/discord";
 
 const ADMIN_TOKEN_KEY = "lunaris.admin.token.v1";
 const DEFAULT_ADMIN_PASSWORD = "lunaris-admin-2024";
@@ -172,6 +179,7 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
   const [noteSaving, setNoteSaving] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [note, setNote] = useState("");
+  const [notificationMessage, setNotificationMessage] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -233,6 +241,15 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
       setOrders((prev) => prev.map((o) => (o.id === res.order.id ? res.order : o)));
       setSelected(res.order);
       setNote("");
+      void notifyDiscord({
+        title: action === "confirm" ? "Order Confirmed" : "Order Rejected",
+        description: `Order #${order.id} for ${displayName(order)} was ${action === "confirm" ? "confirmed" : "rejected"}.`,
+        color: action === "confirm" ? 5763719 : 15548997,
+        fields: [
+          { name: "Total", value: order.total_display, inline: true },
+          { name: "Reference", value: order.reference_no || "N/A", inline: true },
+        ],
+      });
     } else {
       setActionError(res.error);
     }
@@ -298,6 +315,12 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
     return { ok: false as const, error: res.error };
   };
 
+  const enableNotifications = async () => {
+    setNotificationMessage("Requesting notification permission...");
+    const res = await enableLocalAdminNotifications();
+    setNotificationMessage(res.ok ? "Admin alerts are enabled on this device." : res.error);
+  };
+
   return (
     <section className="mx-auto max-w-7xl px-4 pb-24 pt-8 md:px-8">
       {/* Header */}
@@ -312,6 +335,13 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={enableNotifications}
+            className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-4 py-2 text-sm font-semibold text-accent transition hover:bg-accent/20"
+          >
+            <BellRing className="h-4 w-4" />
+            Enable iPhone Alerts
+          </button>
           <button
             onClick={load}
             disabled={loading}
@@ -502,6 +532,12 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
         )}
       </div>
 
+      {notificationMessage && (
+        <div className="mt-6 rounded-2xl border border-accent/25 bg-accent/10 px-5 py-3 text-sm text-accent">
+          {notificationMessage}
+        </div>
+      )}
+
       <AccountsManager
         accounts={accounts}
         loading={accountsLoading}
@@ -512,6 +548,8 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
         onDelete={doDeleteAccount}
         onCreate={doCreateAccount}
       />
+
+      <PromoManager token={token} />
 
       {/* Detail drawer */}
       {selected && (
@@ -828,6 +866,165 @@ function StatusBadge({ status }: { status: OrderStatus }) {
       {s.icon}
       {s.label}
     </span>
+  );
+}
+
+function PromoManager({ token }: { token: string }) {
+  const [promos, setPromos] = useState<PromoCodeRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [code, setCode] = useState("");
+  const [amount, setAmount] = useState("10");
+  const [kind, setKind] = useState<"percent" | "fixed">("percent");
+  const [minSpend, setMinSpend] = useState("0");
+
+  const loadPromos = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    const res = await listPromoCodes();
+    if (res.ok) setPromos(res.promos);
+    else setError(res.error);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    loadPromos();
+  }, [loadPromos]);
+
+  const submitPromo = async (e: FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setError(null);
+    const cleanCode = code.trim().toUpperCase();
+    const amountValue = Number(amount);
+    const minValue = Math.max(0, Math.round(Number(minSpend || 0) * 100));
+    if (!cleanCode || !Number.isFinite(amountValue) || amountValue <= 0) {
+      setError("Enter a code and a valid discount amount.");
+      setSaving(false);
+      return;
+    }
+
+    const res = await savePromoCode(
+      {
+        code: cleanCode,
+        label: cleanCode,
+        description: kind === "percent" ? `${amountValue}% off checkout.` : `PHP ${amountValue} off checkout.`,
+        kind,
+        amount: kind === "percent" ? Math.round(amountValue) : Math.round(amountValue * 100),
+        min_subtotal_cents: minValue,
+        active: true,
+        max_uses: null,
+        expires_at: null,
+      },
+      token,
+    );
+    if (res.ok) {
+      setPromos((prev) => [res.promo, ...prev.filter((promo) => promo.code !== res.promo.code)]);
+      setCode("");
+      setAmount(kind === "percent" ? "10" : "50");
+      setMinSpend("0");
+    } else {
+      setError(res.error);
+    }
+    setSaving(false);
+  };
+
+  return (
+    <section className="mt-10 rounded-2xl border border-border bg-card/40 p-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="grid h-10 w-10 place-items-center rounded-lg bg-accent/10 text-accent ring-1 ring-accent/30">
+            <Percent className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold">Promo Codes</h2>
+            <p className="text-xs text-muted-foreground">Create checkout discounts without editing the website code.</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={loadPromos}
+          disabled={loading}
+          className="inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-4 py-2 text-sm font-semibold text-foreground transition hover:border-accent disabled:opacity-50"
+        >
+          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+          Refresh Promos
+        </button>
+      </div>
+
+      {error && (
+        <div className="mt-4 flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {error}
+        </div>
+      )}
+
+      <form onSubmit={submitPromo} className="mt-5 grid gap-3 rounded-2xl border border-border/70 bg-background/30 p-4 md:grid-cols-[1fr_150px_140px_150px_auto]">
+        <input
+          value={code}
+          onChange={(e) => setCode(e.target.value.toUpperCase())}
+          placeholder="CODE"
+          className="rounded-xl border border-border bg-card/70 px-3 py-2 font-mono text-sm uppercase outline-none transition focus:border-accent"
+        />
+        <select
+          value={kind}
+          onChange={(e) => {
+            const next = e.target.value as "percent" | "fixed";
+            setKind(next);
+            setAmount(next === "percent" ? "10" : "50");
+          }}
+          className="rounded-xl border border-border bg-card/70 px-3 py-2 text-sm outline-none transition focus:border-accent"
+        >
+          <option value="percent">Percent</option>
+          <option value="fixed">PHP off</option>
+        </select>
+        <input
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          placeholder={kind === "percent" ? "10" : "50"}
+          inputMode="decimal"
+          className="rounded-xl border border-border bg-card/70 px-3 py-2 text-sm outline-none transition focus:border-accent"
+        />
+        <input
+          value={minSpend}
+          onChange={(e) => setMinSpend(e.target.value)}
+          placeholder="Min PHP"
+          inputMode="decimal"
+          className="rounded-xl border border-border bg-card/70 px-3 py-2 text-sm outline-none transition focus:border-accent"
+        />
+        <button
+          type="submit"
+          disabled={saving}
+          className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-accent disabled:opacity-50"
+        >
+          {saving ? "Saving..." : "Add Promo"}
+        </button>
+      </form>
+
+      <div className="mt-5 grid gap-3 md:grid-cols-3">
+        {loading ? (
+          <div className="text-sm text-muted-foreground">Loading promos...</div>
+        ) : promos.length === 0 ? (
+          <div className="text-sm text-muted-foreground">No promo codes yet.</div>
+        ) : (
+          promos.map((promo) => (
+            <div key={promo.code} className="rounded-2xl border border-border/70 bg-background/30 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <span className="font-mono text-sm font-bold text-foreground">{promo.code}</span>
+                <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${promo.active ? "bg-emerald-400/10 text-emerald-300" : "bg-red-400/10 text-red-300"}`}>
+                  {promo.active ? "Active" : "Off"}
+                </span>
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">{promo.description || promo.label}</p>
+              <p className="mt-3 text-xs text-muted-foreground">
+                Used {promo.used_count}{promo.max_uses ? ` / ${promo.max_uses}` : ""} times
+              </p>
+            </div>
+          ))
+        )}
+      </div>
+    </section>
   );
 }
 

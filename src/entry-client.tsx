@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { RouterProvider } from "@tanstack/react-router";
 import { QueryClient } from "@tanstack/react-query";
 import { getRouter } from "@/lib/router-client";
+import { registerLunarisApp } from "@/lib/pwa-notifications";
 import "@/styles.css";
 
 const queryClient = new QueryClient();
@@ -15,3 +16,5 @@ startTransition(() => {
     </StrictMode>,
   );
 });
+
+void registerLunarisApp();

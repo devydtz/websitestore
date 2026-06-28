@@ -38,9 +38,12 @@ function databaseSetupError(table: string) {
 }
 
 function formatSupabaseError(url: string, message: string) {
-  if (/Could not find the table 'public\.(orders|accounts|deleted_accounts)'/i.test(message)) {
-    const table = message.match(/public\.(orders|accounts|deleted_accounts)/i)?.[1] ?? "orders";
+  if (/Could not find the table 'public\.(orders|accounts|deleted_accounts|promo_codes)'/i.test(message)) {
+    const table = message.match(/public\.(orders|accounts|deleted_accounts|promo_codes)/i)?.[1] ?? "orders";
     return databaseSetupError(table);
+  }
+  if (/duplicate key value/i.test(message) && /orders_reference_no_key/i.test(message)) {
+    return "That GCash reference number was already used on another order. Check the number or contact support.";
   }
   return `${url}: ${message}`;
 }
@@ -114,9 +117,18 @@ export type Order = {
   subtotal_display: string | null;
   status: OrderStatus;
   admin_note: string | null;
+  status_history: OrderStatusHistory[] | null;
+  receipt_issued_at: string | null;
   delivered_at: string | null;
   delivery_log: { command: string; ok: boolean; response?: string }[] | null;
   created_at: string;
+};
+
+export type OrderStatusHistory = {
+  status: OrderStatus | "submitted";
+  label: string;
+  at: string;
+  note?: string;
 };
 
 export type NewOrder = {
@@ -137,6 +149,20 @@ export type NewOrder = {
   subtotal_display: string;
 };
 
+export type PromoCodeRow = {
+  code: string;
+  label: string;
+  description: string | null;
+  kind: "percent" | "fixed";
+  amount: number;
+  min_subtotal_cents: number;
+  active: boolean;
+  max_uses: number | null;
+  used_count: number;
+  expires_at: string | null;
+  created_at: string;
+};
+
 export async function createOrder(order: NewOrder): Promise<{ ok: true } | { ok: false; error: string }> {
   const supabase = getSupabase();
   if (!supabase.ok) return { ok: false, error: supabase.error };
@@ -145,6 +171,19 @@ export async function createOrder(order: NewOrder): Promise<{ ok: true } | { ok:
   for (const url of supabase.urls) {
     try {
       const client = createClient(url, supabaseAnonKey);
+      const referenceTaken = await client
+        .from("orders")
+        .select("id")
+        .eq("reference_no", order.reference_no)
+        .maybeSingle();
+      if (!referenceTaken.error && referenceTaken.data) {
+        return {
+          ok: false,
+          error: "That GCash reference number was already used on another order. Check the number or contact support.",
+        };
+      }
+
+      const now = new Date().toISOString();
       const { error } = await client.from("orders").insert({
         id: order.id,
         username: order.username,
@@ -163,8 +202,46 @@ export async function createOrder(order: NewOrder): Promise<{ ok: true } | { ok:
         subtotal_cents: order.subtotal_cents,
         subtotal_display: order.subtotal_display,
         status: "pending",
+        status_history: [
+          {
+            status: "submitted",
+            label: "Order submitted",
+            at: now,
+          },
+          {
+            status: "pending",
+            label: "Waiting for payment verification",
+            at: now,
+          },
+        ],
+        receipt_issued_at: now,
       });
       if (!error) return { ok: true };
+      lastError = formatSupabaseError(url, error.message);
+    } catch (error) {
+      lastError = networkError(error, [url]);
+    }
+  }
+
+  return { ok: false, error: lastError || networkError("No Supabase URL responded", supabase.urls) };
+}
+
+export async function listCustomerOrders(
+  email: string,
+): Promise<{ ok: true; orders: Order[] } | { ok: false; error: string }> {
+  const supabase = getSupabase();
+  if (!supabase.ok) return { ok: false, error: supabase.error };
+
+  let lastError = "";
+  for (const url of supabase.urls) {
+    try {
+      const client = createClient(url, supabaseAnonKey);
+      const { data, error } = await client
+        .from("orders")
+        .select("*")
+        .eq("email", email)
+        .order("created_at", { ascending: false });
+      if (!error) return { ok: true, orders: (data ?? []) as Order[] };
       lastError = formatSupabaseError(url, error.message);
     } catch (error) {
       lastError = networkError(error, [url]);
@@ -533,6 +610,90 @@ export async function listOrders(): Promise<{ ok: true; orders: Order[] } | { ok
   return { ok: false, error: lastError || networkError("No Supabase URL responded", supabase.urls) };
 }
 
+export async function listPromoCodes(): Promise<{ ok: true; promos: PromoCodeRow[] } | { ok: false; error: string }> {
+  const supabase = getSupabase();
+  if (!supabase.ok) return { ok: false, error: supabase.error };
+
+  let lastError = "";
+  for (const url of supabase.urls) {
+    try {
+      const client = createClient(url, supabaseAnonKey);
+      const { data, error } = await client
+        .from("promo_codes")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (!error) return { ok: true, promos: (data ?? []) as PromoCodeRow[] };
+      lastError = formatSupabaseError(url, error.message);
+    } catch (error) {
+      lastError = networkError(error, [url]);
+    }
+  }
+
+  return { ok: false, error: lastError || networkError("No Supabase URL responded", supabase.urls) };
+}
+
+export async function getPromoCode(
+  code: string,
+): Promise<{ ok: true; promo: PromoCodeRow | null } | { ok: false; error: string }> {
+  const supabase = getSupabase();
+  if (!supabase.ok) return { ok: false, error: supabase.error };
+
+  let lastError = "";
+  for (const url of supabase.urls) {
+    try {
+      const client = createClient(url, supabaseAnonKey);
+      const { data, error } = await client
+        .from("promo_codes")
+        .select("*")
+        .eq("code", code.trim().toUpperCase())
+        .eq("active", true)
+        .maybeSingle();
+      if (!error) return { ok: true, promo: data as PromoCodeRow | null };
+      lastError = formatSupabaseError(url, error.message);
+    } catch (error) {
+      lastError = networkError(error, [url]);
+    }
+  }
+
+  return { ok: false, error: lastError || networkError("No Supabase URL responded", supabase.urls) };
+}
+
+export async function savePromoCode(
+  promo: Omit<PromoCodeRow, "created_at" | "used_count"> & { used_count?: number },
+  adminToken: string,
+): Promise<{ ok: true; promo: PromoCodeRow } | { ok: false; error: string }> {
+  const supabase = getSupabase();
+  if (!supabase.ok) return { ok: false, error: supabase.error };
+  if (adminToken !== "lunaris-admin-2024") return { ok: false, error: "Incorrect admin password." };
+
+  let lastError = "";
+  for (const url of supabase.urls) {
+    try {
+      const client = createClient(url, supabaseAnonKey);
+      const { data, error } = await client
+        .from("promo_codes")
+        .upsert(
+          {
+            ...promo,
+            code: promo.code.trim().toUpperCase(),
+            label: promo.label.trim(),
+            description: promo.description?.trim() || null,
+            used_count: promo.used_count ?? 0,
+          },
+          { onConflict: "code" },
+        )
+        .select("*")
+        .maybeSingle();
+      if (!error && data) return { ok: true, promo: data as PromoCodeRow };
+      lastError = error ? formatSupabaseError(url, error.message) : "Promo code was not saved.";
+    } catch (error) {
+      lastError = networkError(error, [url]);
+    }
+  }
+
+  return { ok: false, error: lastError || networkError("No Supabase URL responded", supabase.urls) };
+}
+
 export type AdminAction = "confirm" | "reject";
 
 export async function saveAdminNote(
@@ -594,10 +755,26 @@ export async function adminAction(
       ? {
           status: "rejected" as const,
           admin_note: note ?? null,
+          status_history: [
+            {
+              status: "rejected",
+              label: "Order rejected",
+              at: new Date().toISOString(),
+              note,
+            },
+          ],
         }
       : {
           status: "confirmed" as const,
           admin_note: note ?? null,
+          status_history: [
+            {
+              status: "confirmed",
+              label: "Payment confirmed",
+              at: new Date().toISOString(),
+              note,
+            },
+          ],
           delivery_log: [
             {
               command: "Manual delivery required",
@@ -612,9 +789,14 @@ export async function adminAction(
   for (const url of supabase.urls) {
     try {
       const client = createClient(url, supabaseAnonKey);
+      const existing = await client.from("orders").select("status_history").eq("id", orderId).maybeSingle();
+      const nextHistory = [
+        ...(((existing.data as { status_history?: OrderStatusHistory[] } | null)?.status_history ?? []) as OrderStatusHistory[]),
+        ...update.status_history,
+      ];
       const { data, error } = await client
         .from("orders")
-        .update(update)
+        .update({ ...update, status_history: nextHistory })
         .eq("id", orderId)
         .eq("status", "pending")
         .select("*")

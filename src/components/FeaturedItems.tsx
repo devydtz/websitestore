@@ -1,6 +1,8 @@
 import { Link } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
 import { Crown, KeyRound, Package, Plus, Sparkles } from "lucide-react";
 import { useCart, priceToCents } from "@/lib/cart";
+import { listOrders, type Order } from "@/lib/supabase";
 
 const bestSellers = [
   {
@@ -40,6 +42,35 @@ const bestSellers = [
 
 export function FeaturedItems() {
   const { add } = useCart();
+  const [orders, setOrders] = useState<Order[]>([]);
+
+  useEffect(() => {
+    let mounted = true;
+    listOrders().then((res) => {
+      if (mounted && res.ok) setOrders(res.orders);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const displayItems = useMemo(() => {
+    const topRank = getTopItem(orders, "rank");
+    if (!topRank) return bestSellers;
+
+    return bestSellers.map((item) =>
+      item.category === "Ranks"
+        ? {
+            ...item,
+            badge: "Most Bought",
+            id: topRank.id,
+            name: topRank.name,
+            price: topRank.price,
+            copy: `${topRank.name} is currently the most bought rank from recent store orders.`,
+          }
+        : item,
+    );
+  }, [orders]);
 
   return (
     <section className="relative px-6 py-20 md:py-24">
@@ -53,7 +84,7 @@ export function FeaturedItems() {
         </div>
 
         <div className="grid gap-5 lg:grid-cols-3">
-          {bestSellers.map((item) => (
+          {displayItems.map((item) => (
             <article key={item.id} className="pixel-card relative flex flex-col overflow-hidden rounded-2xl p-6">
               <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/70 to-transparent" />
               <div className="flex items-start justify-between gap-4">
@@ -118,4 +149,19 @@ export function FeaturedItems() {
       </div>
     </section>
   );
+}
+
+function getTopItem(orders: Order[], category: "rank" | "key" | "bundle") {
+  const counts = new Map<string, { id: string; name: string; price: string; qty: number }>();
+  for (const order of orders) {
+    if (order.status === "rejected") continue;
+    for (const item of order.items) {
+      if (!item.id.toLowerCase().includes(category)) continue;
+      const current = counts.get(item.id) ?? { id: item.id, name: item.name, price: item.price, qty: 0 };
+      current.qty += item.qty;
+      counts.set(item.id, current);
+    }
+  }
+
+  return [...counts.values()].sort((a, b) => b.qty - a.qty)[0] ?? null;
 }

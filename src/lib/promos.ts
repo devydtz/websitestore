@@ -55,3 +55,46 @@ export function applyPromo(code: string, subtotalCents: number) {
     totalDisplay: centsToDisplay(subtotalCents - discountCents),
   };
 }
+
+export function applyPromoRule(
+  promo: {
+    code: string;
+    label: string;
+    description?: string | null;
+    kind: "percent" | "fixed";
+    amount: number;
+    min_subtotal_cents?: number | null;
+    max_uses?: number | null;
+    used_count?: number | null;
+    expires_at?: string | null;
+  },
+  subtotalCents: number,
+) {
+  if ((promo.min_subtotal_cents ?? 0) > subtotalCents) {
+    return { ok: false as const, error: `${promo.code} does not apply to this cart.` };
+  }
+  if (promo.max_uses !== null && promo.max_uses !== undefined && (promo.used_count ?? 0) >= promo.max_uses) {
+    return { ok: false as const, error: `${promo.code} has already reached its use limit.` };
+  }
+  if (promo.expires_at && new Date(promo.expires_at).getTime() < Date.now()) {
+    return { ok: false as const, error: `${promo.code} has expired.` };
+  }
+
+  const discountCents =
+    promo.kind === "percent" ? Math.round(subtotalCents * (promo.amount / 100)) : promo.amount;
+  const safeDiscount = Math.min(subtotalCents, Math.max(0, discountCents));
+  if (safeDiscount <= 0) {
+    return { ok: false as const, error: `${promo.code} does not apply to this cart.` };
+  }
+
+  return {
+    ok: true as const,
+    code: promo.code,
+    label: promo.label,
+    description: promo.description ?? "",
+    discountCents: safeDiscount,
+    discountDisplay: centsToDisplay(safeDiscount),
+    totalCents: subtotalCents - safeDiscount,
+    totalDisplay: centsToDisplay(subtotalCents - safeDiscount),
+  };
+}

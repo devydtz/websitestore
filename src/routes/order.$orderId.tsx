@@ -1,10 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
-import { AlertCircle, CheckCircle2, Clock3, Copy, PackageCheck, RefreshCw, XCircle } from "lucide-react";
+import { AlertCircle, CheckCircle2, Clock3, Copy, PackageCheck, Printer, RefreshCw, XCircle } from "lucide-react";
 import { Starfield } from "@/components/Starfield";
 import { Navbar } from "@/components/Navbar";
 import { SiteFooter } from "@/components/SiteFooter";
-import { getOrder, type Order, type OrderStatus } from "@/lib/supabase";
+import { getOrder, type Order, type OrderStatus, type OrderStatusHistory } from "@/lib/supabase";
 
 export const Route = createFileRoute("/order/$orderId")({
   head: () => ({
@@ -79,6 +79,7 @@ function OrderStatusPage() {
 
   const meta = order ? statusMeta[order.status] : null;
   const StatusIcon = meta?.Icon ?? Clock3;
+  const timeline = order ? buildTimeline(order) : [];
 
   return (
     <div className="relative min-h-screen bg-background text-foreground">
@@ -119,6 +120,16 @@ function OrderStatusPage() {
                 <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
                 Refresh
               </button>
+              {order && (
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-5 py-2.5 text-sm font-semibold text-accent transition hover:bg-accent/20"
+                >
+                  <Printer className="h-4 w-4" />
+                  Print Receipt
+                </button>
+              )}
             </div>
 
             {loading ? (
@@ -163,6 +174,24 @@ function OrderStatusPage() {
                     ))}
                   </div>
 
+                  <div className="mt-5 rounded-2xl border border-border/60 bg-background/35 p-5">
+                    <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                      Timeline
+                    </p>
+                    <div className="mt-4 space-y-4">
+                      {timeline.map((step, index) => (
+                        <div key={`${step.status}-${step.at}-${index}`} className="flex gap-3">
+                          <div className="mt-1 h-3 w-3 rounded-full bg-accent shadow-[0_0_18px_rgba(189,167,255,0.8)]" />
+                          <div>
+                            <p className="text-sm font-semibold text-foreground">{step.label}</p>
+                            <p className="text-xs text-muted-foreground">{new Date(step.at).toLocaleString("en-PH")}</p>
+                            {step.note && <p className="mt-1 text-xs text-muted-foreground">{step.note}</p>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
                   {order.admin_note && (
                     <div className="mt-5 rounded-2xl border border-accent/25 bg-accent/10 p-5">
                       <p className="text-xs font-semibold uppercase tracking-widest text-accent">Admin Note</p>
@@ -197,6 +226,9 @@ function OrderStatusPage() {
                       <InfoRow label="Discount" value={`-${order.discount_display}`} />
                     )}
                     <InfoRow label="Total" value={order.total_display} bold />
+                    {order.receipt_issued_at && (
+                      <InfoRow label="Receipt Issued" value={new Date(order.receipt_issued_at).toLocaleString("en-PH")} />
+                    )}
                   </dl>
                   <div className="mt-5 border-t border-border/60 pt-5">
                     <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Items</p>
@@ -233,6 +265,34 @@ function OrderStatusPage() {
       </div>
     </div>
   );
+}
+
+function buildTimeline(order: Order): OrderStatusHistory[] {
+  if (order.status_history?.length) return order.status_history;
+
+  const base: OrderStatusHistory[] = [
+    {
+      status: "submitted" as const,
+      label: "Order submitted",
+      at: order.created_at,
+    },
+  ];
+
+  if (order.status !== "pending") {
+    base.push({
+      status: order.status,
+      label: statusMeta[order.status].label,
+      at: order.delivered_at ?? order.created_at,
+    });
+  } else {
+    base.push({
+      status: "pending",
+      label: "Waiting for payment verification",
+      at: order.created_at,
+    });
+  }
+
+  return base;
 }
 
 function StepPill({ label, active }: { label: string; active: boolean }) {

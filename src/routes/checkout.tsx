@@ -20,8 +20,9 @@ import { Navbar } from "@/components/Navbar";
 import { SiteFooter } from "@/components/SiteFooter";
 import { centsToDisplay, lineTotalDisplay, useCart } from "@/lib/cart";
 import { useAccount } from "@/lib/account";
-import { createOrder } from "@/lib/supabase";
-import { applyPromo } from "@/lib/promos";
+import { createOrder, getPromoCode } from "@/lib/supabase";
+import { applyPromo, applyPromoRule } from "@/lib/promos";
+import { notifyDiscord } from "@/lib/discord";
 import {
   formatMobileNumber,
   STORE_GCASH_DISPLAY,
@@ -53,6 +54,7 @@ function CheckoutPage() {
   const [promoInput, setPromoInput] = useState("");
   const [promoCode, setPromoCode] = useState<string | null>(null);
   const [promoError, setPromoError] = useState<string | null>(null);
+  const [promoChecking, setPromoChecking] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState<string | null>(null);
   const [submittedTotal, setSubmittedTotal] = useState<string | null>(null);
@@ -84,16 +86,24 @@ function CheckoutPage() {
     } catch {}
   };
 
-  const applyPromoCode = () => {
+  const applyPromoCode = async () => {
     setPromoError(null);
-    const result = applyPromo(promoInput, subtotalCents);
+    setPromoChecking(true);
+    const databasePromo = await getPromoCode(promoInput);
+    const result =
+      databasePromo.ok && databasePromo.promo
+        ? applyPromoRule(databasePromo.promo, subtotalCents)
+        : applyPromo(promoInput, subtotalCents);
+
     if (!result.ok) {
       setPromoCode(null);
       setPromoError(result.error);
+      setPromoChecking(false);
       return;
     }
     setPromoCode(result.code);
     setPromoInput(result.code);
+    setPromoChecking(false);
   };
 
   const removePromo = () => {
@@ -164,6 +174,17 @@ function CheckoutPage() {
       setSubmitting(false);
       return;
     }
+
+    void notifyDiscord({
+      title: "New Lunaris Order",
+      description: `Order #${orderId} is waiting for payment verification.`,
+      color: 12429311,
+      fields: [
+        { name: "Player", value: account.displayName, inline: true },
+        { name: "Total", value: checkoutTotalDisplay, inline: true },
+        { name: "Reference", value: referenceNo.trim(), inline: true },
+      ],
+    });
 
     recordPurchase({
       id: orderId,
@@ -424,10 +445,10 @@ function CheckoutPage() {
                           <button
                             type="button"
                             onClick={applyPromoCode}
-                            disabled={!account || !promoInput.trim()}
+                            disabled={!account || !promoInput.trim() || promoChecking}
                             className="rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:opacity-50"
                           >
-                            Apply
+                            {promoChecking ? "Checking..." : "Apply"}
                           </button>
                         )}
                       </div>
