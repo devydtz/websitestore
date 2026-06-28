@@ -22,7 +22,6 @@ import { useAccount } from "@/lib/account";
 import { createOrder } from "@/lib/supabase";
 import {
   formatMobileNumber,
-  SERVER_IP,
   STORE_GCASH_DISPLAY,
   STORE_GCASH_NAME,
   STORE_GCASH_NUMBER,
@@ -50,6 +49,7 @@ function CheckoutPage() {
   const [confirmed, setConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState<string | null>(null);
+  const [submittedTotal, setSubmittedTotal] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -133,8 +133,9 @@ function CheckoutPage() {
       total: totalDisplay,
       method: "gcash",
     });
-    clear();
+    setSubmittedTotal(totalDisplay);
     setDone(orderId);
+    clear();
     setSubmitting(false);
   };
 
@@ -153,9 +154,7 @@ function CheckoutPage() {
               <h1 className="mt-5 font-display text-5xl">Order Submitted</h1>
               <p className="mt-2 text-sm text-muted-foreground">
                 Order <span className="font-mono text-foreground">#{done}</span> is awaiting payment
-                verification by our team. Once your GCash payment is confirmed, your rewards will be
-                delivered automatically in-game when you join{" "}
-                <span className="font-mono text-foreground">{SERVER_IP}</span>.
+                verification by our team. Once your GCash payment is confirmed, your rewards will be delivered in-game.
               </p>
               <div className="mt-6 rounded-2xl border border-border/60 bg-background/40 p-4 text-left">
                 <div className="flex items-center gap-2 text-sm font-bold text-foreground">
@@ -173,7 +172,7 @@ function CheckoutPage() {
                   </div>
                   <div className="flex justify-between gap-3">
                     <span>Total</span>
-                    <span className="font-bold text-foreground">{totalDisplay}</span>
+                    <span className="font-bold text-foreground">{submittedTotal ?? totalDisplay}</span>
                   </div>
                 </div>
               </div>
