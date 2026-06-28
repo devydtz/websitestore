@@ -19,7 +19,6 @@ function getSupabaseUrls() {
       [
         supabaseUrl,
         "https://thkwftflaydoqfokptnv.supabase.co",
-        "https://thkwtfflaydoqfokptnv.supabase.co",
       ]
         .filter(Boolean)
         .map(normalizeSupabaseUrl),
