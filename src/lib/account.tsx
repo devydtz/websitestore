@@ -1,12 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import {
-  generateSalt,
-  hashPassword,
-  userKey,
-  validatePassword,
-  validateUsername,
-} from "@/lib/auth-utils";
-import { getAccountProfile, upsertAccountProfile } from "@/lib/supabase";
+import type { User } from "@supabase/supabase-js";
+import { userKey, validateEmail, validatePassword, validateUsername } from "@/lib/auth-utils";
+import { getAccountProfile, getSupabaseBrowserClient, upsertAccountProfile } from "@/lib/supabase";
 
 export type Edition = "java" | "bedrock";
 
@@ -36,8 +31,6 @@ type StoredUser = {
   username: string;
   edition: Edition;
   email: string;
-  passwordHash: string;
-  salt: string;
   history: PurchaseRecord[];
   createdAt: string;
   emailVerified?: boolean;
@@ -52,20 +45,17 @@ type AccountCtx = {
     email: string;
     password: string;
     confirmPassword: string;
-  }) => Promise<{ ok: true } | { ok: false; error: string }>;
-  signIn: (input: {
-    username: string;
-    edition: Edition;
-    password: string;
-  }) => Promise<{ ok: true } | { ok: false; error: string }>;
-  signOut: () => void;
+  }) => Promise<{ ok: true; message?: string } | { ok: false; error: string }>;
+  signIn: (input: { email: string; password: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
+  signOut: () => Promise<void>;
   recordPurchase: (purchase: PurchaseRecord) => void;
   refreshVerification: () => Promise<{ ok: true } | { ok: false; error: string }>;
+  requestPasswordReset: (email: string) => Promise<{ ok: true; message: string } | { ok: false; error: string }>;
+  updatePassword: (password: string, confirmPassword: string) => Promise<{ ok: true; message: string } | { ok: false; error: string }>;
 };
 
 const Ctx = createContext<AccountCtx | null>(null);
 const USERS_KEY = "lunaris.users.v2";
-const SESSION_KEY = "lunaris.session.v2";
 
 function buildAccount(user: StoredUser): Account {
   const clean = user.username.trim().replace(/^\.+/, "");
@@ -73,11 +63,11 @@ function buildAccount(user: StoredUser): Account {
   const avatarUrl =
     user.edition === "java"
       ? `https://mc-heads.net/avatar/${encodeURIComponent(clean)}/96`
-      : `https://mc-heads.net/avatar/MHF_Steve/96`;
+      : "https://mc-heads.net/avatar/MHF_Steve/96";
   const bodyUrl =
     user.edition === "java"
       ? `https://mc-heads.net/body/${encodeURIComponent(clean)}/256`
-      : `https://mc-heads.net/body/MHF_Steve/256`;
+      : "https://mc-heads.net/body/MHF_Steve/256";
   return {
     username: clean,
     edition: user.edition,
@@ -107,6 +97,46 @@ function accountTotals(history: PurchaseRecord[]) {
   return { totalSpentCents, totalSpentDisplay };
 }
 
+function readUsers(): Record<string, StoredUser> {
+  try {
+    const raw = localStorage.getItem(USERS_KEY);
+    if (!raw) return {};
+    return JSON.parse(raw) as Record<string, StoredUser>;
+  } catch {
+    return {};
+  }
+}
+
+function writeUsers(users: Record<string, StoredUser>) {
+  localStorage.setItem(USERS_KEY, JSON.stringify(users));
+}
+
+function authRedirectUrl() {
+  if (typeof window === "undefined") return undefined;
+  return `${window.location.origin}/account`;
+}
+
+function userFromAuth(authUser: User): StoredUser | null {
+  const username = String(authUser.user_metadata?.username ?? "").trim().replace(/^\.+/, "");
+  const rawEdition = String(authUser.user_metadata?.edition ?? "java");
+  const edition: Edition = rawEdition === "bedrock" ? "bedrock" : "java";
+  const email = authUser.email?.trim() ?? "";
+  if (!username || !email) return null;
+
+  const users = readUsers();
+  const key = userKey(username, edition);
+  const existing = users[key];
+  return {
+    username,
+    edition,
+    email,
+    history: existing?.history ?? [],
+    createdAt: existing?.createdAt ?? authUser.created_at ?? new Date().toISOString(),
+    emailVerified: Boolean(authUser.email_confirmed_at),
+    disabled: existing?.disabled ?? false,
+  };
+}
+
 async function syncAccount(user: StoredUser) {
   const built = buildAccount(user);
   const totals = accountTotals(user.history);
@@ -122,142 +152,130 @@ async function syncAccount(user: StoredUser) {
   });
 }
 
-function readUsers(): Record<string, StoredUser> {
-  try {
-    const raw = localStorage.getItem(USERS_KEY);
-    if (!raw) return {};
-    return JSON.parse(raw) as Record<string, StoredUser>;
-  } catch {
-    return {};
+async function applyAuthUser(authUser: User, setAccount: (account: Account | null) => void) {
+  const user = userFromAuth(authUser);
+  if (!user) {
+    setAccount(null);
+    return;
   }
-}
 
-function writeUsers(users: Record<string, StoredUser>) {
-  localStorage.setItem(USERS_KEY, JSON.stringify(users));
-}
-
-function readSession(): { username: string; edition: Edition } | null {
-  try {
-    const raw = localStorage.getItem(SESSION_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as { username: string; edition: Edition };
-  } catch {
-    return null;
+  const profile = await getAccountProfile(user.username, user.edition);
+  if (profile.ok && profile.account) {
+    user.disabled = profile.account.disabled;
+    user.emailVerified = Boolean(authUser.email_confirmed_at) || profile.account.email_verified;
   }
-}
 
-function writeSession(username: string, edition: Edition) {
-  localStorage.setItem(SESSION_KEY, JSON.stringify({ username, edition }));
+  const users = readUsers();
+  users[userKey(user.username, user.edition)] = user;
+  writeUsers(users);
+  setAccount(buildAccount(user));
+  void syncAccount(user);
 }
 
 export function AccountProvider({ children }: { children: ReactNode }) {
   const [account, setAccount] = useState<Account | null>(null);
 
   useEffect(() => {
-    const session = readSession();
-    if (!session) return;
-    const users = readUsers();
-    const user = users[userKey(session.username, session.edition)];
-    if (user) {
-      setAccount(buildAccount(user));
-      void syncAccount(user);
-    } else {
-      localStorage.removeItem(SESSION_KEY);
-    }
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase.ok) return;
+
+    supabase.client.auth.getSession().then(({ data }) => {
+      if (data.session?.user) void applyAuthUser(data.session.user, setAccount);
+    });
+
+    const { data } = supabase.client.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) void applyAuthUser(session.user, setAccount);
+      else setAccount(null);
+    });
+
+    return () => data.subscription.unsubscribe();
   }, []);
 
   const value = useMemo<AccountCtx>(
     () => ({
       account,
       signUp: async ({ username, edition, email, password, confirmPassword }) => {
+        const supabase = getSupabaseBrowserClient();
+        if (!supabase.ok) return { ok: false, error: supabase.error };
+
         const nameErr = validateUsername(username);
         if (nameErr) return { ok: false, error: nameErr };
-        if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
-          return { ok: false, error: "Enter a valid email address." };
-        }
+        const emailErr = validateEmail(email);
+        if (emailErr) return { ok: false, error: emailErr };
         const passErr = validatePassword(password);
         if (passErr) return { ok: false, error: passErr };
-        if (password !== confirmPassword) {
-          return { ok: false, error: "Passwords do not match." };
-        }
+        if (password !== confirmPassword) return { ok: false, error: "Passwords do not match." };
 
         const clean = username.trim().replace(/^\.+/, "");
-        const key = userKey(clean, edition);
-        const users = readUsers();
-        if (users[key]) {
-          return { ok: false, error: "An account with this username already exists for this edition." };
-        }
+        const { data, error } = await supabase.client.auth.signUp({
+          email: email.trim(),
+          password,
+          options: {
+            emailRedirectTo: authRedirectUrl(),
+            data: { username: clean, edition },
+          },
+        });
 
-        const salt = generateSalt();
-        const passwordHash = await hashPassword(password, salt);
+        if (error) return { ok: false, error: error.message };
+
         const stored: StoredUser = {
           username: clean,
           edition,
           email: email.trim(),
-          passwordHash,
-          salt,
-          history: [],
+          history: readUsers()[userKey(clean, edition)]?.history ?? [],
           createdAt: new Date().toISOString(),
-          emailVerified: false,
+          emailVerified: Boolean(data.user?.email_confirmed_at),
           disabled: false,
         };
-        users[key] = stored;
+        const users = readUsers();
+        users[userKey(clean, edition)] = stored;
         writeUsers(users);
-        writeSession(clean, edition);
-        setAccount(buildAccount(stored));
         void syncAccount(stored);
-        return { ok: true };
+
+        if (data.session?.user) {
+          await applyAuthUser(data.session.user, setAccount);
+        }
+
+        return {
+          ok: true,
+          message: "Account created. Check your email and click the verification link before checkout.",
+        };
       },
-      signIn: async ({ username, edition, password }) => {
-        const nameErr = validateUsername(username);
-        if (nameErr) return { ok: false, error: nameErr };
+      signIn: async ({ email, password }) => {
+        const supabase = getSupabaseBrowserClient();
+        if (!supabase.ok) return { ok: false, error: supabase.error };
+
+        const emailErr = validateEmail(email);
+        if (emailErr) return { ok: false, error: emailErr };
         if (!password) return { ok: false, error: "Enter your password." };
 
-        const clean = username.trim().replace(/^\.+/, "");
-        const key = userKey(clean, edition);
-        const users = readUsers();
-        const user = users[key];
-        if (!user) {
-          return { ok: false, error: "No account found. Create one first. Sign up takes less than a minute." };
-        }
+        const { data, error } = await supabase.client.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
+        if (error) return { ok: false, error: error.message };
+        if (data.user) await applyAuthUser(data.user, setAccount);
 
-        const hash = await hashPassword(password, user.salt);
-        if (hash !== user.passwordHash) {
-          return { ok: false, error: "Incorrect password. Try again or create a new account." };
-        }
-
-        const profile = await getAccountProfile(clean, edition);
-        if (profile.ok && profile.account) {
-          user.emailVerified = profile.account.email_verified;
-          user.disabled = profile.account.disabled;
-          users[key] = user;
-          writeUsers(users);
-        } else if (profile.ok && !profile.account) {
-          user.emailVerified = false;
-          user.disabled = false;
-          users[key] = user;
-          writeUsers(users);
-        }
-
-        if (user.disabled) {
+        const built = data.user ? userFromAuth(data.user) : null;
+        const profile = built ? await getAccountProfile(built.username, built.edition) : null;
+        if (profile?.ok && profile.account?.disabled) {
+          await supabase.client.auth.signOut();
+          setAccount(null);
           return { ok: false, error: "This account is disabled. Contact support if this is a mistake." };
         }
 
-        writeSession(clean, edition);
-        setAccount(buildAccount(user));
-        void syncAccount(user);
         return { ok: true };
       },
-      signOut: () => {
+      signOut: async () => {
+        const supabase = getSupabaseBrowserClient();
+        if (supabase.ok) await supabase.client.auth.signOut();
         setAccount(null);
-        localStorage.removeItem(SESSION_KEY);
       },
       recordPurchase: (purchase) => {
-        const session = readSession();
-        if (!session) return;
+        if (!account) return;
 
         const users = readUsers();
-        const key = userKey(session.username, session.edition);
+        const key = userKey(account.username, account.edition);
         const user = users[key];
         if (!user) return;
 
@@ -268,35 +286,40 @@ export function AccountProvider({ children }: { children: ReactNode }) {
         void syncAccount(users[key]);
       },
       refreshVerification: async () => {
-        const session = readSession();
-        if (!session) return { ok: false, error: "Sign in first." };
+        const supabase = getSupabaseBrowserClient();
+        if (!supabase.ok) return { ok: false, error: supabase.error };
 
-        const users = readUsers();
-        const key = userKey(session.username, session.edition);
-        const user = users[key];
-        if (!user) return { ok: false, error: "Account not found." };
+        const { data, error } = await supabase.client.auth.getUser();
+        if (error) return { ok: false, error: error.message };
+        if (!data.user) return { ok: false, error: "Sign in first." };
 
-        const profile = await getAccountProfile(user.username, user.edition);
-        if (!profile.ok) return { ok: false, error: profile.error };
-        if (!profile.account) {
-          users[key] = {
-            ...user,
-            emailVerified: false,
-            disabled: false,
-          };
-          writeUsers(users);
-          setAccount(buildAccount(users[key]));
-          return { ok: false, error: "Account is not in the admin registry yet." };
-        }
-
-        users[key] = {
-          ...user,
-          emailVerified: profile.account.email_verified,
-          disabled: profile.account.disabled,
-        };
-        writeUsers(users);
-        setAccount(buildAccount(users[key]));
+        await applyAuthUser(data.user, setAccount);
         return { ok: true };
+      },
+      requestPasswordReset: async (email) => {
+        const supabase = getSupabaseBrowserClient();
+        if (!supabase.ok) return { ok: false, error: supabase.error };
+
+        const emailErr = validateEmail(email);
+        if (emailErr) return { ok: false, error: emailErr };
+
+        const { error } = await supabase.client.auth.resetPasswordForEmail(email.trim(), {
+          redirectTo: authRedirectUrl(),
+        });
+        if (error) return { ok: false, error: error.message };
+        return { ok: true, message: "Password reset email sent. Open the link, then set your new password here." };
+      },
+      updatePassword: async (password, confirmPassword) => {
+        const supabase = getSupabaseBrowserClient();
+        if (!supabase.ok) return { ok: false, error: supabase.error };
+
+        const passErr = validatePassword(password);
+        if (passErr) return { ok: false, error: passErr };
+        if (password !== confirmPassword) return { ok: false, error: "Passwords do not match." };
+
+        const { error } = await supabase.client.auth.updateUser({ password });
+        if (error) return { ok: false, error: error.message };
+        return { ok: true, message: "Password updated. You can sign in with the new password now." };
       },
     }),
     [account],

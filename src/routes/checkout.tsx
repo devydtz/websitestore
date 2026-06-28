@@ -115,7 +115,7 @@ function CheckoutPage() {
       return;
     }
     if (!account.emailVerified) {
-      setError("Verify your email before checking out. Ask an admin to verify the account, then refresh your account page.");
+      setError("Verify your email before checking out. Open the verification email, then refresh your account page.");
       return;
     }
     if (!/^09\d{9}$/.test(gcashDigits)) {
@@ -307,7 +307,7 @@ function CheckoutPage() {
                 <div>
                   <p className="text-sm font-semibold">Email verification required</p>
                   <p className="mt-1 text-sm opacity-90">
-                    This prevents people from checking out with random emails. Ask an admin to verify your account,
+                    This prevents people from checking out with random emails. Open the verification email from Lunaris Craft,
                     then refresh your account page.
                   </p>
                   <Link

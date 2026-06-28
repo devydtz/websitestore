@@ -6,6 +6,8 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 const missingSupabaseConfigMessage =
   "Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Cloudflare Pages.";
 
+let browserClient: ReturnType<typeof createClient> | null = null;
+
 function normalizeSupabaseUrl(url: string) {
   return url
     .trim()
@@ -50,6 +52,23 @@ function getSupabase() {
 
   const urls = getSupabaseUrls();
   return { ok: true as const, urls };
+}
+
+export function getSupabaseBrowserClient() {
+  const supabase = getSupabase();
+  if (!supabase.ok) return { ok: false as const, error: supabase.error };
+
+  if (!browserClient) {
+    browserClient = createClient(supabase.urls[0], supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        persistSession: true,
+      },
+    });
+  }
+
+  return { ok: true as const, client: browserClient };
 }
 
 export type OrderStatus = "pending" | "confirmed" | "rejected" | "delivered";
@@ -181,6 +200,7 @@ export async function upsertAccountProfile(account: {
         edition: account.edition,
         email: account.email,
         display_name: account.displayName,
+        ...(account.emailVerified ? { email_verified: true } : {}),
         history_count: account.historyCount,
         total_spent_cents: account.totalSpentCents,
         total_spent_display: account.totalSpentDisplay,

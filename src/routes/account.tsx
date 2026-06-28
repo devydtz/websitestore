@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import {
   User,
   Lock,
@@ -20,6 +20,7 @@ import {
   RefreshCw,
   BadgeCheck,
   BadgeAlert,
+  Send,
 } from "lucide-react";
 import { Starfield } from "@/components/Starfield";
 import { Navbar } from "@/components/Navbar";
@@ -47,7 +48,7 @@ export const Route = createFileRoute("/account")({
   component: AccountPage,
 });
 
-type AuthMode = "signup" | "signin";
+type AuthMode = "signup" | "signin" | "forgot" | "reset";
 
 const strengthMeta: Record<PasswordStrength, { label: string; width: string; color: string }> = {
   weak: { label: "Weak", width: "w-1/4", color: "bg-destructive" },
@@ -57,7 +58,7 @@ const strengthMeta: Record<PasswordStrength, { label: string; width: string; col
 };
 
 function AccountPage() {
-  const { account, signUp, signIn, signOut, refreshVerification } = useAccount();
+  const { account, signUp, signIn, signOut, refreshVerification, requestPasswordReset, updatePassword } = useAccount();
   const [mode, setMode] = useState<AuthMode>("signup");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -67,6 +68,7 @@ function AccountPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [refreshingVerification, setRefreshingVerification] = useState(false);
 
@@ -74,9 +76,17 @@ function AccountPage() {
   const strengthInfo = strengthMeta[strength];
   const profileStats = account ? getProfileStats(account.history) : null;
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const authParams = `${window.location.search} ${window.location.hash}`;
+    if (authParams.includes("type=recovery")) setMode("reset");
+    if (authParams.includes("type=signup")) setSuccess("Email verified. You can sign in now.");
+  }, []);
+
   const resetForm = (nextMode: AuthMode) => {
     setMode(nextMode);
     setError(null);
+    setSuccess(null);
     setPassword("");
     setConfirmPassword("");
   };
@@ -89,13 +99,24 @@ function AccountPage() {
     const result =
       mode === "signup"
         ? await signUp({ username, edition, email, password, confirmPassword })
-        : await signIn({ username, edition, password });
+        : mode === "signin"
+          ? await signIn({ email, password })
+          : mode === "forgot"
+            ? await requestPasswordReset(email)
+            : await updatePassword(password, confirmPassword);
 
     setLoading(false);
     if (!result.ok) {
       setError(result.error);
       return;
     }
+    if (mode === "forgot" || mode === "reset") {
+      const message = "message" in result ? result.message : undefined;
+      resetForm("signin");
+      if (message) setSuccess(message);
+      return;
+    }
+    if ("message" in result && result.message) setSuccess(result.message);
   };
 
   const refreshEmailStatus = async () => {
@@ -117,7 +138,7 @@ function AccountPage() {
           description={
             account
               ? `Signed in as a ${account.edition === "bedrock" ? "Bedrock" : "Java"} player. Track purchases and claim rewards here.`
-              : "Create an account with your Minecraft username and password, then sign in anytime to view orders and rewards."
+              : "Create an account with your Minecraft username and email, verify it, then sign in anytime to view orders and rewards."
           }
         />
         {!account ? (
@@ -128,11 +149,23 @@ function AccountPage() {
                   {mode === "signup" ? <UserPlus className="h-5 w-5" /> : <User className="h-5 w-5" />}
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold">{mode === "signup" ? "Create Account" : "Sign In"}</h2>
+                  <h2 className="text-lg font-bold">
+                    {mode === "signup"
+                      ? "Create Account"
+                      : mode === "signin"
+                        ? "Sign In"
+                        : mode === "forgot"
+                          ? "Reset Password"
+                          : "Set New Password"}
+                  </h2>
                   <p className="text-xs text-muted-foreground">
                     {mode === "signup"
-                      ? "Sign up first. You'll need an account before checkout."
-                      : "Welcome back. Enter your credentials to continue."}
+                      ? "Sign up first. A real verification email will be sent."
+                      : mode === "signin"
+                        ? "Welcome back. Enter your email and password."
+                        : mode === "forgot"
+                          ? "Enter your email and we'll send a reset link."
+                          : "Enter your new password after opening the reset email link."}
                   </p>
                 </div>
               </div>
@@ -162,28 +195,32 @@ function AccountPage() {
                 </button>
               </div>
 
-              <label className="block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                Edition
-              </label>
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                {(["java", "bedrock"] as const).map((e) => (
-                  <button
-                    key={e}
-                    type="button"
-                    onClick={() => setEdition(e)}
-                    className={`flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold transition ${
-                      edition === e
-                        ? "border-accent bg-accent/10 text-accent shadow-[0_0_20px_-8px_oklch(0.78_0.13_295/0.8)]"
-                        : "border-border bg-background/40 text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {e === "java" ? <Gamepad2 className="h-4 w-4" /> : <Smartphone className="h-4 w-4" />}
-                    {e === "java" ? "Java" : "Bedrock"}
-                  </button>
-                ))}
-              </div>
-
               {mode === "signup" && (
+                <>
+                  <label className="block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                    Edition
+                  </label>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    {(["java", "bedrock"] as const).map((e) => (
+                      <button
+                        key={e}
+                        type="button"
+                        onClick={() => setEdition(e)}
+                        className={`flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold transition ${
+                          edition === e
+                            ? "border-accent bg-accent/10 text-accent shadow-[0_0_20px_-8px_oklch(0.78_0.13_295/0.8)]"
+                            : "border-border bg-background/40 text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {e === "java" ? <Gamepad2 className="h-4 w-4" /> : <Smartphone className="h-4 w-4" />}
+                        {e === "java" ? "Java" : "Bedrock"}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {mode !== "reset" && (
                 <>
                   <label className="mt-5 block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                     Email
@@ -204,52 +241,60 @@ function AccountPage() {
                 </>
               )}
 
-              <label className="mt-5 block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                Minecraft Username
-              </label>
-              <div className="mt-2 flex items-stretch overflow-hidden rounded-xl border border-border bg-background/60 focus-within:border-accent">
-                {edition === "bedrock" && (
-                  <span className="grid place-items-center bg-accent/10 px-3 text-sm font-bold text-accent">.</span>
-                )}
-                <input
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder={edition === "bedrock" ? "Devydtz" : "Steve"}
-                  autoComplete="username"
-                  className="flex-1 bg-transparent px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
-                />
-              </div>
-              {edition === "bedrock" && (
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Bedrock players appear in-game with a leading dot, e.g.{" "}
-                  <span className="font-mono text-foreground">.Devydtz</span>.
-                </p>
+              {mode === "signup" && (
+                <>
+                  <label className="mt-5 block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                    Minecraft Username
+                  </label>
+                  <div className="mt-2 flex items-stretch overflow-hidden rounded-xl border border-border bg-background/60 focus-within:border-accent">
+                    {edition === "bedrock" && (
+                      <span className="grid place-items-center bg-accent/10 px-3 text-sm font-bold text-accent">.</span>
+                    )}
+                    <input
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      placeholder={edition === "bedrock" ? "Devydtz" : "Steve"}
+                      autoComplete="username"
+                      className="flex-1 bg-transparent px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
+                    />
+                  </div>
+                  {edition === "bedrock" && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Bedrock players appear in-game with a leading dot, e.g.{" "}
+                      <span className="font-mono text-foreground">.Devydtz</span>.
+                    </p>
+                  )}
+                </>
               )}
 
-              <label className="mt-5 block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                Password
-              </label>
-              <div className="mt-2 flex items-stretch overflow-hidden rounded-xl border border-border bg-background/60 focus-within:border-accent">
-                <span className="grid place-items-center px-3 text-muted-foreground">
-                  <Lock className="h-4 w-4" />
-                </span>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder={mode === "signup" ? "At least 8 characters" : "Your password"}
-                  autoComplete={mode === "signup" ? "new-password" : "current-password"}
-                  className="flex-1 bg-transparent px-2 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  className="grid place-items-center px-3 text-muted-foreground transition hover:text-foreground"
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
+              {mode !== "forgot" && (
+                <>
+                  <label className="mt-5 block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                    {mode === "reset" ? "New Password" : "Password"}
+                  </label>
+                  <div className="mt-2 flex items-stretch overflow-hidden rounded-xl border border-border bg-background/60 focus-within:border-accent">
+                    <span className="grid place-items-center px-3 text-muted-foreground">
+                      <Lock className="h-4 w-4" />
+                    </span>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder={mode === "signin" ? "Your password" : "At least 8 characters"}
+                      autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                      className="flex-1 bg-transparent px-2 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      className="grid place-items-center px-3 text-muted-foreground transition hover:text-foreground"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </>
+              )}
 
               {mode === "signup" && password.length > 0 && (
                 <div className="mt-3">
@@ -268,10 +313,10 @@ function AccountPage() {
                 </div>
               )}
 
-              {mode === "signup" && (
+              {(mode === "signup" || mode === "reset") && (
                 <>
                   <label className="mt-5 block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                    Confirm Password
+                    Confirm {mode === "reset" ? "New " : ""}Password
                   </label>
                   <div className="mt-2 flex items-stretch overflow-hidden rounded-xl border border-border bg-background/60 focus-within:border-accent">
                     <span className="grid place-items-center px-3 text-muted-foreground">
@@ -302,6 +347,11 @@ function AccountPage() {
                   {error}
                 </p>
               )}
+              {success && (
+                <p className="mt-3 rounded-lg bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300 ring-1 ring-emerald-500/30">
+                  {success}
+                </p>
+              )}
 
               <button
                 type="submit"
@@ -311,17 +361,33 @@ function AccountPage() {
                 {loading ? (
                   <>
                     <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground/40 border-t-primary-foreground" />
-                    {mode === "signup" ? "Creating account…" : "Signing in…"}
+                    {mode === "signup"
+                      ? "Sending verification..."
+                      : mode === "signin"
+                        ? "Signing in..."
+                        : mode === "forgot"
+                          ? "Sending reset..."
+                          : "Updating password..."}
                   </>
                 ) : mode === "signup" ? (
                   <>
                     <Sparkles className="h-4 w-4" />
-                    Create Account
+                    Create Account & Send Email
                   </>
-                ) : (
+                ) : mode === "signin" ? (
                   <>
                     <Lock className="h-4 w-4" />
                     Sign In
+                  </>
+                ) : mode === "forgot" ? (
+                  <>
+                    <Send className="h-4 w-4" />
+                    Send Reset Email
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck className="h-4 w-4" />
+                    Set New Password
                   </>
                 )}
               </button>
@@ -334,11 +400,22 @@ function AccountPage() {
                       Sign in
                     </button>
                   </>
-                ) : (
+                ) : mode === "signin" ? (
                   <>
                     New here?{" "}
                     <button type="button" onClick={() => resetForm("signup")} className="font-semibold text-accent hover:underline">
                       Create an account
+                    </button>
+                    <span className="mx-2">|</span>
+                    <button type="button" onClick={() => resetForm("forgot")} className="font-semibold text-accent hover:underline">
+                      Forgot password?
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    Remembered it?{" "}
+                    <button type="button" onClick={() => resetForm("signin")} className="font-semibold text-accent hover:underline">
+                      Back to sign in
                     </button>
                   </>
                 )}
@@ -388,7 +465,7 @@ function AccountPage() {
                       <p className="mt-1 text-[11px] opacity-90">
                         {account.emailVerified
                           ? "Checkout is unlocked for this account."
-                          : "Ask an admin to verify this account before checkout."}
+                          : "Open the verification email from Lunaris Craft, then refresh this status."}
                       </p>
                     </div>
                   </div>
