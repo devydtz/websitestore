@@ -36,8 +36,8 @@ function databaseSetupError(table: string) {
 }
 
 function formatSupabaseError(url: string, message: string) {
-  if (/Could not find the table 'public\.(orders|accounts)'/i.test(message)) {
-    const table = message.match(/public\.(orders|accounts)/i)?.[1] ?? "orders";
+  if (/Could not find the table 'public\.(orders|accounts|deleted_accounts)'/i.test(message)) {
+    const table = message.match(/public\.(orders|accounts|deleted_accounts)/i)?.[1] ?? "orders";
     return databaseSetupError(table);
   }
   return `${url}: ${message}`;
@@ -173,6 +173,9 @@ export async function upsertAccountProfile(account: {
   for (const url of supabase.urls) {
     try {
       const client = createClient(url, supabaseAnonKey);
+      const deleted = await client.from("deleted_accounts").select("id").eq("id", id).maybeSingle();
+      if (!deleted.error && deleted.data) return { ok: true, account: null };
+
       const profile = {
         username: account.username,
         edition: account.edition,
@@ -276,9 +279,31 @@ function displayName(username: string, edition: "java" | "bedrock") {
   return edition === "bedrock" ? `.${clean}` : clean;
 }
 
+async function listDeletedAccountIds(): Promise<{ ok: true; ids: Set<string> } | { ok: false; error: string }> {
+  const supabase = getSupabase();
+  if (!supabase.ok) return { ok: false, error: supabase.error };
+
+  let lastError = "";
+  for (const url of supabase.urls) {
+    try {
+      const client = createClient(url, supabaseAnonKey);
+      const { data, error } = await client.from("deleted_accounts").select("id");
+      if (!error) return { ok: true, ids: new Set((data ?? []).map((row) => row.id as string)) };
+      lastError = formatSupabaseError(url, error.message);
+    } catch (error) {
+      lastError = networkError(error, [url]);
+    }
+  }
+
+  return { ok: false, error: lastError || networkError("No Supabase URL responded", supabase.urls) };
+}
+
 export async function syncAccountsFromOrders(
   orders: Order[],
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  const deleted = await listDeletedAccountIds();
+  if (!deleted.ok) return deleted;
+
   const grouped = new Map<
     string,
     {
@@ -292,6 +317,8 @@ export async function syncAccountsFromOrders(
 
   for (const order of orders) {
     const id = accountId(order.username, order.edition);
+    if (deleted.ids.has(id)) continue;
+
     const current = grouped.get(id);
     if (current) {
       current.total += order.total_cents || 0;
@@ -343,6 +370,100 @@ export async function setAccountFlags(
       const { data, error } = await client.from("accounts").update(flags).eq("id", id).select("*").maybeSingle();
       if (!error && data) return { ok: true, account: data as StoreAccount };
       lastError = error ? formatSupabaseError(url, error.message) : "Account not found.";
+    } catch (error) {
+      lastError = networkError(error, [url]);
+    }
+  }
+
+  return { ok: false, error: lastError || networkError("No Supabase URL responded", supabase.urls) };
+}
+
+export async function createAdminAccount(
+  account: {
+    username: string;
+    edition: "java" | "bedrock";
+    email: string;
+    emailVerified: boolean;
+  },
+  adminToken: string,
+): Promise<{ ok: true; account: StoreAccount } | { ok: false; error: string }> {
+  const supabase = getSupabase();
+  if (!supabase.ok) return { ok: false, error: supabase.error };
+
+  if (adminToken !== "lunaris-admin-2024") {
+    return { ok: false, error: "Incorrect admin password." };
+  }
+
+  const clean = account.username.trim().replace(/^\.+/, "");
+  if (!clean) return { ok: false, error: "Enter a Minecraft username." };
+  if (!/^\S+@\S+\.\S+$/.test(account.email.trim())) {
+    return { ok: false, error: "Enter a valid email address." };
+  }
+
+  const id = accountId(clean, account.edition);
+  let lastError = "";
+  for (const url of supabase.urls) {
+    try {
+      const client = createClient(url, supabaseAnonKey);
+      const deleted = await client.from("deleted_accounts").delete().eq("id", id);
+      if (deleted.error) {
+        lastError = formatSupabaseError(url, deleted.error.message);
+        continue;
+      }
+
+      const { data, error } = await client
+        .from("accounts")
+        .upsert(
+          {
+            id,
+            username: clean,
+            edition: account.edition,
+            email: account.email.trim(),
+            display_name: displayName(clean, account.edition),
+            email_verified: account.emailVerified,
+            disabled: false,
+            history_count: 0,
+            total_spent_cents: 0,
+            total_spent_display: formatPhp(0),
+            last_seen_at: new Date().toISOString(),
+          },
+          { onConflict: "id" },
+        )
+        .select("*")
+        .maybeSingle();
+      if (!error && data) return { ok: true, account: data as StoreAccount };
+      lastError = error ? formatSupabaseError(url, error.message) : "Account was not created.";
+    } catch (error) {
+      lastError = networkError(error, [url]);
+    }
+  }
+
+  return { ok: false, error: lastError || networkError("No Supabase URL responded", supabase.urls) };
+}
+
+export async function deleteAccount(
+  id: string,
+  adminToken: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const supabase = getSupabase();
+  if (!supabase.ok) return { ok: false, error: supabase.error };
+
+  if (adminToken !== "lunaris-admin-2024") {
+    return { ok: false, error: "Incorrect admin password." };
+  }
+
+  let lastError = "";
+  for (const url of supabase.urls) {
+    try {
+      const client = createClient(url, supabaseAnonKey);
+      const tombstone = await client.from("deleted_accounts").upsert({ id, deleted_at: new Date().toISOString() });
+      if (tombstone.error) {
+        lastError = formatSupabaseError(url, tombstone.error.message);
+        continue;
+      }
+      const { error } = await client.from("accounts").delete().eq("id", id);
+      if (!error) return { ok: true };
+      lastError = formatSupabaseError(url, error.message);
     } catch (error) {
       lastError = networkError(error, [url]);
     }

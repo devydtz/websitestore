@@ -65,7 +65,13 @@ CREATE TABLE IF NOT EXISTS accounts (
   last_seen_at timestamptz NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS deleted_accounts (
+  id text PRIMARY KEY,
+  deleted_at timestamptz NOT NULL DEFAULT now()
+);
+
 ALTER TABLE accounts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE deleted_accounts ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "anon_select_accounts" ON accounts;
 CREATE POLICY "anon_select_accounts" ON accounts FOR SELECT
@@ -78,6 +84,26 @@ CREATE POLICY "anon_insert_accounts" ON accounts FOR INSERT
 DROP POLICY IF EXISTS "anon_update_accounts" ON accounts;
 CREATE POLICY "anon_update_accounts" ON accounts FOR UPDATE
   TO anon, authenticated USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "anon_delete_accounts" ON accounts;
+CREATE POLICY "anon_delete_accounts" ON accounts FOR DELETE
+  TO anon, authenticated USING (true);
+
+DROP POLICY IF EXISTS "anon_select_deleted_accounts" ON deleted_accounts;
+CREATE POLICY "anon_select_deleted_accounts" ON deleted_accounts FOR SELECT
+  TO anon, authenticated USING (true);
+
+DROP POLICY IF EXISTS "anon_insert_deleted_accounts" ON deleted_accounts;
+CREATE POLICY "anon_insert_deleted_accounts" ON deleted_accounts FOR INSERT
+  TO anon, authenticated WITH CHECK (true);
+
+DROP POLICY IF EXISTS "anon_update_deleted_accounts" ON deleted_accounts;
+CREATE POLICY "anon_update_deleted_accounts" ON deleted_accounts FOR UPDATE
+  TO anon, authenticated USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "anon_delete_deleted_accounts" ON deleted_accounts;
+CREATE POLICY "anon_delete_deleted_accounts" ON deleted_accounts FOR DELETE
+  TO anon, authenticated USING (true);
 
 CREATE INDEX IF NOT EXISTS accounts_email_idx ON accounts (email);
 CREATE INDEX IF NOT EXISTS accounts_created_at_idx ON accounts (created_at DESC);

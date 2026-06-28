@@ -232,6 +232,11 @@ export function AccountProvider({ children }: { children: ReactNode }) {
           user.disabled = profile.account.disabled;
           users[key] = user;
           writeUsers(users);
+        } else if (profile.ok && !profile.account) {
+          user.emailVerified = false;
+          user.disabled = false;
+          users[key] = user;
+          writeUsers(users);
         }
 
         if (user.disabled) {
@@ -273,7 +278,16 @@ export function AccountProvider({ children }: { children: ReactNode }) {
 
         const profile = await getAccountProfile(user.username, user.edition);
         if (!profile.ok) return { ok: false, error: profile.error };
-        if (!profile.account) return { ok: false, error: "Account is not in the admin registry yet." };
+        if (!profile.account) {
+          users[key] = {
+            ...user,
+            emailVerified: false,
+            disabled: false,
+          };
+          writeUsers(users);
+          setAccount(buildAccount(users[key]));
+          return { ok: false, error: "Account is not in the admin registry yet." };
+        }
 
         users[key] = {
           ...user,

@@ -22,6 +22,8 @@ import {
   BadgeCheck,
   BadgeAlert,
   Ban,
+  Trash2,
+  UserPlus,
 } from "lucide-react";
 import { Starfield } from "@/components/Starfield";
 import { Navbar } from "@/components/Navbar";
@@ -30,8 +32,10 @@ import {
   listAccounts,
   listOrders,
   adminAction,
+  createAdminAccount,
   saveAdminNote,
   setAccountFlags,
+  deleteAccount,
   syncAccountsFromOrders,
   type Order,
   type OrderStatus,
@@ -263,6 +267,37 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
     }
   };
 
+  const doDeleteAccount = async (account: StoreAccount) => {
+    const confirmed = window.confirm(
+      `Delete ${account.display_name} from Manage Accounts? Their old browser login will not be erased, but this admin record will be removed.`,
+    );
+    if (!confirmed) return;
+
+    setAccountError(null);
+    const res = await deleteAccount(account.id, token);
+    if (res.ok) {
+      setAccounts((prev) => prev.filter((a) => a.id !== account.id));
+    } else {
+      setAccountError(res.error);
+    }
+  };
+
+  const doCreateAccount = async (input: {
+    username: string;
+    edition: "java" | "bedrock";
+    email: string;
+    emailVerified: boolean;
+  }) => {
+    setAccountError(null);
+    const res = await createAdminAccount(input, token);
+    if (res.ok) {
+      setAccounts((prev) => [res.account, ...prev.filter((a) => a.id !== res.account.id)]);
+      return { ok: true as const };
+    }
+    setAccountError(res.error);
+    return { ok: false as const, error: res.error };
+  };
+
   return (
     <section className="mx-auto max-w-7xl px-4 pb-24 pt-8 md:px-8">
       {/* Header */}
@@ -474,6 +509,8 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
         onVerify={(account) => doAccountFlag(account, { email_verified: true })}
         onUnverify={(account) => doAccountFlag(account, { email_verified: false })}
         onToggleDisabled={(account) => doAccountFlag(account, { disabled: !account.disabled })}
+        onDelete={doDeleteAccount}
+        onCreate={doCreateAccount}
       />
 
       {/* Detail drawer */}
@@ -528,6 +565,8 @@ function AccountsManager({
   onVerify,
   onUnverify,
   onToggleDisabled,
+  onDelete,
+  onCreate,
 }: {
   accounts: StoreAccount[];
   loading: boolean;
@@ -535,9 +574,38 @@ function AccountsManager({
   onVerify: (account: StoreAccount) => void;
   onUnverify: (account: StoreAccount) => void;
   onToggleDisabled: (account: StoreAccount) => void;
+  onDelete: (account: StoreAccount) => void;
+  onCreate: (input: {
+    username: string;
+    edition: "java" | "bedrock";
+    email: string;
+    emailVerified: boolean;
+  }) => Promise<{ ok: true } | { ok: false; error: string }>;
 }) {
   const verified = accounts.filter((a) => a.email_verified).length;
   const disabled = accounts.filter((a) => a.disabled).length;
+  const [username, setUsername] = useState("");
+  const [edition, setEdition] = useState<"java" | "bedrock">("java");
+  const [email, setEmail] = useState("");
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  const submitAccount = async (e: FormEvent) => {
+    e.preventDefault();
+    setCreating(true);
+    setCreateError(null);
+    const res = await onCreate({ username, edition, email, emailVerified });
+    if (res.ok) {
+      setUsername("");
+      setEmail("");
+      setEmailVerified(false);
+      setEdition("java");
+    } else {
+      setCreateError(res.error);
+    }
+    setCreating(false);
+  };
 
   return (
     <section className="mt-10 rounded-2xl border border-border bg-card/40 p-5">
@@ -572,6 +640,64 @@ function AccountsManager({
           {error}
         </div>
       )}
+
+      <form
+        onSubmit={submitAccount}
+        className="mt-5 grid gap-3 rounded-2xl border border-border/70 bg-background/30 p-4 lg:grid-cols-[1fr_150px_1.4fr_auto_auto]"
+      >
+        <div>
+          <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Username</label>
+          <input
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="Minecraft name"
+            className="mt-1 w-full rounded-xl border border-border bg-card/70 px-3 py-2 text-sm outline-none transition focus:border-accent"
+          />
+        </div>
+        <div>
+          <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Edition</label>
+          <select
+            value={edition}
+            onChange={(e) => setEdition(e.target.value as "java" | "bedrock")}
+            className="mt-1 w-full rounded-xl border border-border bg-card/70 px-3 py-2 text-sm outline-none transition focus:border-accent"
+          >
+            <option value="java">Java</option>
+            <option value="bedrock">Bedrock</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Email</label>
+          <input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="player@gmail.com"
+            className="mt-1 w-full rounded-xl border border-border bg-card/70 px-3 py-2 text-sm outline-none transition focus:border-accent"
+          />
+        </div>
+        <label className="flex items-center gap-2 self-end rounded-xl border border-border bg-card/50 px-3 py-2 text-xs font-semibold text-muted-foreground">
+          <input
+            type="checkbox"
+            checked={emailVerified}
+            onChange={(e) => setEmailVerified(e.target.checked)}
+            className="h-4 w-4 accent-primary"
+          />
+          Verified
+        </label>
+        <button
+          type="submit"
+          disabled={creating}
+          className="inline-flex items-center justify-center gap-2 self-end rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-accent disabled:opacity-50"
+        >
+          {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+          Add
+        </button>
+        {createError && (
+          <div className="lg:col-span-5 flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+            {createError}
+          </div>
+        )}
+      </form>
 
       <div className="mt-5 overflow-hidden rounded-xl border border-border/70">
         {loading ? (
@@ -650,6 +776,13 @@ function AccountsManager({
                         >
                           <Ban className="h-3.5 w-3.5" />
                           {account.disabled ? "Enable" : "Disable"}
+                        </button>
+                        <button
+                          onClick={() => onDelete(account)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-300 transition hover:bg-red-500/20"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          Delete
                         </button>
                       </div>
                     </td>
