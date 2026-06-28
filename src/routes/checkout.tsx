@@ -46,7 +46,6 @@ function CheckoutPage() {
   const navigate = useNavigate();
 
   const [gcashNumber, setGcashNumber] = useState("");
-  const [gcashName, setGcashName] = useState("");
   const [referenceNo, setReferenceNo] = useState("");
   const [confirmed, setConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -59,7 +58,6 @@ function CheckoutPage() {
   const paymentReady =
     Boolean(account) &&
     /^09\d{9}$/.test(gcashDigits) &&
-    gcashName.trim().length >= 2 &&
     referenceDigits.length >= 10 &&
     confirmed;
 
@@ -83,10 +81,6 @@ function CheckoutPage() {
     const digits = gcashNumber.replace(/\D/g, "");
     if (!/^09\d{9}$/.test(digits)) {
       setError("Enter a valid GCash mobile number (09XX XXX XXXX).");
-      return;
-    }
-    if (gcashName.trim().length < 2) {
-      setError("Enter the name registered on your GCash account.");
       return;
     }
     if (referenceNo.replace(/\D/g, "").length < 10) {
@@ -119,7 +113,6 @@ function CheckoutPage() {
       total_display: totalDisplay,
       method: "gcash",
       gcash_number: formatMobileNumber(gcashNumber),
-      gcash_name: gcashName.trim(),
       reference_no: referenceNo.trim(),
     });
 
@@ -361,17 +354,6 @@ function CheckoutPage() {
                     />
 
                     <label className="block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                      Name on GCash Account
-                    </label>
-                    <input
-                      value={gcashName}
-                      onChange={(e) => setGcashName(e.target.value)}
-                      placeholder="Juan Dela Cruz"
-                      disabled={!account}
-                      className="w-full rounded-xl border border-border bg-background/60 px-4 py-3 text-sm focus:border-[#007DFF] focus:outline-none disabled:opacity-50"
-                    />
-
-                    <label className="block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                       GCash Reference Number
                     </label>
                     <input
@@ -386,7 +368,6 @@ function CheckoutPage() {
                     <div className="grid gap-2 rounded-xl border border-border/60 bg-background/30 p-4 text-xs text-muted-foreground sm:grid-cols-2">
                       <VerificationCheck ok={Boolean(account)} label="Account selected" />
                       <VerificationCheck ok={/^09\d{9}$/.test(gcashDigits)} label="Valid GCash number" />
-                      <VerificationCheck ok={gcashName.trim().length >= 2} label="GCash name entered" />
                       <VerificationCheck ok={referenceDigits.length >= 10} label="Reference number entered" />
                       <VerificationCheck ok={confirmed} label="Payment confirmation checked" />
                     </div>
@@ -458,7 +439,7 @@ function CheckoutPage() {
                   <ol className="mt-3 space-y-2 text-xs text-muted-foreground">
                     <li>1. Submit your GCash reference number.</li>
                     <li>2. Admin verifies the payment in the panel.</li>
-                    <li>3. Your rank is delivered in-game through RCON.</li>
+                    <li>3. Your rank is delivered in-game after approval.</li>
                   </ol>
                 </div>
                 <button

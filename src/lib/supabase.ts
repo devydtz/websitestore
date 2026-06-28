@@ -79,7 +79,6 @@ export type NewOrder = {
   total_display: string;
   method: string;
   gcash_number: string;
-  gcash_name: string;
   reference_no: string;
 };
 
@@ -101,7 +100,7 @@ export async function createOrder(order: NewOrder): Promise<{ ok: true } | { ok:
         total_display: order.total_display,
         method: order.method,
         gcash_number: order.gcash_number,
-        gcash_name: order.gcash_name,
+        gcash_name: null,
         reference_no: order.reference_no,
         status: "pending",
       });
@@ -166,7 +165,7 @@ export async function adminAction(
               command: "Manual delivery required",
               ok: false,
               response:
-                "Payment confirmed. Deliver the purchased items in-game manually or connect a TCP-capable RCON bridge.",
+                "Payment confirmed. Deliver the purchased items in-game manually or connect delivery automation.",
             },
           ],
         };

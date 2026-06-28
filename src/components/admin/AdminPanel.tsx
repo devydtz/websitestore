@@ -569,7 +569,6 @@ function OrderDrawer({
             <dl className="space-y-2 text-sm">
               <Row label="Method" value={order.method.toUpperCase()} />
               <Row label="GCash Number" value={order.gcash_number || "N/A"} />
-              <Row label="GCash Name" value={order.gcash_name || "N/A"} />
               <Row label="Reference No." value={order.reference_no || "N/A"} mono />
               <Row label="Total" value={order.total_display} bold />
             </dl>
@@ -678,7 +677,7 @@ function OrderDrawer({
 
           <p className="text-center text-xs text-muted-foreground">
             Confirmed orders are delivered automatically to{" "}
-            <span className="font-mono text-foreground">{SERVER_IP}</span> via RCON.
+            <span className="font-mono text-foreground">{SERVER_IP}</span> after approval.
           </p>
         </div>
       </div>
