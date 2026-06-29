@@ -95,6 +95,17 @@
   --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
   --sidebar-border: oklch(0.929 0.013 255.508);
   --sidebar-ring: oklch(0.704 0.04 256.788);
+  --sky-top: oklch(0.27 0.1 295 / 0.75);
+  --sky-left: oklch(0.18 0.1 270 / 0.55);
+  --sky-right: oklch(0.2 0.09 320 / 0.45);
+  --sky-bottom: oklch(0.12 0.04 295);
+  --star-color: oklch(0.98 0.01 295);
+  --star-soft: oklch(0.9 0.06 285);
+  --meteor-core: oklch(0.98 0.01 295);
+  --meteor-tail: oklch(0.85 0.13 295);
+  --nebula-one: oklch(0.62 0.18 285 / 0.45);
+  --nebula-two: oklch(0.58 0.16 325 / 0.35);
+  --nebula-three: oklch(0.55 0.12 245 / 0.3);
 }
 
 .dark {
@@ -130,6 +141,17 @@
   --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.551 0.027 264.364);
+  --sky-top: oklch(0.24 0.09 265 / 0.82);
+  --sky-left: oklch(0.16 0.1 250 / 0.58);
+  --sky-right: oklch(0.18 0.11 300 / 0.5);
+  --sky-bottom: oklch(0.1 0.04 265);
+  --star-color: oklch(0.98 0.003 247.858);
+  --star-soft: oklch(0.86 0.08 275);
+  --meteor-core: oklch(0.98 0.003 247.858);
+  --meteor-tail: oklch(0.78 0.13 295);
+  --nebula-one: oklch(0.54 0.2 275 / 0.42);
+  --nebula-two: oklch(0.48 0.18 320 / 0.34);
+  --nebula-three: oklch(0.46 0.15 235 / 0.3);
 }
 
 @layer base {
@@ -154,18 +176,18 @@
 .static-starfield {
   pointer-events: none;
   background:
-    radial-gradient(ellipse at top, oklch(0.22 0.07 295 / 0.5), transparent 62%),
-    radial-gradient(circle at 18% 28%, oklch(0.58 0.14 285 / 0.16), transparent 24%),
-    radial-gradient(circle at 84% 38%, oklch(0.62 0.12 320 / 0.12), transparent 26%),
-    radial-gradient(ellipse at bottom, oklch(0.12 0.04 295), transparent 72%),
-    radial-gradient(1px 1px at 12% 18%, oklch(0.96 0.02 295 / 0.7), transparent),
-    radial-gradient(1px 1px at 24% 62%, oklch(0.96 0.02 295 / 0.55), transparent),
-    radial-gradient(1.5px 1.5px at 42% 32%, oklch(0.96 0.02 295 / 0.65), transparent),
-    radial-gradient(1px 1px at 58% 76%, oklch(0.96 0.02 295 / 0.5), transparent),
-    radial-gradient(1px 1px at 76% 24%, oklch(0.96 0.02 295 / 0.6), transparent),
-    radial-gradient(1.5px 1.5px at 91% 68%, oklch(0.96 0.02 295 / 0.55), transparent),
-    radial-gradient(1px 1px at 33% 84%, oklch(0.92 0.05 295 / 0.5), transparent),
-    radial-gradient(1px 1px at 66% 12%, oklch(0.92 0.05 295 / 0.5), transparent);
+    radial-gradient(ellipse at top, var(--sky-top), transparent 62%),
+    radial-gradient(circle at 18% 28%, var(--nebula-one), transparent 24%),
+    radial-gradient(circle at 84% 38%, var(--nebula-two), transparent 26%),
+    radial-gradient(ellipse at bottom, var(--sky-bottom), transparent 72%),
+    radial-gradient(1px 1px at 12% 18%, var(--star-color), transparent),
+    radial-gradient(1px 1px at 24% 62%, var(--star-color), transparent),
+    radial-gradient(1.5px 1.5px at 42% 32%, var(--star-color), transparent),
+    radial-gradient(1px 1px at 58% 76%, var(--star-color), transparent),
+    radial-gradient(1px 1px at 76% 24%, var(--star-color), transparent),
+    radial-gradient(1.5px 1.5px at 91% 68%, var(--star-color), transparent),
+    radial-gradient(1px 1px at 33% 84%, var(--star-soft), transparent),
+    radial-gradient(1px 1px at 66% 12%, var(--star-soft), transparent);
   background-size: auto, auto, auto, auto, 520px 520px, 640px 640px, 760px 760px, 900px 900px, 1100px 1100px, 1300px 1300px, 720px 720px, 980px 980px;
 }
 
@@ -175,10 +197,10 @@
   overflow: hidden;
   pointer-events: none;
   background:
-    radial-gradient(ellipse at 50% 0%, oklch(0.27 0.1 295 / 0.75), transparent 58%),
-    radial-gradient(ellipse at 12% 32%, oklch(0.18 0.1 270 / 0.55), transparent 40%),
-    radial-gradient(ellipse at 88% 46%, oklch(0.2 0.09 320 / 0.45), transparent 42%),
-    radial-gradient(ellipse at bottom, oklch(0.12 0.04 295), transparent 70%);
+    radial-gradient(ellipse at 50% 0%, var(--sky-top), transparent 58%),
+    radial-gradient(ellipse at 12% 32%, var(--sky-left), transparent 40%),
+    radial-gradient(ellipse at 88% 46%, var(--sky-right), transparent 42%),
+    radial-gradient(ellipse at bottom, var(--sky-bottom), transparent 70%);
 }
 
 .starfield::after {
@@ -204,7 +226,7 @@
   top: 14%;
   height: 210px;
   width: 210px;
-  background: oklch(0.62 0.18 285 / 0.45);
+  background: var(--nebula-one);
 }
 
 .nebula-glow.glow-two {
@@ -212,7 +234,7 @@
   top: 32%;
   height: 260px;
   width: 260px;
-  background: oklch(0.58 0.16 325 / 0.35);
+  background: var(--nebula-two);
   animation-delay: -3s;
 }
 
@@ -221,26 +243,26 @@
   left: 38%;
   height: 180px;
   width: 380px;
-  background: oklch(0.55 0.12 245 / 0.3);
+  background: var(--nebula-three);
   animation-delay: -5s;
 }
 .stars-layer {
   position: absolute;
   inset: -50%;
   background-image:
-    radial-gradient(1px 1px at 20% 30%, white, transparent),
-    radial-gradient(1px 1px at 70% 80%, white, transparent),
-    radial-gradient(1.5px 1.5px at 40% 60%, white, transparent),
-    radial-gradient(1px 1px at 85% 15%, white, transparent),
-    radial-gradient(1px 1px at 10% 75%, white, transparent),
-    radial-gradient(2px 2px at 55% 25%, white, transparent),
-    radial-gradient(1px 1px at 35% 90%, white, transparent),
-    radial-gradient(1px 1px at 90% 50%, white, transparent),
-    radial-gradient(1.5px 1.5px at 25% 10%, white, transparent),
-    radial-gradient(1px 1px at 65% 45%, white, transparent),
-    radial-gradient(1px 1px at 48% 18%, oklch(0.92 0.05 295), transparent),
-    radial-gradient(1px 1px at 78% 62%, oklch(0.9 0.06 285), transparent),
-    radial-gradient(1.5px 1.5px at 15% 48%, oklch(0.95 0.02 295), transparent);
+    radial-gradient(1px 1px at 20% 30%, var(--star-color), transparent),
+    radial-gradient(1px 1px at 70% 80%, var(--star-color), transparent),
+    radial-gradient(1.5px 1.5px at 40% 60%, var(--star-color), transparent),
+    radial-gradient(1px 1px at 85% 15%, var(--star-color), transparent),
+    radial-gradient(1px 1px at 10% 75%, var(--star-color), transparent),
+    radial-gradient(2px 2px at 55% 25%, var(--star-color), transparent),
+    radial-gradient(1px 1px at 35% 90%, var(--star-color), transparent),
+    radial-gradient(1px 1px at 90% 50%, var(--star-color), transparent),
+    radial-gradient(1.5px 1.5px at 25% 10%, var(--star-color), transparent),
+    radial-gradient(1px 1px at 65% 45%, var(--star-color), transparent),
+    radial-gradient(1px 1px at 48% 18%, var(--star-soft), transparent),
+    radial-gradient(1px 1px at 78% 62%, var(--star-soft), transparent),
+    radial-gradient(1.5px 1.5px at 15% 48%, var(--star-color), transparent);
   background-size: 600px 600px;
   opacity: 0.7;
   animation: twinkle 4s ease-in-out infinite alternate;
@@ -279,10 +301,10 @@
   left: 0;
   width: 140px;
   height: 2px;
-  background: linear-gradient(90deg, transparent, oklch(0.95 0.02 295), oklch(0.85 0.13 295), transparent);
+  background: linear-gradient(90deg, transparent, var(--meteor-core), var(--meteor-tail), transparent);
   border-radius: 999px;
   opacity: 0;
-  filter: drop-shadow(0 0 6px oklch(0.85 0.13 295));
+  filter: drop-shadow(0 0 6px var(--meteor-tail));
   transform-origin: left center;
   animation: shoot 5s ease-in infinite;
 }
@@ -301,9 +323,17 @@
 .meteor-bright {
   width: 190px;
   height: 3px;
-  background: linear-gradient(90deg, transparent, white, oklch(0.82 0.17 295), oklch(0.78 0.15 250), transparent);
-  filter: drop-shadow(0 0 10px oklch(0.82 0.17 295));
+  background: linear-gradient(90deg, transparent, var(--meteor-core), var(--meteor-tail), oklch(0.78 0.15 250), transparent);
+  filter: drop-shadow(0 0 10px var(--meteor-tail));
   animation-duration: 4.4s;
+}
+.meteor-soft {
+  width: 115px;
+  opacity: 0;
+  animation-duration: 7.2s;
+}
+.meteor-fast {
+  animation-duration: 3.6s;
 }
 .meteor-slow {
   animation-duration: 6.2s;
@@ -366,6 +396,37 @@
   transform: translateY(-4px);
   border-color: oklch(0.7 0.12 295 / 0.7);
   box-shadow: 0 20px 50px -20px oklch(0.5 0.18 295 / 0.6);
+}
+
+:root:not(.dark) .starfield {
+  background:
+    radial-gradient(ellipse at 50% 0%, oklch(0.72 0.09 292 / 0.28), transparent 58%),
+    radial-gradient(ellipse at 12% 32%, oklch(0.68 0.1 260 / 0.2), transparent 40%),
+    radial-gradient(ellipse at 88% 46%, oklch(0.76 0.09 325 / 0.18), transparent 42%),
+    linear-gradient(180deg, oklch(0.2 0.04 295), oklch(0.12 0.04 285));
+}
+
+:root:not(.dark) .static-starfield {
+  background:
+    radial-gradient(ellipse at top, oklch(0.72 0.09 292 / 0.22), transparent 62%),
+    radial-gradient(circle at 18% 28%, oklch(0.72 0.12 285 / 0.12), transparent 24%),
+    radial-gradient(circle at 84% 38%, oklch(0.78 0.1 320 / 0.1), transparent 26%),
+    linear-gradient(180deg, oklch(0.2 0.04 295), oklch(0.13 0.04 285)),
+    radial-gradient(1px 1px at 12% 18%, oklch(0.98 0.01 295 / 0.72), transparent),
+    radial-gradient(1px 1px at 24% 62%, oklch(0.98 0.01 295 / 0.56), transparent),
+    radial-gradient(1.5px 1.5px at 42% 32%, oklch(0.98 0.01 295 / 0.68), transparent),
+    radial-gradient(1px 1px at 58% 76%, oklch(0.98 0.01 295 / 0.5), transparent),
+    radial-gradient(1px 1px at 76% 24%, oklch(0.98 0.01 295 / 0.6), transparent),
+    radial-gradient(1.5px 1.5px at 91% 68%, oklch(0.98 0.01 295 / 0.55), transparent),
+    radial-gradient(1px 1px at 33% 84%, oklch(0.88 0.06 285 / 0.5), transparent),
+    radial-gradient(1px 1px at 66% 12%, oklch(0.88 0.06 285 / 0.5), transparent);
+  background-size: auto, auto, auto, auto, 520px 520px, 640px 640px, 760px 760px, 900px 900px, 1100px 1100px, 1300px 1300px, 720px 720px, 980px 980px;
+}
+
+:root:not(.dark) .starfield::after {
+  background:
+    linear-gradient(115deg, transparent 0 34%, oklch(0.88 0.07 295 / 0.08) 45%, transparent 58%),
+    radial-gradient(circle at 50% 120%, oklch(0.8 0.12 295 / 0.12), transparent 45%);
 }
 
 @media (max-width: 768px), (prefers-reduced-motion: reduce) {

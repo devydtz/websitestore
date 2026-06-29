@@ -19,11 +19,17 @@ export function Starfield({ variant = "default" }: StarfieldProps) {
       <div className="shooting-star" style={{ top: "45%", left: "-10%", animationDelay: "4.8s" }} />
       <div className="shooting-star" style={{ top: "65%", left: "-10%", animationDelay: "1.2s" }} />
       <div className="shooting-star" style={{ top: "80%", left: "-10%", animationDelay: "3.6s" }} />
+      <div className="shooting-star meteor-soft" style={{ top: "32%", left: "-10%", animationDelay: "6.2s" }} />
+      <div className="shooting-star meteor-soft meteor-slow" style={{ top: "58%", left: "-10%", animationDelay: "7.4s" }} />
       {isAdmin && (
         <>
           <div className="shooting-star meteor-bright" style={{ top: "14%", left: "-12%", animationDelay: "1.1s" }} />
           <div className="shooting-star meteor-bright meteor-slow" style={{ top: "38%", left: "-12%", animationDelay: "3.2s" }} />
           <div className="shooting-star meteor-bright meteor-wide" style={{ top: "72%", left: "-12%", animationDelay: "5.1s" }} />
+          <div className="shooting-star meteor-bright meteor-fast" style={{ top: "6%", left: "-12%", animationDelay: "6.6s" }} />
+          <div className="shooting-star meteor-bright meteor-fast meteor-wide" style={{ top: "28%", left: "-12%", animationDelay: "8.4s" }} />
+          <div className="shooting-star meteor-bright meteor-slow" style={{ top: "52%", left: "-12%", animationDelay: "9.5s" }} />
+          <div className="shooting-star meteor-bright meteor-wide" style={{ top: "86%", left: "-12%", animationDelay: "10.7s" }} />
           <div className="admin-orb orb-one" />
           <div className="admin-orb orb-two" />
         </>
