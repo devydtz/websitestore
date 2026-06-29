@@ -1058,6 +1058,46 @@ export async function adminAction(
     return { ok: false, error: "Incorrect admin password." };
   }
 
+  let functionError = "";
+  for (const url of supabase.urls) {
+    try {
+      const response = await fetch(`${url}/functions/v1/admin-manage-order`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${supabaseAnonKey}`,
+          Apikey: supabaseAnonKey,
+        },
+        body: JSON.stringify({ orderId, action, adminToken, note }),
+      });
+      const payload = (await response.json().catch(() => null)) as
+        | { order?: Order; error?: string; delivery?: { allOk: boolean; log: { ok: boolean; response?: string }[] } }
+        | null;
+
+      if (!response.ok) {
+        functionError = payload?.error || `Delivery function failed with HTTP ${response.status}`;
+        continue;
+      }
+      if (!payload?.order) {
+        functionError = "Delivery function returned no order.";
+        continue;
+      }
+
+      return { ok: true, order: payload.order };
+    } catch (error) {
+      functionError = networkError(error, [`${url}/functions/v1/admin-manage-order`]);
+    }
+  }
+
+  if (action === "confirm") {
+    return {
+      ok: false,
+      error:
+        functionError ||
+        "Could not reach the Minecraft delivery function. Check Supabase function secrets and deploy admin-manage-order.",
+    };
+  }
+
   const update =
     action === "reject"
       ? {

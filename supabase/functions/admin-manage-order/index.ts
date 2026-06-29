@@ -125,7 +125,6 @@ async function rconCommand(host: string, port: number, password: string, command
 // ---- Command generation per item ----
 function commandsForItem(item: OrderItem, username: string): string[] {
   const name = item.name.toLowerCase();
-  const qty = item.qty;
   const cmds: string[] = [];
 
   // Ranks: detected by "rank" keyword or known rank names
@@ -149,26 +148,18 @@ function commandsForItem(item: OrderItem, username: string): string[] {
 
   // Keys: detected by "key" keyword
   if (name.includes("key") || name.includes("crate")) {
-    const keyType = extractKeyType(name);
-    for (let i = 0; i < qty; i++) {
-      cmds.push(`crazycrate give ${keyType} 1 ${username}`);
-    }
+    cmds.push(`say Keys are coming soon. Manual review needed for ${username}.`);
     return cmds;
   }
 
   // Bundles: detected by "bundle" keyword
   if (name.includes("bundle") || name.includes("package") || name.includes("starter")) {
-    const rank = extractRank(name);
-    if (rank) cmds.push(`lp user ${username} parent add ${rank}`);
-    for (let i = 0; i < qty; i++) {
-      cmds.push(`crazycrate give ${extractKeyType(name)} 1 ${username}`);
-      cmds.push(`eco give ${username} 50000`);
-    }
+    cmds.push(`say Bundles are coming soon. Manual review needed for ${username}.`);
     return cmds;
   }
 
-  // Fallback: give in-game currency
-  cmds.push(`eco give ${username} ${10000 * qty}`);
+  // Fallback: do not give unknown products automatically.
+  cmds.push(`say Unknown store product for ${username}. Manual review needed.`);
   return cmds;
 }
 
@@ -179,14 +170,6 @@ function extractRank(name: string): string | null {
   if (name.includes("nebula")) return "nebula";
   if (name.includes("crescent") || name.includes("starter") || name.includes("guild")) return "crescent";
   return null;
-}
-
-function extractKeyType(name: string): string {
-  if (name.includes("eclipse") || name.includes("monarch")) return "eclipse";
-  if (name.includes("lunar")) return "lunar";
-  if (name.includes("star") || name.includes("adventurer")) return "star";
-  if (name.includes("moon") || name.includes("starter") || name.includes("guild")) return "moon";
-  return "starter";
 }
 
 // ---- Main handler ----
