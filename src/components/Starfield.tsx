@@ -9,7 +9,6 @@ export function Starfield({ variant = "default" }: StarfieldProps) {
     <div className={`starfield fixed inset-0 z-0 ${isAdmin ? "starfield-admin" : ""}`} aria-hidden="true">
       <div className="space-depth depth-one" />
       <div className="space-depth depth-two" />
-      <div className="pixel-moon" />
       <div className="pixel-sparkle sparkle-main" />
       <div className="pixel-sparkle sparkle-left" />
       <div className="pixel-sparkle sparkle-right" />
