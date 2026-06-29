@@ -77,13 +77,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       const raw = localStorage.getItem(KEY);
       if (raw) setItems(sanitizeCartItems(JSON.parse(raw)));
-    } catch {}
+    } catch {
+      // Ignore corrupt cart storage and start with an empty cart.
+    }
   }, []);
 
   useEffect(() => {
     try {
       localStorage.setItem(KEY, JSON.stringify(items));
-    } catch {}
+    } catch {
+      // Cart still works in memory when browser storage is blocked.
+    }
   }, [items]);
 
   const add = useCallback((item: Omit<CartItem, "qty">) => {

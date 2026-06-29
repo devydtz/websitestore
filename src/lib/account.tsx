@@ -147,7 +147,9 @@ function readUsers(): Record<string, StoredUser> {
 function writeUsers(users: Record<string, StoredUser>) {
   try {
     localStorage.setItem(USERS_KEY, JSON.stringify(users));
-  } catch {}
+  } catch {
+    // Local storage can be blocked; keep the app usable without local account cache.
+  }
 }
 
 function authRedirectUrl() {

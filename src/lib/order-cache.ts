@@ -5,7 +5,9 @@ const PREFIX = "lunaris.order.";
 export function cacheOrder(order: Order) {
   try {
     sessionStorage.setItem(`${PREFIX}${order.id}`, JSON.stringify(order));
-  } catch {}
+  } catch {
+    // Session storage can be blocked in private browsing.
+  }
 }
 
 export function readCachedOrder(orderId: string): Order | null {
@@ -16,6 +18,7 @@ export function readCachedOrder(orderId: string): Order | null {
     if (!parsed || parsed.id !== orderId || typeof parsed.status !== "string") return null;
     return parsed as Order;
   } catch {
+    // Ignore corrupt cached order data and fall back to Supabase.
     return null;
   }
 }

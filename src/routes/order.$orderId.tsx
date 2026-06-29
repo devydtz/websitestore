@@ -85,7 +85,9 @@ function OrderStatusPage() {
       await navigator.clipboard.writeText(orderId);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
-    } catch {}
+    } catch {
+      // Clipboard permission can be denied; the order page should keep working.
+    }
   };
 
   const meta = order ? statusMeta[order.status] : null;

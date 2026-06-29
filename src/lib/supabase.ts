@@ -56,7 +56,9 @@ async function postWithAbort(url: string, payload: unknown, label: string, ms = 
     try {
       const parsed = JSON.parse(text) as { message?: string; details?: string; hint?: string; code?: string };
       message = parsed.message || parsed.details || parsed.hint || parsed.code || message;
-    } catch {}
+    } catch {
+      // Keep the raw response text when Supabase does not return JSON.
+    }
     return { ok: false as const, error: message };
   } finally {
     globalThis.clearTimeout(timer);
@@ -83,7 +85,9 @@ async function getJsonWithAbort<T>(url: string, path: string, label: string, ms 
     try {
       const parsed = JSON.parse(text) as { message?: string; details?: string; hint?: string; code?: string };
       message = parsed.message || parsed.details || parsed.hint || parsed.code || message;
-    } catch {}
+    } catch {
+      // Keep the raw response text when Supabase does not return JSON.
+    }
     return { ok: false as const, error: message };
   } finally {
     globalThis.clearTimeout(timer);
