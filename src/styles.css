@@ -99,6 +99,9 @@
   --sky-left: oklch(0.18 0.1 270 / 0.55);
   --sky-right: oklch(0.2 0.09 320 / 0.45);
   --sky-bottom: oklch(0.12 0.04 295);
+  --space-base: oklch(0.1 0.04 285);
+  --space-mid: oklch(0.17 0.07 288);
+  --space-deep: oklch(0.06 0.03 285);
   --star-color: oklch(0.98 0.01 295);
   --star-soft: oklch(0.9 0.06 285);
   --meteor-core: oklch(0.98 0.01 295);
@@ -145,6 +148,9 @@
   --sky-left: oklch(0.16 0.1 250 / 0.58);
   --sky-right: oklch(0.18 0.11 300 / 0.5);
   --sky-bottom: oklch(0.1 0.04 265);
+  --space-base: oklch(0.08 0.04 265);
+  --space-mid: oklch(0.14 0.08 275);
+  --space-deep: oklch(0.04 0.03 265);
   --star-color: oklch(0.98 0.003 247.858);
   --star-soft: oklch(0.86 0.08 275);
   --meteor-core: oklch(0.98 0.003 247.858);
@@ -196,11 +202,12 @@
   inset: 0;
   overflow: hidden;
   pointer-events: none;
+  isolation: isolate;
   background:
-    radial-gradient(ellipse at 50% 0%, var(--sky-top), transparent 58%),
-    radial-gradient(ellipse at 12% 32%, var(--sky-left), transparent 40%),
-    radial-gradient(ellipse at 88% 46%, var(--sky-right), transparent 42%),
-    radial-gradient(ellipse at bottom, var(--sky-bottom), transparent 70%);
+    radial-gradient(ellipse at 50% -10%, var(--sky-top), transparent 58%),
+    radial-gradient(ellipse at 10% 30%, var(--sky-left), transparent 42%),
+    radial-gradient(ellipse at 92% 45%, var(--sky-right), transparent 44%),
+    linear-gradient(180deg, var(--space-mid), var(--space-base) 48%, var(--space-deep));
 }
 
 .starfield::after {
@@ -208,9 +215,31 @@
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(115deg, transparent 0 35%, oklch(0.75 0.08 295 / 0.06) 45%, transparent 56%),
-    radial-gradient(circle at 50% 120%, oklch(0.75 0.12 295 / 0.12), transparent 45%);
+    linear-gradient(115deg, transparent 0 35%, oklch(0.82 0.08 295 / 0.05) 45%, transparent 56%),
+    radial-gradient(circle at 50% 120%, oklch(0.75 0.12 295 / 0.1), transparent 45%);
   mix-blend-mode: screen;
+  z-index: 1;
+}
+
+.space-depth {
+  position: absolute;
+  inset: -20%;
+  background:
+    radial-gradient(circle at 20% 30%, oklch(0.82 0.08 285 / 0.16), transparent 22%),
+    radial-gradient(circle at 74% 20%, oklch(0.52 0.16 245 / 0.14), transparent 24%),
+    radial-gradient(circle at 58% 78%, oklch(0.58 0.18 320 / 0.12), transparent 28%);
+  filter: blur(4px);
+  opacity: 0.85;
+  animation: spaceDrift 26s ease-in-out infinite alternate;
+  z-index: 0;
+}
+
+.space-depth.depth-two {
+  inset: -35%;
+  opacity: 0.42;
+  transform: rotate(8deg);
+  animation-duration: 38s;
+  animation-delay: -12s;
 }
 
 .nebula-glow {
@@ -219,6 +248,7 @@
   filter: blur(40px);
   opacity: 0.32;
   animation: nebulaPulse 9s ease-in-out infinite alternate;
+  z-index: 1;
 }
 
 .nebula-glow.glow-one {
@@ -266,6 +296,7 @@
   background-size: 600px 600px;
   opacity: 0.7;
   animation: twinkle 4s ease-in-out infinite alternate;
+  z-index: 2;
 }
 .stars-layer.layer-2 {
   background-size: 900px 900px;
@@ -295,6 +326,11 @@
   100% { transform: translate3d(18px, -10px, 0) scale(1.05); opacity: 0.42; }
 }
 
+@keyframes spaceDrift {
+  0% { transform: translate3d(-1.5%, -1%, 0) scale(1); }
+  100% { transform: translate3d(1.5%, 1%, 0) scale(1.06); }
+}
+
 .shooting-star {
   position: absolute;
   top: 0;
@@ -307,6 +343,7 @@
   filter: drop-shadow(0 0 6px var(--meteor-tail));
   transform-origin: left center;
   animation: shoot 5s ease-in infinite;
+  z-index: 4;
 }
 .shooting-star::before {
   content: "";
@@ -332,6 +369,12 @@
   opacity: 0;
   animation-duration: 7.2s;
 }
+.meteor-small {
+  width: 82px;
+  height: 1px;
+  filter: drop-shadow(0 0 5px var(--meteor-tail));
+  animation-duration: 8.4s;
+}
 .meteor-fast {
   animation-duration: 3.6s;
 }
@@ -352,6 +395,7 @@
   box-shadow: 0 0 70px oklch(0.58 0.16 295 / 0.2);
   opacity: 0.48;
   animation: orbDrift 14s ease-in-out infinite alternate;
+  z-index: 3;
 }
 .admin-orb.orb-one {
   right: 7%;
@@ -400,10 +444,10 @@
 
 :root:not(.dark) .starfield {
   background:
-    radial-gradient(ellipse at 50% 0%, oklch(0.72 0.09 292 / 0.28), transparent 58%),
+    radial-gradient(ellipse at 50% -10%, oklch(0.72 0.09 292 / 0.28), transparent 58%),
     radial-gradient(ellipse at 12% 32%, oklch(0.68 0.1 260 / 0.2), transparent 40%),
     radial-gradient(ellipse at 88% 46%, oklch(0.76 0.09 325 / 0.18), transparent 42%),
-    linear-gradient(180deg, oklch(0.2 0.04 295), oklch(0.12 0.04 285));
+    linear-gradient(180deg, oklch(0.18 0.04 295), oklch(0.1 0.04 285) 56%, oklch(0.06 0.03 285));
 }
 
 :root:not(.dark) .static-starfield {
@@ -439,6 +483,7 @@
   .stars-layer.layer-2,
   .stars-layer.layer-3,
   .stars-layer.layer-4,
+  .space-depth,
   .nebula-glow,
   .admin-orb,
   .logo-float {

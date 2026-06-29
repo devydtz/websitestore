@@ -127,7 +127,7 @@ function LoginScreen({
   onSubmit: (e: FormEvent) => void;
 }) {
   return (
-    <section className="relative flex min-h-[calc(100vh-4rem)] items-center justify-center px-6 py-20">
+    <section className="relative z-10 flex min-h-[calc(100vh-4rem)] items-center justify-center px-6 py-20">
       <div className="pixel-card w-full max-w-md rounded-3xl p-8 md:p-10">
         <div className="mx-auto mb-6 grid h-16 w-16 place-items-center rounded-2xl bg-accent/15 ring-1 ring-accent/30">
           <Lock className="h-7 w-7 text-accent" />
@@ -311,7 +311,7 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
   };
 
   return (
-    <section className="mx-auto max-w-7xl px-4 pb-24 pt-8 md:px-8">
+    <section className="relative z-10 mx-auto max-w-7xl px-4 pb-24 pt-8 md:px-8">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
