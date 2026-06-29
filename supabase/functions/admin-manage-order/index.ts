@@ -41,7 +41,7 @@ const SERVERDATA_AUTH_RESPONSE = 2;
 
 function rconPacket(id: number, type: number, body: string): Uint8Array {
   const payload = new TextEncoder().encode(body);
-  const len = 4 + 4 + 4 + payload.length + 2; // id + type + len-payload + payload + 2 null
+  const len = 4 + 4 + payload.length + 2; // id + type + payload + 2 null terminators
   const buf = new Uint8Array(4 + len);
   const dv = new DataView(buf.buffer);
   dv.setUint32(0, len, true);
