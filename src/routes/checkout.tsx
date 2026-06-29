@@ -20,9 +20,7 @@ import { Navbar } from "@/components/Navbar";
 import { SiteFooter } from "@/components/SiteFooter";
 import { centsToDisplay, lineTotalDisplay, useCart } from "@/lib/cart";
 import { useAccount } from "@/lib/account";
-import { createOrder, getPromoCode } from "@/lib/supabase";
-import { applyPromo, applyPromoRule } from "@/lib/promos";
-import { notifyDiscord } from "@/lib/discord";
+import { createOrder } from "@/lib/supabase";
 import { isLiveProduct } from "@/lib/products";
 import {
   formatMobileNumber,
@@ -46,22 +44,12 @@ export const Route = createFileRoute("/checkout")({
 
 function CheckoutPage() {
   const { items, clear } = useCart();
-  const { account, recordPurchase } = useAccount();
+  const { account } = useAccount();
   const navigate = useNavigate();
 
   const [gcashNumber, setGcashNumber] = useState("");
   const [referenceNo, setReferenceNo] = useState("");
   const [confirmed, setConfirmed] = useState(false);
-  const [promoInput, setPromoInput] = useState("");
-  const [promoCode, setPromoCode] = useState<string | null>(null);
-  const [promoError, setPromoError] = useState<string | null>(null);
-  const [promoChecking, setPromoChecking] = useState(false);
-  const [promoDiscount, setPromoDiscount] = useState<{
-    discountCents: number;
-    discountDisplay: string;
-    totalCents: number;
-    totalDisplay: string;
-  } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState<string | null>(null);
   const [submittedTotal, setSubmittedTotal] = useState<string | null>(null);
@@ -72,9 +60,9 @@ function CheckoutPage() {
   const referenceDigits = referenceNo.replace(/\D/g, "");
   const subtotalCents = items.reduce((sum, i) => sum + i.priceCents * i.qty, 0);
   const subtotalDisplay = centsToDisplay(subtotalCents);
-  const discountCents = promoDiscount ? promoDiscount.discountCents : 0;
-  const discountDisplay = promoDiscount ? promoDiscount.discountDisplay : centsToDisplay(0);
-  const checkoutTotalCents = Math.max(0, subtotalCents - discountCents);
+  const discountCents = 0;
+  const discountDisplay = centsToDisplay(0);
+  const checkoutTotalCents = subtotalCents;
   const checkoutTotalDisplay = centsToDisplay(checkoutTotalCents);
   const paymentReady =
     Boolean(account) &&
@@ -92,47 +80,6 @@ function CheckoutPage() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {}
-  };
-
-  const applyPromoCode = async () => {
-    setPromoError(null);
-    setPromoChecking(true);
-    try {
-      const databasePromo = await getPromoCode(promoInput);
-      const result =
-        databasePromo.ok && databasePromo.promo
-          ? applyPromoRule(databasePromo.promo, subtotalCents)
-          : applyPromo(promoInput, subtotalCents);
-
-      if (!result.ok) {
-        setPromoCode(null);
-        setPromoDiscount(null);
-        setPromoError(result.error);
-        return;
-      }
-      setPromoCode(result.code);
-      setPromoDiscount({
-        discountCents: result.discountCents,
-        discountDisplay: result.discountDisplay,
-        totalCents: result.totalCents,
-        totalDisplay: result.totalDisplay,
-      });
-      setPromoInput(result.code);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      setPromoCode(null);
-      setPromoDiscount(null);
-      setPromoError(`Could not check promo code: ${message}`);
-    } finally {
-      setPromoChecking(false);
-    }
-  };
-
-  const removePromo = () => {
-    setPromoCode(null);
-    setPromoDiscount(null);
-    setPromoInput("");
-    setPromoError(null);
   };
 
   const onSubmit = async (e: FormEvent) => {
@@ -202,7 +149,7 @@ function CheckoutPage() {
         method: "gcash",
         gcash_number: formatMobileNumber(gcashNumber),
         reference_no: referenceDigits,
-        promo_code: promoCode,
+        promo_code: null,
         discount_cents: discountCents,
         discount_display: discountDisplay,
         subtotal_cents: subtotalCents,
@@ -214,30 +161,6 @@ function CheckoutPage() {
         return;
       }
 
-      void notifyDiscord({
-        title: "New Lunaris Order",
-        description: `Order #${orderId} is waiting for payment verification.`,
-        color: 12429311,
-        fields: [
-          { name: "Player", value: account.displayName, inline: true },
-          { name: "Total", value: checkoutTotalDisplay, inline: true },
-          { name: "Reference", value: referenceDigits, inline: true },
-        ],
-      });
-
-      recordPurchase({
-        id: orderId,
-        date: new Date().toISOString(),
-        items: liveItems.map((i) => ({
-          id: i.id,
-          name: `${i.name} x${i.qty}`,
-          price: lineTotalDisplay(i.priceCents, i.qty),
-        })),
-        total: checkoutTotalDisplay,
-        method: "gcash",
-        promoCode: promoCode ?? undefined,
-        discount: discountDisplay,
-      });
       setSubmittedTotal(checkoutTotalDisplay);
       setDone(orderId);
       clear();
@@ -477,46 +400,6 @@ function CheckoutPage() {
                       </div>
                     </div>
 
-                    <div className="rounded-xl border border-border/60 bg-background/30 p-4">
-                      <label className="block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                        Promo Code
-                      </label>
-                      <div className="mt-2 flex gap-2">
-                        <input
-                          value={promoInput}
-                          onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
-                          placeholder="Enter code"
-                          disabled={!account || Boolean(promoCode)}
-                          className="min-w-0 flex-1 rounded-xl border border-border bg-background/60 px-4 py-3 font-mono text-sm uppercase tracking-wider focus:border-accent focus:outline-none disabled:opacity-50"
-                        />
-                        {promoCode ? (
-                          <button
-                            type="button"
-                            onClick={removePromo}
-                            className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 text-sm font-semibold text-red-400"
-                          >
-                            Remove
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={applyPromoCode}
-                            disabled={!account || !promoInput.trim() || promoChecking}
-                            className="rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:opacity-50"
-                          >
-                            {promoChecking ? "Checking..." : "Apply"}
-                          </button>
-                        )}
-                      </div>
-                      {promoDiscount && (
-                        <p className="mt-2 flex items-center gap-1.5 text-xs text-emerald-400">
-                          <Tag className="h-3.5 w-3.5" />
-                          Promo applied. You saved {promoDiscount.discountDisplay}.
-                        </p>
-                      )}
-                      {promoError && <p className="mt-2 text-xs text-destructive">{promoError}</p>}
-                    </div>
-
                     <label className="block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                       Your GCash Number
                     </label>
@@ -591,7 +474,6 @@ function CheckoutPage() {
                 </ul>
                 <div className="mt-5 border-t border-border/60 pt-4">
                   <InfoLine label="Subtotal" value={subtotalDisplay} />
-                  {discountCents > 0 && <InfoLine label="Discount" value={`-${discountDisplay}`} valueClass="font-semibold text-emerald-400" />}
                   <InfoLine label="Payment method" value="GCash" valueClass="font-semibold text-[#007DFF]" />
                   <InfoLine label="Currency" value="PHP" />
                   <div className="mt-3 flex items-center justify-between text-base font-bold">

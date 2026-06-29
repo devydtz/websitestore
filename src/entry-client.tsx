@@ -3,7 +3,6 @@ import { createRoot } from "react-dom/client";
 import { RouterProvider } from "@tanstack/react-router";
 import { QueryClient } from "@tanstack/react-query";
 import { getRouter } from "@/lib/router-client";
-import { registerLunarisApp } from "@/lib/pwa-notifications";
 import "@/styles.css";
 
 const queryClient = new QueryClient();
@@ -17,4 +16,9 @@ startTransition(() => {
   );
 });
 
-void registerLunarisApp();
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker
+    .getRegistrations()
+    .then((registrations) => registrations.forEach((registration) => void registration.unregister()))
+    .catch(() => {});
+}

@@ -36,7 +36,7 @@ function networkError(error: unknown, urls: string[]) {
 function withTimeout<T>(promise: PromiseLike<T>, label: string, ms = 15000): Promise<T> {
   return new Promise((resolve, reject) => {
     const timer = globalThis.setTimeout(() => reject(new Error(`${label} timed out after ${ms / 1000}s`)), ms);
-    promise.then(
+    Promise.resolve(promise).then(
       (value) => {
         globalThis.clearTimeout(timer);
         resolve(value);
@@ -204,17 +204,6 @@ export async function createOrder(order: NewOrder): Promise<{ ok: true } | { ok:
   for (const url of supabase.urls) {
     try {
       const client = createClient(url, supabaseAnonKey);
-      const referenceTaken = await withTimeout(
-        client.from("orders").select("id").eq("reference_no", order.reference_no).limit(1),
-        "Checking GCash reference",
-      );
-      if (!referenceTaken.error && referenceTaken.data && referenceTaken.data.length > 0) {
-        return {
-          ok: false,
-          error: "That GCash reference number was already used on another order. Check the number or contact support.",
-        };
-      }
-
       const now = new Date().toISOString();
       const baseInsert = {
         id: order.id,
@@ -267,6 +256,7 @@ export async function createOrder(order: NewOrder): Promise<{ ok: true } | { ok:
       const insertRes = await withTimeout(
         client.from("orders").insert({ ...baseInsert, ...timelineInsert }),
         "Submitting order",
+        10000,
       );
       let error = insertRes.error;
       if (
@@ -276,12 +266,14 @@ export async function createOrder(order: NewOrder): Promise<{ ok: true } | { ok:
         const fallbackRes = await withTimeout(
           client.from("orders").insert(baseInsert),
           "Submitting order without receipt timeline",
+          10000,
         );
         error = fallbackRes.error;
         if (error && /schema cache|column/i.test(error.message)) {
           const minimalRes = await withTimeout(
             client.from("orders").insert(minimalInsert),
             "Submitting order with older database schema",
+            10000,
           );
           error = minimalRes.error;
         }
