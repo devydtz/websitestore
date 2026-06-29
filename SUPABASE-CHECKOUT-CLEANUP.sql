@@ -27,28 +27,26 @@ CREATE TABLE IF NOT EXISTS orders (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
-ALTER TABLE orders
-  ADD COLUMN IF NOT EXISTS gcash_name text,
-  ADD COLUMN IF NOT EXISTS reference_no text,
-  ADD COLUMN IF NOT EXISTS promo_code text,
-  ADD COLUMN IF NOT EXISTS discount_cents integer DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS discount_display text DEFAULT 'PHP 0',
-  ADD COLUMN IF NOT EXISTS subtotal_cents integer,
-  ADD COLUMN IF NOT EXISTS subtotal_display text,
-  ADD COLUMN IF NOT EXISTS admin_note text,
-  ADD COLUMN IF NOT EXISTS status_history jsonb NOT NULL DEFAULT '[]'::jsonb,
-  ADD COLUMN IF NOT EXISTS receipt_issued_at timestamptz,
-  ADD COLUMN IF NOT EXISTS delivered_at timestamptz,
-  ADD COLUMN IF NOT EXISTS delivery_log jsonb DEFAULT '[]'::jsonb;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS gcash_name text;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS reference_no text;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS promo_code text;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_cents integer DEFAULT 0;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_display text DEFAULT 'PHP 0';
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS subtotal_cents integer;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS subtotal_display text;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS admin_note text;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS status_history jsonb NOT NULL DEFAULT '[]'::jsonb;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS receipt_issued_at timestamptz;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivered_at timestamptz;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_log jsonb DEFAULT '[]'::jsonb;
 
-ALTER TABLE orders
-  ALTER COLUMN items SET DEFAULT '[]'::jsonb,
-  ALTER COLUMN method SET DEFAULT 'gcash',
-  ALTER COLUMN status SET DEFAULT 'pending',
-  ALTER COLUMN discount_cents SET DEFAULT 0,
-  ALTER COLUMN discount_display SET DEFAULT 'PHP 0',
-  ALTER COLUMN status_history SET DEFAULT '[]'::jsonb,
-  ALTER COLUMN delivery_log SET DEFAULT '[]'::jsonb;
+ALTER TABLE orders ALTER COLUMN items SET DEFAULT '[]'::jsonb;
+ALTER TABLE orders ALTER COLUMN method SET DEFAULT 'gcash';
+ALTER TABLE orders ALTER COLUMN status SET DEFAULT 'pending';
+ALTER TABLE orders ALTER COLUMN discount_cents SET DEFAULT 0;
+ALTER TABLE orders ALTER COLUMN discount_display SET DEFAULT 'PHP 0';
+ALTER TABLE orders ALTER COLUMN status_history SET DEFAULT '[]'::jsonb;
+ALTER TABLE orders ALTER COLUMN delivery_log SET DEFAULT '[]'::jsonb;
 
 UPDATE orders
 SET
@@ -109,14 +107,13 @@ CREATE TABLE IF NOT EXISTS accounts (
   last_seen_at timestamptz NOT NULL DEFAULT now()
 );
 
-ALTER TABLE accounts
-  ADD COLUMN IF NOT EXISTS display_name text,
-  ADD COLUMN IF NOT EXISTS email_verified boolean NOT NULL DEFAULT false,
-  ADD COLUMN IF NOT EXISTS disabled boolean NOT NULL DEFAULT false,
-  ADD COLUMN IF NOT EXISTS history_count integer NOT NULL DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS total_spent_cents integer NOT NULL DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS total_spent_display text NOT NULL DEFAULT 'PHP 0',
-  ADD COLUMN IF NOT EXISTS last_seen_at timestamptz NOT NULL DEFAULT now();
+ALTER TABLE accounts ADD COLUMN IF NOT EXISTS display_name text;
+ALTER TABLE accounts ADD COLUMN IF NOT EXISTS email_verified boolean NOT NULL DEFAULT false;
+ALTER TABLE accounts ADD COLUMN IF NOT EXISTS disabled boolean NOT NULL DEFAULT false;
+ALTER TABLE accounts ADD COLUMN IF NOT EXISTS history_count integer NOT NULL DEFAULT 0;
+ALTER TABLE accounts ADD COLUMN IF NOT EXISTS total_spent_cents integer NOT NULL DEFAULT 0;
+ALTER TABLE accounts ADD COLUMN IF NOT EXISTS total_spent_display text NOT NULL DEFAULT 'PHP 0';
+ALTER TABLE accounts ADD COLUMN IF NOT EXISTS last_seen_at timestamptz NOT NULL DEFAULT now();
 
 UPDATE accounts
 SET
