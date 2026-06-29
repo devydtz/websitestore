@@ -12,7 +12,7 @@ const keys: Product[] = [
     category: "key",
     name: "Crate Keys",
     tagline: "Keys are coming soon. Details will be added once the rewards are finalized.",
-    price: "₱0",
+    price: "PHP 0",
     Icon: KeyRound,
     comingSoon: true,
     perks: [],

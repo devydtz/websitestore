@@ -21,7 +21,7 @@ export function ProductGrid({ products }: { products: Product[] }) {
       <div className="mx-auto grid max-w-6xl gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {products.map((p) => (
           <article
-            key={p.name}
+            key={p.id}
             className={`pixel-card relative flex flex-col rounded-2xl p-7 animate-fade-in ${
               p.featured ? "ring-2 ring-accent/60 shadow-[0_0_60px_-20px_oklch(0.78_0.13_295/0.8)]" : ""
             }`}

@@ -12,7 +12,7 @@ const bundles: Product[] = [
     category: "bundle",
     name: "Bundles",
     tagline: "Bundles are coming soon. Details will be added once the offers are finalized.",
-    price: "₱0",
+    price: "PHP 0",
     Icon: Package,
     comingSoon: true,
     perks: [],

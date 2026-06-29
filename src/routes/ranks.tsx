@@ -12,7 +12,7 @@ const ranks: Product[] = [
     category: "rank",
     name: "Crescent",
     tagline: "Your first step into the Lunaris realm.",
-    price: "₱99",
+    price: "PHP 99",
     Icon: Shield,
     perks: [
       "5,000 Claim Blocks",
@@ -27,7 +27,7 @@ const ranks: Product[] = [
     category: "rank",
     name: "Nebula",
     tagline: "A stronger start with extra comfort perks.",
-    price: "₱199",
+    price: "PHP 199",
     Icon: Star,
     perks: [
       "7,500 Claim Blocks",
@@ -42,7 +42,7 @@ const ranks: Product[] = [
     category: "rank",
     name: "Solstice",
     tagline: "A balanced upgrade for active players.",
-    price: "₱299",
+    price: "PHP 299",
     Icon: Moon,
     featured: true,
     perks: [
@@ -61,7 +61,7 @@ const ranks: Product[] = [
     category: "rank",
     name: "Celestial",
     tagline: "Premium perks for players who want to stand out.",
-    price: "₱399",
+    price: "PHP 399",
     Icon: Sparkles,
     perks: [
       "15,000 Claim Blocks",
@@ -84,7 +84,7 @@ const ranks: Product[] = [
     category: "rank",
     name: "Monarch",
     tagline: "The highest Lunaris rank package.",
-    price: "₱499",
+    price: "PHP 499",
     Icon: Crown,
     perks: [
       "20,000 Claim Blocks",

@@ -1,4 +1,4 @@
-const CACHE_NAME = "lunaris-admin-v1";
+const CACHE_NAME = "lunaris-admin-v2";
 const APP_SHELL = ["/admin", "/manifest.webmanifest", "/pwa-192.png", "/pwa-512.png", "/apple-touch-icon.png"];
 
 self.addEventListener("install", (event) => {
@@ -20,12 +20,18 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
 
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match("/admin")),
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then((cached) => {
       if (cached) return cached;
       return fetch(event.request).catch(() => {
-        if (event.request.mode === "navigate") return caches.match("/admin");
-        throw new Error("Network request failed");
+        return new Response("", { status: 504, statusText: "Network request failed" });
       });
     }),
   );

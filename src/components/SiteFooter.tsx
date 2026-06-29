@@ -19,7 +19,7 @@ export function SiteFooter() {
             className="h-14 w-auto drop-shadow-[0_0_18px_rgba(190,132,255,0.45)]"
           />
           <p className="mt-3 max-w-xs text-sm leading-relaxed text-muted-foreground">
-            Moonlit Minecraft adventures, ranks, keys, and rewards for the Lunaris community.
+            Moonlit Minecraft adventures, ranks, and rewards for the Lunaris community.
           </p>
         </div>
 

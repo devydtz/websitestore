@@ -35,14 +35,14 @@ function networkError(error: unknown, urls: string[]) {
 
 function withTimeout<T>(promise: PromiseLike<T>, label: string, ms = 15000): Promise<T> {
   return new Promise((resolve, reject) => {
-    const timer = window.setTimeout(() => reject(new Error(`${label} timed out after ${ms / 1000}s`)), ms);
+    const timer = globalThis.setTimeout(() => reject(new Error(`${label} timed out after ${ms / 1000}s`)), ms);
     promise.then(
       (value) => {
-        window.clearTimeout(timer);
+        globalThis.clearTimeout(timer);
         resolve(value);
       },
       (error) => {
-        window.clearTimeout(timer);
+        globalThis.clearTimeout(timer);
         reject(error);
       },
     );
@@ -218,6 +218,20 @@ export async function createOrder(order: NewOrder): Promise<{ ok: true } | { ok:
         subtotal_display: order.subtotal_display,
         status: "pending",
       };
+      const minimalInsert = {
+        id: order.id,
+        username: order.username,
+        edition: order.edition,
+        email: order.email,
+        items: order.items,
+        total_cents: order.total_cents,
+        total_display: order.total_display,
+        method: order.method,
+        gcash_number: order.gcash_number,
+        gcash_name: null,
+        reference_no: order.reference_no,
+        status: "pending",
+      };
       const timelineInsert = {
         status_history: [
           {
@@ -247,6 +261,13 @@ export async function createOrder(order: NewOrder): Promise<{ ok: true } | { ok:
           "Submitting order without receipt timeline",
         );
         error = fallbackRes.error;
+        if (error && /schema cache|column/i.test(error.message)) {
+          const minimalRes = await withTimeout(
+            client.from("orders").insert(minimalInsert),
+            "Submitting order with older database schema",
+          );
+          error = minimalRes.error;
+        }
       }
       if (!error) return { ok: true };
       lastError = formatSupabaseError(url, error.message);
@@ -826,13 +847,30 @@ export async function adminAction(
         ...(((existing.data as { status_history?: OrderStatusHistory[] } | null)?.status_history ?? []) as OrderStatusHistory[]),
         ...update.status_history,
       ];
-      const { data, error } = await client
+      const updateWithHistory = await client
         .from("orders")
         .update({ ...update, status_history: nextHistory })
         .eq("id", orderId)
         .eq("status", "pending")
         .select("*")
         .maybeSingle();
+      let { data, error } = updateWithHistory;
+
+      if (error && /status_history|schema cache|column/i.test(error.message)) {
+        const oldSchemaUpdate =
+          action === "reject"
+            ? { status: update.status, admin_note: update.admin_note }
+            : { status: update.status, admin_note: update.admin_note, delivery_log: update.delivery_log };
+        const fallback = await client
+          .from("orders")
+          .update(oldSchemaUpdate)
+          .eq("id", orderId)
+          .eq("status", "pending")
+          .select("*")
+          .maybeSingle();
+        data = fallback.data;
+        error = fallback.error;
+      }
 
       if (error) {
         lastError = formatSupabaseError(url, error.message);

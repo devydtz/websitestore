@@ -1,8 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Crown, KeyRound, Package, Plus, Sparkles } from "lucide-react";
-import { useCart, priceToCents } from "@/lib/cart";
+import { useCart } from "@/lib/cart";
 import { listOrders, type Order } from "@/lib/supabase";
+import { isLiveProduct, LIVE_PRODUCT_DETAILS } from "@/lib/products";
 
 const bestSellers = [
   {
@@ -11,7 +12,7 @@ const bestSellers = [
     id: "rank-solstice",
     name: "Solstice Rank",
     copy: "Best value pick with claim fly, /anvil, extra homes, vaults, and a Cosmetic Key draw.",
-    price: "₱299",
+    price: "PHP 299",
     Icon: Sparkles,
     live: true,
     to: "/ranks" as const,
@@ -64,9 +65,9 @@ export function FeaturedItems() {
             ...item,
             badge: "Most Bought",
             id: topRank.id,
-            name: topRank.name,
-            price: topRank.price,
-            copy: `${topRank.name} is currently the most bought rank from recent store orders.`,
+            name: LIVE_PRODUCT_DETAILS[topRank.id].name,
+            price: LIVE_PRODUCT_DETAILS[topRank.id].price,
+            copy: `${LIVE_PRODUCT_DETAILS[topRank.id].name} is currently the most bought rank from recent store orders.`,
           }
         : item,
     );
@@ -116,7 +117,7 @@ export function FeaturedItems() {
                         name: item.name,
                         category: "rank",
                         price: item.price,
-                        priceCents: priceToCents(item.price),
+                        priceCents: LIVE_PRODUCT_DETAILS[item.id]?.priceCents ?? 0,
                       })
                     }
                     className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition hover:scale-105 hover:bg-accent"
@@ -152,12 +153,13 @@ export function FeaturedItems() {
 }
 
 function getTopItem(orders: Order[], category: "rank" | "key" | "bundle") {
-  const counts = new Map<string, { id: string; name: string; price: string; qty: number }>();
+  const counts = new Map<string, { id: string; qty: number }>();
   for (const order of orders) {
     if (order.status === "rejected") continue;
     for (const item of order.items) {
       if (!item.id.toLowerCase().includes(category)) continue;
-      const current = counts.get(item.id) ?? { id: item.id, name: item.name, price: item.price, qty: 0 };
+      if (!isLiveProduct(item.id)) continue;
+      const current = counts.get(item.id) ?? { id: item.id, qty: 0 };
       current.qty += item.qty;
       counts.set(item.id, current);
     }

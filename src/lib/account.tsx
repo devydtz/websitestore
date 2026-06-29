@@ -108,7 +108,9 @@ function readUsers(): Record<string, StoredUser> {
 }
 
 function writeUsers(users: Record<string, StoredUser>) {
-  localStorage.setItem(USERS_KEY, JSON.stringify(users));
+  try {
+    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+  } catch {}
 }
 
 function authRedirectUrl() {

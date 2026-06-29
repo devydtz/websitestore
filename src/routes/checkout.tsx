@@ -23,6 +23,7 @@ import { useAccount } from "@/lib/account";
 import { createOrder, getPromoCode } from "@/lib/supabase";
 import { applyPromo, applyPromoRule } from "@/lib/promos";
 import { notifyDiscord } from "@/lib/discord";
+import { isLiveProduct } from "@/lib/products";
 import {
   formatMobileNumber,
   STORE_GCASH_DISPLAY,
@@ -81,7 +82,9 @@ function CheckoutPage() {
     !account.disabled &&
     /^09\d{9}$/.test(gcashDigits) &&
     referenceDigits.length >= 10 &&
-    confirmed;
+    confirmed &&
+    items.every((item) => isLiveProduct(item.id) && item.priceCents > 0);
+  const unavailableItems = items.filter((item) => !isLiveProduct(item.id) || item.priceCents <= 0);
 
   const copyNumber = async () => {
     try {
@@ -94,28 +97,35 @@ function CheckoutPage() {
   const applyPromoCode = async () => {
     setPromoError(null);
     setPromoChecking(true);
-    const databasePromo = await getPromoCode(promoInput);
-    const result =
-      databasePromo.ok && databasePromo.promo
-        ? applyPromoRule(databasePromo.promo, subtotalCents)
-        : applyPromo(promoInput, subtotalCents);
+    try {
+      const databasePromo = await getPromoCode(promoInput);
+      const result =
+        databasePromo.ok && databasePromo.promo
+          ? applyPromoRule(databasePromo.promo, subtotalCents)
+          : applyPromo(promoInput, subtotalCents);
 
-    if (!result.ok) {
+      if (!result.ok) {
+        setPromoCode(null);
+        setPromoDiscount(null);
+        setPromoError(result.error);
+        return;
+      }
+      setPromoCode(result.code);
+      setPromoDiscount({
+        discountCents: result.discountCents,
+        discountDisplay: result.discountDisplay,
+        totalCents: result.totalCents,
+        totalDisplay: result.totalDisplay,
+      });
+      setPromoInput(result.code);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
       setPromoCode(null);
       setPromoDiscount(null);
-      setPromoError(result.error);
+      setPromoError(`Could not check promo code: ${message}`);
+    } finally {
       setPromoChecking(false);
-      return;
     }
-    setPromoCode(result.code);
-    setPromoDiscount({
-      discountCents: result.discountCents,
-      discountDisplay: result.discountDisplay,
-      totalCents: result.totalCents,
-      totalDisplay: result.totalDisplay,
-    });
-    setPromoInput(result.code);
-    setPromoChecking(false);
   };
 
   const removePromo = () => {
@@ -153,6 +163,10 @@ function CheckoutPage() {
       setError("Please confirm you have sent the exact amount via GCash.");
       return;
     }
+    if (items.length === 0 || unavailableItems.length > 0) {
+      setError("Some cart items are not available yet. Remove them and add a live rank before checking out.");
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -175,7 +189,7 @@ function CheckoutPage() {
         total_display: checkoutTotalDisplay,
         method: "gcash",
         gcash_number: formatMobileNumber(gcashNumber),
-        reference_no: referenceNo.trim(),
+        reference_no: referenceDigits,
         promo_code: promoCode,
         discount_cents: discountCents,
         discount_display: discountDisplay,
@@ -195,7 +209,7 @@ function CheckoutPage() {
         fields: [
           { name: "Player", value: account.displayName, inline: true },
           { name: "Total", value: checkoutTotalDisplay, inline: true },
-          { name: "Reference", value: referenceNo.trim(), inline: true },
+          { name: "Reference", value: referenceDigits, inline: true },
         ],
       });
 
@@ -279,7 +293,7 @@ function CheckoutPage() {
             <div className="pixel-card mx-auto max-w-md rounded-2xl p-10">
               <ShoppingBag className="mx-auto h-10 w-10 text-muted-foreground" />
               <h1 className="mt-4 font-display text-4xl">Your cart is empty</h1>
-              <p className="mt-2 text-sm text-muted-foreground">Add a rank, key, or bundle before checking out.</p>
+              <p className="mt-2 text-sm text-muted-foreground">Add a live rank before checking out.</p>
               <Link
                 to="/ranks"
                 className="mt-6 inline-flex rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-accent"
@@ -365,6 +379,18 @@ function CheckoutPage() {
                 <div>
                   <p className="text-sm font-semibold">Account disabled</p>
                   <p className="mt-1 text-sm opacity-90">Contact support before checking out.</p>
+                </div>
+              </div>
+            )}
+
+            {unavailableItems.length > 0 && (
+              <div className="mt-6 flex items-start gap-3 rounded-2xl border border-red-500/30 bg-red-500/10 px-5 py-4 text-red-300">
+                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold">Cart has unavailable items</p>
+                  <p className="mt-1 text-sm opacity-90">
+                    Keys and bundles are not live yet. Remove old cart items and add a current rank.
+                  </p>
                 </div>
               </div>
             )}

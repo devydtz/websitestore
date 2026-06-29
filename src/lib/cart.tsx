@@ -1,10 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { isLiveCategory, isLiveProduct } from "@/lib/products";
 
 export type CartItem = {
   id: string;
   name: string;
   category: "rank" | "key" | "bundle";
-  price: string; // display, e.g. "₱249"
+  price: string; // display, e.g. "PHP 249"
   priceCents: number;
   qty: number;
 };
@@ -47,6 +48,27 @@ export function lineTotalDisplay(priceCents: number, qty: number): string {
   return centsToDisplay(priceCents * qty);
 }
 
+function sanitizeCartItems(value: unknown): CartItem[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is CartItem => {
+      if (!item || typeof item !== "object") return false;
+      const candidate = item as Partial<CartItem>;
+      return (
+        typeof candidate.id === "string" &&
+        typeof candidate.name === "string" &&
+        typeof candidate.price === "string" &&
+        typeof candidate.priceCents === "number" &&
+        typeof candidate.qty === "number" &&
+        (candidate.category === "rank" || candidate.category === "key" || candidate.category === "bundle") &&
+        isLiveCategory(candidate.category) &&
+        isLiveProduct(candidate.id) &&
+        candidate.priceCents > 0
+      );
+    })
+    .map((item) => ({ ...item, qty: Math.max(1, Math.floor(item.qty)) }));
+}
+
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -54,7 +76,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       const raw = localStorage.getItem(KEY);
-      if (raw) setItems(JSON.parse(raw));
+      if (raw) setItems(sanitizeCartItems(JSON.parse(raw)));
     } catch {}
   }, []);
 
@@ -65,6 +87,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [items]);
 
   const add = useCallback((item: Omit<CartItem, "qty">) => {
+    if (!isLiveCategory(item.category) || !isLiveProduct(item.id) || item.priceCents <= 0) return;
     setItems((prev) => {
       const existing = prev.find((x) => x.id === item.id);
       if (existing) return prev.map((x) => (x.id === item.id ? { ...x, qty: x.qty + 1 } : x));

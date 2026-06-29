@@ -9,7 +9,6 @@ import {
   Clock,
   Package,
   Search,
-  TrendingUp,
   DollarSign,
   Users,
   Eye,

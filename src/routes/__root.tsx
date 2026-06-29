@@ -1,12 +1,9 @@
-import { type ReactNode } from "react";
 import { HeadContent, Outlet, Scripts, createRootRoute, useLocation, useRouter } from "@tanstack/react-router";
-import { Link } from "@tanstack/react-router";
 import { ShoppingCart } from "lucide-react";
 import appCss from "../styles.css?url";
 import { AccountProvider } from "@/lib/account";
 import { CartProvider, useCart } from "@/lib/cart";
 import { CartDrawer } from "@/components/CartDrawer";
-import { useAccount } from "@/lib/account";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -91,7 +88,6 @@ function RootComponent() {
 
 function CartButton() {
   const { open, count } = useCart();
-  const { account } = useAccount();
   return (
     <button
       onClick={open}
