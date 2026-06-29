@@ -63,6 +63,33 @@ async function postWithAbort(url: string, payload: unknown, label: string, ms = 
   }
 }
 
+async function getJsonWithAbort<T>(url: string, path: string, label: string, ms = 7000) {
+  const controller = new AbortController();
+  const timer = globalThis.setTimeout(() => controller.abort(new Error(`${label} timed out after ${ms / 1000}s`)), ms);
+  try {
+    const response = await globalThis.fetch(`${url}/rest/v1/${path}`, {
+      headers: {
+        apikey: supabaseAnonKey,
+        authorization: `Bearer ${supabaseAnonKey}`,
+        accept: "application/json",
+      },
+      signal: controller.signal,
+    });
+
+    if (response.ok) return { ok: true as const, data: (await response.json()) as T };
+
+    const text = await response.text().catch(() => "");
+    let message = text || `HTTP ${response.status}`;
+    try {
+      const parsed = JSON.parse(text) as { message?: string; details?: string; hint?: string; code?: string };
+      message = parsed.message || parsed.details || parsed.hint || parsed.code || message;
+    } catch {}
+    return { ok: false as const, error: message };
+  } finally {
+    globalThis.clearTimeout(timer);
+  }
+}
+
 function withTimeout<T>(promise: PromiseLike<T>, label: string, ms = 15000): Promise<T> {
   return new Promise((resolve, reject) => {
     const timer = globalThis.setTimeout(() => reject(new Error(`${label} timed out after ${ms / 1000}s`)), ms);
@@ -665,12 +692,38 @@ export async function getOrder(orderId: string): Promise<{ ok: true; order: Orde
   if (!supabase.ok) return { ok: false, error: supabase.error };
 
   let lastError = "";
+  const select = [
+    "id",
+    "username",
+    "edition",
+    "email",
+    "items",
+    "total_cents",
+    "total_display",
+    "method",
+    "gcash_number",
+    "gcash_name",
+    "reference_no",
+    "promo_code",
+    "discount_cents",
+    "discount_display",
+    "subtotal_cents",
+    "subtotal_display",
+    "status",
+    "admin_note",
+    "status_history",
+    "receipt_issued_at",
+    "delivered_at",
+    "delivery_log",
+    "created_at",
+  ].join(",");
+  const path = `orders?select=${select}&id=eq.${encodeURIComponent(orderId)}&limit=1`;
+
   for (const url of supabase.urls) {
     try {
-      const client = createClient(url, supabaseAnonKey);
-      const { data, error } = await client.from("orders").select("*").eq("id", orderId).maybeSingle();
-      if (!error) return { ok: true, order: data as Order | null };
-      lastError = formatSupabaseError(url, error.message);
+      const result = await getJsonWithAbort<Order[]>(url, path, "Loading order", 5000);
+      if (result.ok) return { ok: true, order: result.data[0] ?? null };
+      lastError = formatSupabaseError(url, result.error);
     } catch (error) {
       lastError = networkError(error, [url]);
     }
@@ -687,10 +740,15 @@ export async function listOrders(): Promise<{ ok: true; orders: Order[] } | { ok
   for (const url of supabase.urls) {
     try {
       const client = createClient(url, supabaseAnonKey);
-      const { data, error } = await client
-        .from("orders")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const { data, error } = await withTimeout(
+        client
+          .from("orders")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(200),
+        "Loading admin orders",
+        10000,
+      );
       if (!error) return { ok: true, orders: (data ?? []) as Order[] };
       lastError = formatSupabaseError(url, error.message);
     } catch (error) {

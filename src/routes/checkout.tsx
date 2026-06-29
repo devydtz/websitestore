@@ -14,12 +14,12 @@ import {
   ShoppingBag,
   Sparkles,
 } from "lucide-react";
-import { Starfield } from "@/components/Starfield";
 import { Navbar } from "@/components/Navbar";
 import { SiteFooter } from "@/components/SiteFooter";
 import { centsToDisplay, lineTotalDisplay, useCart } from "@/lib/cart";
 import { useAccount } from "@/lib/account";
-import { createOrder } from "@/lib/supabase";
+import { cacheOrder } from "@/lib/order-cache";
+import { createOrder, type Order } from "@/lib/supabase";
 import { isLiveProduct } from "@/lib/products";
 import {
   formatMobileNumber,
@@ -133,6 +133,7 @@ function CheckoutPage() {
     setSubmitting(true);
     setSubmitStep("Saving order...");
     let submitted = false;
+    const now = new Date().toISOString();
 
     try {
       const orderId =
@@ -151,7 +152,7 @@ function CheckoutPage() {
         price: lineTotalDisplay(item.priceCents, item.qty),
       }));
 
-      const result = await createOrder({
+      const newOrder = {
         id: orderId,
         username: account.username,
         edition: account.edition,
@@ -167,7 +168,9 @@ function CheckoutPage() {
         discount_display: centsToDisplay(0),
         subtotal_cents: subtotalCents,
         subtotal_display: subtotalDisplay,
-      });
+      };
+
+      const result = await createOrder(newOrder);
 
       if (!result.ok) {
         setError(`Could not submit order: ${result.error}`);
@@ -176,6 +179,21 @@ function CheckoutPage() {
 
       setSubmitStep("Opening order tracker...");
       submitted = true;
+      cacheOrder({
+        ...newOrder,
+        method: "gcash",
+        gcash_name: null,
+        status: "pending",
+        admin_note: null,
+        receipt_issued_at: now,
+        delivered_at: null,
+        delivery_log: null,
+        created_at: now,
+        status_history: [
+          { status: "submitted", label: "Order submitted", at: now },
+          { status: "pending", label: "Waiting for payment verification", at: now },
+        ],
+      } satisfies Order);
       clear();
       window.setTimeout(() => {
         recordPurchase({
@@ -201,7 +219,7 @@ function CheckoutPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-background text-foreground">
-      <Starfield />
+      <div className="static-starfield fixed inset-0 z-0" />
       <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(circle_at_50%_0%,rgba(189,167,255,0.22),transparent_58%)]" />
       <div className="relative z-10">
         <Navbar />

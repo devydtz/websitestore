@@ -151,6 +151,20 @@
 }
 
 /* ============ Starfield + shooting stars ============ */
+.static-starfield {
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at top, oklch(0.22 0.07 295 / 0.5), transparent 62%),
+    radial-gradient(ellipse at bottom, oklch(0.12 0.04 295), transparent 72%),
+    radial-gradient(1px 1px at 12% 18%, oklch(0.96 0.02 295 / 0.7), transparent),
+    radial-gradient(1px 1px at 24% 62%, oklch(0.96 0.02 295 / 0.55), transparent),
+    radial-gradient(1.5px 1.5px at 42% 32%, oklch(0.96 0.02 295 / 0.65), transparent),
+    radial-gradient(1px 1px at 58% 76%, oklch(0.96 0.02 295 / 0.5), transparent),
+    radial-gradient(1px 1px at 76% 24%, oklch(0.96 0.02 295 / 0.6), transparent),
+    radial-gradient(1.5px 1.5px at 91% 68%, oklch(0.96 0.02 295 / 0.55), transparent);
+  background-size: auto, auto, 520px 520px, 640px 640px, 760px 760px, 900px 900px, 1100px 1100px, 1300px 1300px;
+}
+
 .starfield {
   position: absolute;
   inset: 0;
