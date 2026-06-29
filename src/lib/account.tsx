@@ -57,6 +57,33 @@ type AccountCtx = {
 const Ctx = createContext<AccountCtx | null>(null);
 const USERS_KEY = "lunaris.users.v2";
 
+function sanitizeHistory(history: unknown): PurchaseRecord[] {
+  if (!Array.isArray(history)) return [];
+  return history
+    .filter((purchase): purchase is PurchaseRecord => {
+      if (!purchase || typeof purchase !== "object") return false;
+      const p = purchase as Partial<PurchaseRecord>;
+      return typeof p.id === "string" && typeof p.date === "string" && typeof p.total === "string";
+    })
+    .map((purchase) => ({
+      id: purchase.id,
+      date: purchase.date,
+      total: purchase.total,
+      method: purchase.method === "gcash" ? "gcash" : undefined,
+      promoCode: typeof purchase.promoCode === "string" ? purchase.promoCode : undefined,
+      discount: typeof purchase.discount === "string" ? purchase.discount : undefined,
+      items: Array.isArray(purchase.items)
+        ? purchase.items.filter(
+            (item): item is { id: string; name: string; price: string } =>
+              Boolean(item) &&
+              typeof item.id === "string" &&
+              typeof item.name === "string" &&
+              typeof item.price === "string",
+          )
+        : [],
+    }));
+}
+
 function buildAccount(user: StoredUser): Account {
   const clean = user.username.trim().replace(/^\.+/, "");
   const displayName = user.edition === "bedrock" ? `.${clean}` : clean;
@@ -75,7 +102,7 @@ function buildAccount(user: StoredUser): Account {
     displayName,
     avatarUrl,
     bodyUrl,
-    history: user.history,
+    history: sanitizeHistory(user.history),
     emailVerified: Boolean(user.emailVerified),
     disabled: Boolean(user.disabled),
   };
@@ -101,7 +128,17 @@ function readUsers(): Record<string, StoredUser> {
   try {
     const raw = localStorage.getItem(USERS_KEY);
     if (!raw) return {};
-    return JSON.parse(raw) as Record<string, StoredUser>;
+    const parsed = JSON.parse(raw) as Record<string, StoredUser>;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+    return Object.fromEntries(
+      Object.entries(parsed).map(([key, user]) => [
+        key,
+        {
+          ...user,
+          history: sanitizeHistory(user?.history),
+        },
+      ]),
+    );
   } catch {
     return {};
   }

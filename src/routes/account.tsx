@@ -547,7 +547,7 @@ function AccountPage() {
                             </div>
                           </div>
                           <ul className="mt-3 space-y-1 text-sm text-foreground/85">
-                            {p.items.map((i) => (
+                            {safePurchaseItems(p.items).map((i) => (
                               <li key={i.id} className="flex justify-between gap-3">
                                 <span>{i.name}</span>
                                 <span className="text-muted-foreground">{i.price}</span>
@@ -602,6 +602,19 @@ function TagIcon() {
   return <Tag className="h-5 w-5" />;
 }
 
+function safePurchaseItems(items: unknown): { id: string; name: string; price: string }[] {
+  if (!Array.isArray(items)) return [];
+  return items.filter((item): item is { id: string; name: string; price: string } => {
+    if (!item || typeof item !== "object") return false;
+    const candidate = item as { id?: unknown; name?: unknown; price?: unknown };
+    return (
+      typeof candidate.id === "string" &&
+      typeof candidate.name === "string" &&
+      typeof candidate.price === "string"
+    );
+  });
+}
+
 function getProfileStats(history: Array<{ id: string; date: string; items: { id: string; name: string; price: string }[]; total: string; discount?: string }>) {
   const orderCount = history.length;
   const totalSpentCents = history.reduce((sum, purchase) => sum + displayToCents(purchase.total), 0);
@@ -609,12 +622,12 @@ function getProfileStats(history: Array<{ id: string; date: string; items: { id:
   const rankOrder = ["Crescent", "Nebula", "Solstice", "Celestial", "Monarch"];
   const ownedRank =
     [...history]
-      .flatMap((purchase) => purchase.items)
+      .flatMap((purchase) => safePurchaseItems(purchase.items))
       .map((item) => rankOrder.find((rank) => item.name.toLowerCase().includes(rank.toLowerCase())))
       .filter(Boolean)
       .sort((a, b) => rankOrder.indexOf(b as string) - rankOrder.indexOf(a as string))[0] ?? "Starter";
   const categoryCounts = history.reduce<Record<string, number>>((counts, purchase) => {
-    purchase.items.forEach((item) => {
+    safePurchaseItems(purchase.items).forEach((item) => {
       const category = item.id.startsWith("rank") ? "Ranks" : item.id.startsWith("key") ? "Keys" : "Bundles";
       counts[category] = (counts[category] ?? 0) + 1;
     });

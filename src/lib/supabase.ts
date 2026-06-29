@@ -114,6 +114,20 @@ export type OrderItem = {
   qty: number;
 };
 
+export function safeOrderItems(items: unknown): OrderItem[] {
+  if (!Array.isArray(items)) return [];
+  return items.filter((item): item is OrderItem => {
+    if (!item || typeof item !== "object") return false;
+    const candidate = item as Partial<OrderItem>;
+    return (
+      typeof candidate.id === "string" &&
+      typeof candidate.name === "string" &&
+      typeof candidate.price === "string" &&
+      typeof candidate.qty === "number"
+    );
+  });
+}
+
 export type Order = {
   id: string;
   username: string;

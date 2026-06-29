@@ -4,7 +4,7 @@ import { AlertCircle, CheckCircle2, Clock3, Copy, PackageCheck, Printer, Refresh
 import { Starfield } from "@/components/Starfield";
 import { Navbar } from "@/components/Navbar";
 import { SiteFooter } from "@/components/SiteFooter";
-import { getOrder, type Order, type OrderStatus, type OrderStatusHistory } from "@/lib/supabase";
+import { getOrder, safeOrderItems, type Order, type OrderStatus, type OrderStatusHistory } from "@/lib/supabase";
 
 export const Route = createFileRoute("/order/$orderId")({
   head: () => ({
@@ -233,12 +233,15 @@ function OrderStatusPage() {
                   <div className="mt-5 border-t border-border/60 pt-5">
                     <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Items</p>
                     <ul className="mt-3 space-y-2">
-                      {order.items.map((item) => (
+                      {safeOrderItems(order.items).map((item) => (
                         <li key={`${item.id}-${item.name}`} className="flex justify-between gap-3 text-sm">
                           <span className="text-foreground">{item.name} x{item.qty}</span>
                           <span className="font-semibold text-foreground">{item.price}</span>
                         </li>
                       ))}
+                      {safeOrderItems(order.items).length === 0 && (
+                        <li className="text-sm text-muted-foreground">No item details found.</li>
+                      )}
                     </ul>
                   </div>
                 </aside>
@@ -268,7 +271,12 @@ function OrderStatusPage() {
 }
 
 function buildTimeline(order: Order): OrderStatusHistory[] {
-  if (order.status_history?.length) return order.status_history;
+  if (Array.isArray(order.status_history) && order.status_history.length) {
+    return order.status_history.filter((step): step is OrderStatusHistory => {
+      if (!step || typeof step !== "object") return false;
+      return typeof step.label === "string" && typeof step.at === "string";
+    });
+  }
 
   const base: OrderStatusHistory[] = [
     {

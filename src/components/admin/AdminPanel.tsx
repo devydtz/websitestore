@@ -39,6 +39,7 @@ import {
   deleteAccount,
   listPromoCodes,
   savePromoCode,
+  safeOrderItems,
   syncAccountsFromOrders,
   type Order,
   type OrderStatus,
@@ -469,7 +470,7 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
                     </td>
                     <td className="px-4 py-3">
                       <div className="max-w-[180px] truncate text-xs text-muted-foreground">
-                        {order.items.map((i) => `${i.name} ×${i.qty}`).join(", ")}
+                        {safeOrderItems(order.items).map((i) => `${i.name} x${i.qty}`).join(", ") || "No items"}
                       </div>
                     </td>
                     <td className="px-4 py-3 font-semibold text-foreground">{order.total_display}</td>
@@ -1126,7 +1127,7 @@ function OrderDrawer({
               Items
             </h3>
             <ul className="space-y-2">
-              {order.items.map((item, i) => (
+              {safeOrderItems(order.items).map((item, i) => (
                 <li key={i} className="flex items-center justify-between text-sm">
                   <span className="text-foreground">
                     {item.name} <span className="text-muted-foreground">×{item.qty}</span>
