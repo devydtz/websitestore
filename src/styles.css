@@ -99,9 +99,9 @@
   --sky-left: oklch(0.18 0.1 270 / 0.55);
   --sky-right: oklch(0.2 0.09 320 / 0.45);
   --sky-bottom: oklch(0.12 0.04 295);
-  --space-base: oklch(0.1 0.04 285);
-  --space-mid: oklch(0.17 0.07 288);
-  --space-deep: oklch(0.06 0.03 285);
+  --space-base: oklch(0.12 0.055 286);
+  --space-mid: oklch(0.23 0.09 288);
+  --space-deep: oklch(0.07 0.04 285);
   --star-color: oklch(0.98 0.01 295);
   --star-soft: oklch(0.9 0.06 285);
   --meteor-core: oklch(0.98 0.01 295);
@@ -144,20 +144,20 @@
   --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.551 0.027 264.364);
-  --sky-top: oklch(0.24 0.09 265 / 0.82);
-  --sky-left: oklch(0.16 0.1 250 / 0.58);
-  --sky-right: oklch(0.18 0.11 300 / 0.5);
-  --sky-bottom: oklch(0.1 0.04 265);
-  --space-base: oklch(0.08 0.04 265);
-  --space-mid: oklch(0.14 0.08 275);
-  --space-deep: oklch(0.04 0.03 265);
-  --star-color: oklch(0.98 0.003 247.858);
-  --star-soft: oklch(0.86 0.08 275);
-  --meteor-core: oklch(0.98 0.003 247.858);
-  --meteor-tail: oklch(0.78 0.13 295);
-  --nebula-one: oklch(0.54 0.2 275 / 0.42);
-  --nebula-two: oklch(0.48 0.18 320 / 0.34);
-  --nebula-three: oklch(0.46 0.15 235 / 0.3);
+  --sky-top: oklch(0.27 0.1 295 / 0.75);
+  --sky-left: oklch(0.18 0.1 270 / 0.55);
+  --sky-right: oklch(0.2 0.09 320 / 0.45);
+  --sky-bottom: oklch(0.12 0.04 295);
+  --space-base: oklch(0.12 0.055 286);
+  --space-mid: oklch(0.23 0.09 288);
+  --space-deep: oklch(0.07 0.04 285);
+  --star-color: oklch(0.98 0.01 295);
+  --star-soft: oklch(0.9 0.06 285);
+  --meteor-core: oklch(0.98 0.01 295);
+  --meteor-tail: oklch(0.85 0.13 295);
+  --nebula-one: oklch(0.62 0.18 285 / 0.45);
+  --nebula-two: oklch(0.58 0.16 325 / 0.35);
+  --nebula-three: oklch(0.55 0.12 245 / 0.3);
 }
 
 @layer base {
@@ -204,10 +204,10 @@
   pointer-events: none;
   isolation: isolate;
   background:
-    radial-gradient(ellipse at 50% -10%, var(--sky-top), transparent 58%),
-    radial-gradient(ellipse at 10% 30%, var(--sky-left), transparent 42%),
-    radial-gradient(ellipse at 92% 45%, var(--sky-right), transparent 44%),
-    linear-gradient(180deg, var(--space-mid), var(--space-base) 48%, var(--space-deep));
+    radial-gradient(ellipse at 50% -20%, oklch(0.42 0.12 285 / 0.42), transparent 42%),
+    radial-gradient(ellipse at 15% 38%, oklch(0.32 0.14 272 / 0.34), transparent 34%),
+    radial-gradient(ellipse at 86% 42%, oklch(0.36 0.13 318 / 0.28), transparent 34%),
+    linear-gradient(180deg, oklch(0.16 0.055 285), oklch(0.12 0.06 285) 42%, oklch(0.1 0.05 275) 68%, oklch(0.08 0.04 265));
 }
 
 .starfield::after {
@@ -215,8 +215,9 @@
   position: absolute;
   inset: 0;
   background:
+    linear-gradient(180deg, transparent 0 64%, oklch(0.24 0.08 275 / 0.3) 78%, oklch(0.08 0.03 270 / 0.82) 100%),
     linear-gradient(115deg, transparent 0 35%, oklch(0.82 0.08 295 / 0.05) 45%, transparent 56%),
-    radial-gradient(circle at 50% 120%, oklch(0.75 0.12 295 / 0.1), transparent 45%);
+    radial-gradient(circle at 50% 120%, oklch(0.75 0.12 295 / 0.12), transparent 45%);
   mix-blend-mode: screen;
   z-index: 1;
 }
@@ -225,13 +226,75 @@
   position: absolute;
   inset: -20%;
   background:
-    radial-gradient(circle at 20% 30%, oklch(0.82 0.08 285 / 0.16), transparent 22%),
-    radial-gradient(circle at 74% 20%, oklch(0.52 0.16 245 / 0.14), transparent 24%),
-    radial-gradient(circle at 58% 78%, oklch(0.58 0.18 320 / 0.12), transparent 28%);
+    radial-gradient(circle at 20% 30%, oklch(0.82 0.08 285 / 0.13), transparent 22%),
+    radial-gradient(circle at 74% 20%, oklch(0.52 0.16 245 / 0.1), transparent 24%),
+    radial-gradient(circle at 58% 78%, oklch(0.58 0.18 320 / 0.1), transparent 28%);
   filter: blur(4px);
   opacity: 0.85;
   animation: spaceDrift 26s ease-in-out infinite alternate;
   z-index: 0;
+}
+
+.pixel-moon {
+  position: absolute;
+  left: 49%;
+  top: 8%;
+  height: 58px;
+  width: 58px;
+  border-radius: 999px;
+  background: oklch(0.9 0.04 285);
+  box-shadow:
+    0 0 0 3px oklch(0.98 0.02 285 / 0.16),
+    0 0 34px oklch(0.9 0.08 285 / 0.42);
+  image-rendering: pixelated;
+  transform: translateX(-50%);
+  z-index: 3;
+}
+
+.pixel-moon::after {
+  content: "";
+  position: absolute;
+  left: 23px;
+  top: -2px;
+  height: 60px;
+  width: 60px;
+  border-radius: 999px;
+  background: oklch(0.13 0.055 286);
+  box-shadow: inset 10px 0 0 oklch(0.12 0.055 286 / 0.55);
+}
+
+.pixel-sparkle {
+  position: absolute;
+  height: 9px;
+  width: 9px;
+  background: oklch(0.98 0.02 285);
+  box-shadow:
+    0 -12px 0 -3px oklch(0.98 0.02 285),
+    0 12px 0 -3px oklch(0.98 0.02 285),
+    -12px 0 0 -3px oklch(0.98 0.02 285),
+    12px 0 0 -3px oklch(0.98 0.02 285),
+    0 0 26px oklch(0.9 0.08 285 / 0.8);
+  animation: sparklePulse 2.4s ease-in-out infinite alternate;
+  z-index: 4;
+}
+
+.sparkle-main {
+  left: 60%;
+  top: 12%;
+  transform: scale(1.6);
+}
+
+.sparkle-left {
+  left: 22%;
+  top: 22%;
+  animation-delay: -0.8s;
+}
+
+.sparkle-right {
+  right: 18%;
+  top: 18%;
+  animation-delay: -1.4s;
+  transform: scale(1.2);
 }
 
 .space-depth.depth-two {
@@ -292,22 +355,28 @@
     radial-gradient(1px 1px at 65% 45%, var(--star-color), transparent),
     radial-gradient(1px 1px at 48% 18%, var(--star-soft), transparent),
     radial-gradient(1px 1px at 78% 62%, var(--star-soft), transparent),
-    radial-gradient(1.5px 1.5px at 15% 48%, var(--star-color), transparent);
-  background-size: 600px 600px;
-  opacity: 0.7;
-  animation: twinkle 4s ease-in-out infinite alternate;
+    radial-gradient(1.5px 1.5px at 15% 48%, var(--star-color), transparent),
+    radial-gradient(2px 2px at 8% 20%, var(--star-color), transparent),
+    radial-gradient(1px 1px at 18% 12%, var(--star-soft), transparent),
+    radial-gradient(1px 1px at 30% 72%, var(--star-color), transparent),
+    radial-gradient(2px 2px at 74% 34%, var(--star-color), transparent),
+    radial-gradient(1px 1px at 94% 18%, var(--star-soft), transparent),
+    radial-gradient(1px 1px at 86% 86%, var(--star-color), transparent);
+  background-size: 420px 420px;
+  opacity: 0.78;
+  animation: twinkle 3.6s steps(2, end) infinite alternate, starScroll 42s linear infinite;
   z-index: 2;
 }
 .stars-layer.layer-2 {
-  background-size: 900px 900px;
-  opacity: 0.45;
-  animation-duration: 6s;
+  background-size: 620px 620px;
+  opacity: 0.58;
+  animation-duration: 5s, 62s;
   animation-delay: -2s;
 }
 .stars-layer.layer-3 {
-  background-size: 1300px 1300px;
-  opacity: 0.3;
-  animation-duration: 8s;
+  background-size: 860px 860px;
+  opacity: 0.42;
+  animation-duration: 7s, 86s;
   animation-delay: -4s;
 }
 .stars-layer.layer-4 {
@@ -317,8 +386,8 @@
   animation-delay: -1.5s;
 }
 @keyframes twinkle {
-  0% { opacity: 0.25; }
-  100% { opacity: 0.85; }
+  0% { opacity: 0.45; }
+  100% { opacity: 0.95; }
 }
 
 @keyframes nebulaPulse {
@@ -329,6 +398,44 @@
 @keyframes spaceDrift {
   0% { transform: translate3d(-1.5%, -1%, 0) scale(1); }
   100% { transform: translate3d(1.5%, 1%, 0) scale(1.06); }
+}
+
+@keyframes starScroll {
+  0% { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(90px, 45px, 0); }
+}
+
+@keyframes sparklePulse {
+  0% { opacity: 0.45; filter: drop-shadow(0 0 2px oklch(0.9 0.08 285 / 0.45)); }
+  100% { opacity: 1; filter: drop-shadow(0 0 12px oklch(0.95 0.08 285 / 0.9)); }
+}
+
+.pixel-horizon {
+  position: absolute;
+  left: -3%;
+  right: -3%;
+  bottom: 0;
+  height: 28%;
+  z-index: 2;
+  image-rendering: pixelated;
+}
+
+.horizon-far {
+  opacity: 0.5;
+  background:
+    linear-gradient(180deg, transparent 0 38%, oklch(0.2 0.08 270 / 0.42) 39% 44%, transparent 45%),
+    linear-gradient(135deg, transparent 0 54%, oklch(0.22 0.07 270 / 0.5) 55% 62%, transparent 63%),
+    linear-gradient(45deg, transparent 0 57%, oklch(0.2 0.07 270 / 0.45) 58% 64%, transparent 65%);
+  clip-path: polygon(0 72%, 7% 64%, 12% 70%, 20% 56%, 29% 67%, 38% 50%, 47% 64%, 57% 45%, 68% 66%, 76% 53%, 87% 68%, 100% 58%, 100% 100%, 0 100%);
+}
+
+.horizon-near {
+  height: 21%;
+  background:
+    linear-gradient(180deg, oklch(0.12 0.06 250 / 0.68), oklch(0.07 0.04 250 / 0.92)),
+    repeating-linear-gradient(90deg, oklch(0.12 0.08 150 / 0.4) 0 18px, transparent 18px 36px);
+  box-shadow: 0 -24px 90px oklch(0.42 0.12 285 / 0.18);
+  clip-path: polygon(0 60%, 5% 50%, 9% 62%, 13% 45%, 19% 53%, 24% 42%, 31% 58%, 36% 40%, 42% 52%, 49% 39%, 55% 56%, 63% 44%, 70% 61%, 78% 43%, 85% 55%, 93% 47%, 100% 61%, 100% 100%, 0 100%);
 }
 
 .shooting-star {
@@ -442,38 +549,7 @@
   box-shadow: 0 20px 50px -20px oklch(0.5 0.18 295 / 0.6);
 }
 
-:root:not(.dark) .starfield {
-  background:
-    radial-gradient(ellipse at 50% -10%, oklch(0.72 0.09 292 / 0.28), transparent 58%),
-    radial-gradient(ellipse at 12% 32%, oklch(0.68 0.1 260 / 0.2), transparent 40%),
-    radial-gradient(ellipse at 88% 46%, oklch(0.76 0.09 325 / 0.18), transparent 42%),
-    linear-gradient(180deg, oklch(0.18 0.04 295), oklch(0.1 0.04 285) 56%, oklch(0.06 0.03 285));
-}
-
-:root:not(.dark) .static-starfield {
-  background:
-    radial-gradient(ellipse at top, oklch(0.72 0.09 292 / 0.22), transparent 62%),
-    radial-gradient(circle at 18% 28%, oklch(0.72 0.12 285 / 0.12), transparent 24%),
-    radial-gradient(circle at 84% 38%, oklch(0.78 0.1 320 / 0.1), transparent 26%),
-    linear-gradient(180deg, oklch(0.2 0.04 295), oklch(0.13 0.04 285)),
-    radial-gradient(1px 1px at 12% 18%, oklch(0.98 0.01 295 / 0.72), transparent),
-    radial-gradient(1px 1px at 24% 62%, oklch(0.98 0.01 295 / 0.56), transparent),
-    radial-gradient(1.5px 1.5px at 42% 32%, oklch(0.98 0.01 295 / 0.68), transparent),
-    radial-gradient(1px 1px at 58% 76%, oklch(0.98 0.01 295 / 0.5), transparent),
-    radial-gradient(1px 1px at 76% 24%, oklch(0.98 0.01 295 / 0.6), transparent),
-    radial-gradient(1.5px 1.5px at 91% 68%, oklch(0.98 0.01 295 / 0.55), transparent),
-    radial-gradient(1px 1px at 33% 84%, oklch(0.88 0.06 285 / 0.5), transparent),
-    radial-gradient(1px 1px at 66% 12%, oklch(0.88 0.06 285 / 0.5), transparent);
-  background-size: auto, auto, auto, auto, 520px 520px, 640px 640px, 760px 760px, 900px 900px, 1100px 1100px, 1300px 1300px, 720px 720px, 980px 980px;
-}
-
-:root:not(.dark) .starfield::after {
-  background:
-    linear-gradient(115deg, transparent 0 34%, oklch(0.88 0.07 295 / 0.08) 45%, transparent 58%),
-    radial-gradient(circle at 50% 120%, oklch(0.8 0.12 295 / 0.12), transparent 45%);
-}
-
-@media (max-width: 768px), (prefers-reduced-motion: reduce) {
+@media (prefers-reduced-motion: reduce) {
   .shooting-star,
   .meteor-bright {
     display: none;
@@ -484,6 +560,7 @@
   .stars-layer.layer-3,
   .stars-layer.layer-4,
   .space-depth,
+  .pixel-sparkle,
   .nebula-glow,
   .admin-orb,
   .logo-float {

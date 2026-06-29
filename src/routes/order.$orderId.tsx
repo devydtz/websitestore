@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { AlertCircle, CheckCircle2, Clock3, Copy, PackageCheck, Printer, RefreshCw, XCircle } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { SiteFooter } from "@/components/SiteFooter";
+import { Starfield } from "@/components/Starfield";
 import { cacheOrder, readCachedOrder } from "@/lib/order-cache";
 import { getOrder, safeOrderItems, type Order, type OrderStatus, type OrderStatusHistory } from "@/lib/supabase";
 
@@ -96,7 +97,7 @@ function OrderStatusPage() {
 
   return (
     <div className="relative min-h-screen bg-background text-foreground">
-      <div className="static-starfield fixed inset-0 z-0" />
+      <Starfield />
       <div className="relative z-10">
         <Navbar />
         <section className="mx-auto max-w-5xl px-6 py-16">

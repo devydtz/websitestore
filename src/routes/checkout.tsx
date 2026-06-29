@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { SiteFooter } from "@/components/SiteFooter";
+import { Starfield } from "@/components/Starfield";
 import { centsToDisplay, lineTotalDisplay, useCart } from "@/lib/cart";
 import { useAccount } from "@/lib/account";
 import { cacheOrder } from "@/lib/order-cache";
@@ -218,7 +219,7 @@ function CheckoutPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-background text-foreground">
-      <div className="static-starfield fixed inset-0 z-0" />
+      <Starfield />
       <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(circle_at_50%_0%,rgba(189,167,255,0.22),transparent_58%)]" />
       <div className="relative z-10">
         <Navbar />

@@ -9,6 +9,10 @@ export function Starfield({ variant = "default" }: StarfieldProps) {
     <div className={`starfield fixed inset-0 z-0 ${isAdmin ? "starfield-admin" : ""}`} aria-hidden="true">
       <div className="space-depth depth-one" />
       <div className="space-depth depth-two" />
+      <div className="pixel-moon" />
+      <div className="pixel-sparkle sparkle-main" />
+      <div className="pixel-sparkle sparkle-left" />
+      <div className="pixel-sparkle sparkle-right" />
       <div className="nebula-glow glow-one" />
       <div className="nebula-glow glow-two" />
       <div className="nebula-glow glow-three" />
@@ -16,6 +20,8 @@ export function Starfield({ variant = "default" }: StarfieldProps) {
       <div className="stars-layer layer-2" />
       <div className="stars-layer layer-3" />
       {isAdmin && <div className="stars-layer layer-4" />}
+      <div className="pixel-horizon horizon-far" />
+      <div className="pixel-horizon horizon-near" />
       <div className="shooting-star" style={{ top: "8%", left: "-12%", animationDelay: "0s" }} />
       <div className="shooting-star" style={{ top: "22%", left: "-12%", animationDelay: "2.4s" }} />
       <div className="shooting-star" style={{ top: "45%", left: "-12%", animationDelay: "4.8s" }} />
