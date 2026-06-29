@@ -37,6 +37,7 @@ type Order = {
 const SERVERDATA_AUTH = 3;
 const SERVERDATA_EXECCOMMAND = 2;
 const SERVERDATA_RESPONSE_VALUE = 0;
+const SERVERDATA_AUTH_RESPONSE = 2;
 
 function rconPacket(id: number, type: number, body: string): Uint8Array {
   const payload = new TextEncoder().encode(body);
@@ -72,6 +73,7 @@ async function rconCommand(host: string, port: number, password: string, command
     let buffer = new Uint8Array(0);
     let authenticated = false;
     let commandSent = false;
+    let responseText = "";
     let settled = false;
     const timeout = setTimeout(() => {
       if (!settled) {
@@ -79,7 +81,7 @@ async function rconCommand(host: string, port: number, password: string, command
         socket.destroy();
         resolve({ ok: false, response: "RCON timeout" });
       }
-    }, 8000);
+    }, 15000);
 
     const finish = (result: { ok: boolean; response: string }) => {
       if (settled) return;
@@ -99,16 +101,22 @@ async function rconCommand(host: string, port: number, password: string, command
 
       let pkt = readPacket(buffer);
       while (pkt) {
-        if (!authenticated) {
-          if (pkt.id === -1 || pkt.type !== SERVERDATA_RESPONSE_VALUE) {
+        if (pkt.id === -1) {
             finish({ ok: false, response: "RCON auth failed (bad password)" });
             return;
-          }
+        }
+
+        if (!authenticated) {
+          // Minecraft/Source RCON may send an empty SERVERDATA_RESPONSE_VALUE
+          // before the actual SERVERDATA_AUTH_RESPONSE packet. Wait for auth.
+          if (pkt.id === 0 && pkt.type === SERVERDATA_AUTH_RESPONSE) {
           authenticated = true;
           socket.write(rconPacket(1, SERVERDATA_EXECCOMMAND, command));
           commandSent = true;
+          }
         } else if (commandSent && pkt.id === 1) {
-          finish({ ok: true, response: pkt.body || "OK" });
+          responseText += pkt.body;
+          finish({ ok: true, response: responseText || "OK" });
           return;
         }
         buffer = buffer.slice(pkt.size);
