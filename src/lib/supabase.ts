@@ -7,6 +7,7 @@ const missingSupabaseConfigMessage =
   "Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Cloudflare Pages.";
 
 let browserClient: ReturnType<typeof createClient> | null = null;
+const dataClients = new Map<string, ReturnType<typeof createClient>>();
 
 function normalizeSupabaseUrl(url: string) {
   return url
@@ -152,6 +153,23 @@ export function getSupabaseBrowserClient() {
   }
 
   return { ok: true as const, client: browserClient };
+}
+
+function getSupabaseDataClient(url: string) {
+  const key = normalizeSupabaseUrl(url);
+  const existing = dataClients.get(key);
+  if (existing) return existing;
+
+  const client = createClient(key, supabaseAnonKey, {
+    auth: {
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+      persistSession: false,
+      storageKey: `lunaris-data-${key.replace(/[^a-z0-9]/gi, "-")}`,
+    },
+  });
+  dataClients.set(key, client);
+  return client;
 }
 
 export type OrderStatus = "pending" | "confirmed" | "rejected" | "delivered";
@@ -339,7 +357,7 @@ export async function listCustomerOrders(
   let lastError = "";
   for (const url of supabase.urls) {
     try {
-      const client = createClient(url, supabaseAnonKey);
+      const client = getSupabaseDataClient(url);
       const { data, error } = await withTimeout(
         client
           .from("orders")
@@ -375,7 +393,7 @@ export async function upsertAccountProfile(account: {
   let lastError = "";
   for (const url of supabase.urls) {
     try {
-      const client = createClient(url, supabaseAnonKey);
+      const client = getSupabaseDataClient(url);
       const deleted = await withTimeout(
         client.from("deleted_accounts").select("id").eq("id", id).maybeSingle(),
         "Checking account status",
@@ -440,7 +458,7 @@ export async function getAccountProfile(
   let lastError = "";
   for (const url of supabase.urls) {
     try {
-      const client = createClient(url, supabaseAnonKey);
+      const client = getSupabaseDataClient(url);
       const { data, error } = await withTimeout(
         client.from("accounts").select("*").eq("id", id).maybeSingle(),
         "Loading account profile",
@@ -462,7 +480,7 @@ export async function listAccounts(): Promise<{ ok: true; accounts: StoreAccount
   let lastError = "";
   for (const url of supabase.urls) {
     try {
-      const client = createClient(url, supabaseAnonKey);
+      const client = getSupabaseDataClient(url);
       const { data, error } = await withTimeout(
         client
           .from("accounts")
@@ -505,7 +523,7 @@ async function listDeletedAccountIds(): Promise<{ ok: true; ids: Set<string> } |
   let lastError = "";
   for (const url of supabase.urls) {
     try {
-      const client = createClient(url, supabaseAnonKey);
+      const client = getSupabaseDataClient(url);
       const { data, error } = await client.from("deleted_accounts").select("id");
       if (!error) return { ok: true, ids: new Set((data ?? []).map((row) => row.id as string)) };
       lastError = formatSupabaseError(url, error.message);
@@ -585,7 +603,7 @@ export async function setAccountFlags(
   let lastError = "";
   for (const url of supabase.urls) {
     try {
-      const client = createClient(url, supabaseAnonKey);
+      const client = getSupabaseDataClient(url);
       const { data, error } = await client.from("accounts").update(flags).eq("id", id).select("*").maybeSingle();
       if (!error && data) return { ok: true, account: data as StoreAccount };
       lastError = error ? formatSupabaseError(url, error.message) : "Account not found.";
@@ -623,7 +641,7 @@ export async function createAdminAccount(
   let lastError = "";
   for (const url of supabase.urls) {
     try {
-      const client = createClient(url, supabaseAnonKey);
+      const client = getSupabaseDataClient(url);
       const deleted = await client.from("deleted_accounts").delete().eq("id", id);
       if (deleted.error) {
         lastError = formatSupabaseError(url, deleted.error.message);
@@ -674,7 +692,7 @@ export async function deleteAccount(
   let lastError = "";
   for (const url of supabase.urls) {
     try {
-      const client = createClient(url, supabaseAnonKey);
+      const client = getSupabaseDataClient(url);
       const tombstone = await client.from("deleted_accounts").upsert({ id, deleted_at: new Date().toISOString() });
       if (tombstone.error) {
         lastError = formatSupabaseError(url, tombstone.error.message);
@@ -743,7 +761,7 @@ export async function listOrders(): Promise<{ ok: true; orders: Order[] } | { ok
   let lastError = "";
   for (const url of supabase.urls) {
     try {
-      const client = createClient(url, supabaseAnonKey);
+      const client = getSupabaseDataClient(url);
       const { data, error } = await withTimeout(
         client
           .from("orders")
@@ -770,7 +788,7 @@ export async function listPromoCodes(): Promise<{ ok: true; promos: PromoCodeRow
   let lastError = "";
   for (const url of supabase.urls) {
     try {
-      const client = createClient(url, supabaseAnonKey);
+      const client = getSupabaseDataClient(url);
       const { data, error } = await withTimeout(
         client
           .from("promo_codes")
@@ -797,7 +815,7 @@ export async function getPromoCode(
   let lastError = "";
   for (const url of supabase.urls) {
     try {
-      const client = createClient(url, supabaseAnonKey);
+      const client = getSupabaseDataClient(url);
       const { data, error } = await withTimeout(
         client
           .from("promo_codes")
@@ -829,7 +847,7 @@ export async function savePromoCode(
   let lastError = "";
   for (const url of supabase.urls) {
     try {
-      const client = createClient(url, supabaseAnonKey);
+      const client = getSupabaseDataClient(url);
       const { data, error } = await client
         .from("promo_codes")
         .upsert(
@@ -871,7 +889,7 @@ export async function saveAdminNote(
   let lastError = "";
   for (const url of supabase.urls) {
     try {
-      const client = createClient(url, supabaseAnonKey);
+      const client = getSupabaseDataClient(url);
       const { data, error } = await client
         .from("orders")
         .update({ admin_note: note.trim() || null })
@@ -948,7 +966,7 @@ export async function adminAction(
   let lastError = "";
   for (const url of supabase.urls) {
     try {
-      const client = createClient(url, supabaseAnonKey);
+      const client = getSupabaseDataClient(url);
       const existing = await client.from("orders").select("status_history").eq("id", orderId).maybeSingle();
       const nextHistory = [
         ...(((existing.data as { status_history?: OrderStatusHistory[] } | null)?.status_history ?? []) as OrderStatusHistory[]),
