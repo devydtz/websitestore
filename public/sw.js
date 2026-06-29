@@ -1,6 +1,6 @@
 // Cleanup-only service worker.
 // The old PWA worker cached broken checkout/admin builds in some browsers.
-// This version deletes all Lunaris caches, releases every open page, then unregisters itself.
+// This version deletes all Lunaris caches, then unregisters itself.
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
@@ -16,8 +16,6 @@ self.addEventListener("activate", (event) => {
     caches
       .keys()
       .then((keys) => Promise.all(keys.filter((key) => key.startsWith("lunaris")).map((key) => caches.delete(key))))
-      .then(() => self.clients.matchAll({ type: "window" }))
-      .then((clients) => Promise.all(clients.map((client) => client.navigate(client.url).catch(() => undefined))))
       .then(() => self.registration.unregister()),
   );
 });
