@@ -58,6 +58,9 @@ function formatSupabaseError(url: string, message: string) {
     const table = message.match(/public\.(orders|accounts|deleted_accounts|promo_codes)/i)?.[1] ?? "orders";
     return databaseSetupError(table);
   }
+  if (/schema cache/i.test(message) && /orders|accounts|promo_codes|deleted_accounts/i.test(message)) {
+    return "Database schema cache is stale or missing columns. Run SUPABASE-ADMIN-FIX.sql again, then refresh the site.";
+  }
   if (/duplicate key value/i.test(message) && /orders_reference_no_key/i.test(message)) {
     return "That GCash reference number was already used on another order. Check the number or contact support.";
   }
@@ -303,11 +306,14 @@ export async function listCustomerOrders(
   for (const url of supabase.urls) {
     try {
       const client = createClient(url, supabaseAnonKey);
-      const { data, error } = await client
-        .from("orders")
-        .select("*")
-        .eq("email", email)
-        .order("created_at", { ascending: false });
+      const { data, error } = await withTimeout(
+        client
+          .from("orders")
+          .select("*")
+          .eq("email", email)
+          .order("created_at", { ascending: false }),
+        "Loading customer orders",
+      );
       if (!error) return { ok: true, orders: (data ?? []) as Order[] };
       lastError = formatSupabaseError(url, error.message);
     } catch (error) {
@@ -336,7 +342,10 @@ export async function upsertAccountProfile(account: {
   for (const url of supabase.urls) {
     try {
       const client = createClient(url, supabaseAnonKey);
-      const deleted = await client.from("deleted_accounts").select("id").eq("id", id).maybeSingle();
+      const deleted = await withTimeout(
+        client.from("deleted_accounts").select("id").eq("id", id).maybeSingle(),
+        "Checking account status",
+      );
       if (!deleted.error && deleted.data) return { ok: true, account: null };
 
       const profile = {
@@ -351,25 +360,31 @@ export async function upsertAccountProfile(account: {
         last_seen_at: new Date().toISOString(),
       };
 
-      const { data, error } = await client
-        .from("accounts")
-        .update(profile)
-        .eq("id", id)
-        .select("*")
-        .maybeSingle();
+      const { data, error } = await withTimeout(
+        client
+          .from("accounts")
+          .update(profile)
+          .eq("id", id)
+          .select("*")
+          .maybeSingle(),
+        "Updating account profile",
+      );
       if (!error && data) return { ok: true, account: data as StoreAccount };
       if (error) lastError = formatSupabaseError(url, error.message);
 
-      const insertRes = await client
-        .from("accounts")
-        .insert({
-          id,
-          ...profile,
-          email_verified: account.emailVerified,
-          disabled: false,
-        })
-        .select("*")
-        .maybeSingle();
+      const insertRes = await withTimeout(
+        client
+          .from("accounts")
+          .insert({
+            id,
+            ...profile,
+            email_verified: account.emailVerified,
+            disabled: false,
+          })
+          .select("*")
+          .maybeSingle(),
+        "Creating account profile",
+      );
       if (!insertRes.error) return { ok: true, account: insertRes.data as StoreAccount | null };
       lastError = formatSupabaseError(url, insertRes.error.message);
     } catch (error) {
@@ -392,7 +407,10 @@ export async function getAccountProfile(
   for (const url of supabase.urls) {
     try {
       const client = createClient(url, supabaseAnonKey);
-      const { data, error } = await client.from("accounts").select("*").eq("id", id).maybeSingle();
+      const { data, error } = await withTimeout(
+        client.from("accounts").select("*").eq("id", id).maybeSingle(),
+        "Loading account profile",
+      );
       if (!error) return { ok: true, account: data as StoreAccount | null };
       lastError = formatSupabaseError(url, error.message);
     } catch (error) {
@@ -411,10 +429,13 @@ export async function listAccounts(): Promise<{ ok: true; accounts: StoreAccount
   for (const url of supabase.urls) {
     try {
       const client = createClient(url, supabaseAnonKey);
-      const { data, error } = await client
-        .from("accounts")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const { data, error } = await withTimeout(
+        client
+          .from("accounts")
+          .select("*")
+          .order("created_at", { ascending: false }),
+        "Loading accounts",
+      );
       if (!error) return { ok: true, accounts: (data ?? []) as StoreAccount[] };
       lastError = formatSupabaseError(url, error.message);
     } catch (error) {
@@ -685,10 +706,13 @@ export async function listPromoCodes(): Promise<{ ok: true; promos: PromoCodeRow
   for (const url of supabase.urls) {
     try {
       const client = createClient(url, supabaseAnonKey);
-      const { data, error } = await client
-        .from("promo_codes")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const { data, error } = await withTimeout(
+        client
+          .from("promo_codes")
+          .select("*")
+          .order("created_at", { ascending: false }),
+        "Loading promo codes",
+      );
       if (!error) return { ok: true, promos: (data ?? []) as PromoCodeRow[] };
       lastError = formatSupabaseError(url, error.message);
     } catch (error) {
@@ -709,12 +733,16 @@ export async function getPromoCode(
   for (const url of supabase.urls) {
     try {
       const client = createClient(url, supabaseAnonKey);
-      const { data, error } = await client
-        .from("promo_codes")
-        .select("*")
-        .eq("code", code.trim().toUpperCase())
-        .eq("active", true)
-        .maybeSingle();
+      const { data, error } = await withTimeout(
+        client
+          .from("promo_codes")
+          .select("*")
+          .eq("code", code.trim().toUpperCase())
+          .eq("active", true)
+          .maybeSingle(),
+        "Checking promo code",
+        8000,
+      );
       if (!error) return { ok: true, promo: data as PromoCodeRow | null };
       lastError = formatSupabaseError(url, error.message);
     } catch (error) {

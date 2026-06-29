@@ -26,6 +26,17 @@ CREATE TABLE IF NOT EXISTS orders (
 
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 
+ALTER TABLE orders
+  ALTER COLUMN items SET DEFAULT '[]'::jsonb,
+  ALTER COLUMN status SET DEFAULT 'pending';
+
+UPDATE orders
+SET
+  items = COALESCE(items, '[]'::jsonb),
+  method = COALESCE(method, 'gcash'),
+  status = COALESCE(status, 'pending')
+WHERE items IS NULL OR method IS NULL OR status IS NULL;
+
 DROP POLICY IF EXISTS "anon_select_orders" ON orders;
 CREATE POLICY "anon_select_orders" ON orders FOR SELECT
   TO anon, authenticated USING (true);
@@ -57,6 +68,10 @@ SET
     )
     ELSE status_history
   END;
+
+ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_reference_no_key;
+DROP INDEX IF EXISTS orders_reference_no_key;
+DROP INDEX IF EXISTS orders_reference_no_unique_idx;
 
 CREATE INDEX IF NOT EXISTS orders_reference_no_idx
   ON orders (reference_no)
@@ -167,3 +182,5 @@ CREATE INDEX IF NOT EXISTS promo_codes_active_idx ON promo_codes (active);
 CREATE INDEX IF NOT EXISTS orders_email_idx ON orders (email);
 CREATE INDEX IF NOT EXISTS orders_status_idx ON orders (status);
 CREATE INDEX IF NOT EXISTS orders_created_at_idx ON orders (created_at DESC);
+
+NOTIFY pgrst, 'reload schema';

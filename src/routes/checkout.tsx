@@ -137,7 +137,12 @@ function CheckoutPage() {
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
     setError(null);
+
+    const liveItems = items.filter(
+      (item) => isLiveProduct(item.id) && item.category === "rank" && Number.isFinite(item.priceCents) && item.priceCents > 0,
+    );
 
     if (!account) {
       setError("Please sign in or create an account before checking out.");
@@ -163,16 +168,23 @@ function CheckoutPage() {
       setError("Please confirm you have sent the exact amount via GCash.");
       return;
     }
-    if (items.length === 0 || unavailableItems.length > 0) {
+    if (items.length === 0 || unavailableItems.length > 0 || liveItems.length !== items.length) {
       setError("Some cart items are not available yet. Remove them and add a live rank before checking out.");
+      return;
+    }
+    if (checkoutTotalCents <= 0) {
+      setError("Your total is invalid. Remove the item and add the rank again before checking out.");
       return;
     }
 
     setSubmitting(true);
     try {
       await new Promise((r) => setTimeout(r, 500));
-      const orderId = "LC-" + Math.random().toString(36).slice(2, 8).toUpperCase();
-      const orderItems = items.map((i) => ({
+      const orderId =
+        "LC-" +
+        (globalThis.crypto?.randomUUID?.().replace(/-/g, "").slice(0, 6) ??
+          Math.random().toString(36).slice(2, 8)).toUpperCase();
+      const orderItems = liveItems.map((i) => ({
         id: i.id,
         name: i.name,
         price: lineTotalDisplay(i.priceCents, i.qty),
@@ -216,7 +228,7 @@ function CheckoutPage() {
       recordPurchase({
         id: orderId,
         date: new Date().toISOString(),
-        items: items.map((i) => ({
+        items: liveItems.map((i) => ({
           id: i.id,
           name: `${i.name} x${i.qty}`,
           price: lineTotalDisplay(i.priceCents, i.qty),

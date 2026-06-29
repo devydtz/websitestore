@@ -179,7 +179,7 @@ function userFromAuth(authUser: User): StoredUser | null {
 async function syncAccount(user: StoredUser) {
   const built = buildAccount(user);
   const totals = accountTotals(user.history);
-  await upsertAccountProfile({
+  const result = await upsertAccountProfile({
     username: built.username,
     edition: built.edition,
     email: built.email,
@@ -189,6 +189,7 @@ async function syncAccount(user: StoredUser) {
     totalSpentCents: totals.totalSpentCents,
     totalSpentDisplay: totals.totalSpentDisplay,
   });
+  if (!result.ok) console.warn(result.error);
 }
 
 async function applyAuthUser(authUser: User, setAccount: (account: Account | null) => void) {
@@ -208,7 +209,7 @@ async function applyAuthUser(authUser: User, setAccount: (account: Account | nul
   users[userKey(user.username, user.edition)] = user;
   writeUsers(users);
   setAccount(buildAccount(user));
-  void syncAccount(user);
+  void syncAccount(user).catch((error) => console.warn(error));
 }
 
 export function AccountProvider({ children }: { children: ReactNode }) {
@@ -220,10 +221,10 @@ export function AccountProvider({ children }: { children: ReactNode }) {
 
     supabase.client.auth.getSession().then(({ data }) => {
       if (data.session?.user) void applyAuthUser(data.session.user, setAccount);
-    });
+    }).catch((error) => console.warn(error));
 
     const { data } = supabase.client.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) void applyAuthUser(session.user, setAccount);
+      if (session?.user) void applyAuthUser(session.user, setAccount).catch((error) => console.warn(error));
       else setAccount(null);
     });
 
@@ -269,7 +270,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
         const users = readUsers();
         users[userKey(clean, edition)] = stored;
         writeUsers(users);
-        void syncAccount(stored);
+        void syncAccount(stored).catch((error) => console.warn(error));
 
         if (data.session?.user) {
           await applyAuthUser(data.session.user, setAccount);
@@ -322,7 +323,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
         users[key] = { ...user, history };
         writeUsers(users);
         setAccount(buildAccount(users[key]));
-        void syncAccount(users[key]);
+        void syncAccount(users[key]).catch((error) => console.warn(error));
       },
       refreshVerification: async () => {
         const supabase = getSupabaseBrowserClient();
