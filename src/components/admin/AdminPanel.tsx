@@ -89,7 +89,7 @@ export function AdminPanel() {
   if (!token) {
     return (
       <>
-        <Starfield />
+        <Starfield variant="admin" />
         <Navbar />
         <LoginScreen
           password={password}
@@ -105,7 +105,7 @@ export function AdminPanel() {
 
   return (
     <>
-      <Starfield />
+      <Starfield variant="admin" />
       <Navbar />
       <AdminDashboard token={token} onLogout={handleLogout} />
       <SiteFooter />
