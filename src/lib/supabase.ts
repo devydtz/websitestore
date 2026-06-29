@@ -116,11 +116,11 @@ function databaseSetupError(table: string) {
 }
 
 function formatSupabaseError(url: string, message: string) {
-  if (/Could not find the table 'public\.(orders|accounts|deleted_accounts|promo_codes)'/i.test(message)) {
-    const table = message.match(/public\.(orders|accounts|deleted_accounts|promo_codes)/i)?.[1] ?? "orders";
+  if (/Could not find the table 'public\.(orders|accounts|deleted_accounts|promo_codes|store_products)'/i.test(message)) {
+    const table = message.match(/public\.(orders|accounts|deleted_accounts|promo_codes|store_products)/i)?.[1] ?? "orders";
     return databaseSetupError(table);
   }
-  if (/schema cache/i.test(message) && /orders|accounts|promo_codes|deleted_accounts/i.test(message)) {
+  if (/schema cache/i.test(message) && /orders|accounts|promo_codes|deleted_accounts|store_products/i.test(message)) {
     return "Database schema cache is stale or missing columns. Run SUPABASE-ADMIN-FIX.sql again, then refresh the site.";
   }
   if (/duplicate key value/i.test(message) && /orders_reference_no_key/i.test(message)) {
@@ -270,9 +270,26 @@ export type PromoCodeRow = {
   min_subtotal_cents: number;
   active: boolean;
   max_uses: number | null;
+  max_uses_per_user: number | null;
   used_count: number;
   expires_at: string | null;
   created_at: string;
+};
+
+export type StoreProductRow = {
+  id: string;
+  category: "rank" | "key" | "bundle";
+  name: string;
+  tagline: string;
+  price_cents: number;
+  price_display: string;
+  perks: string[];
+  active: boolean;
+  coming_soon: boolean;
+  featured: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
 };
 
 export async function createOrder(order: NewOrder): Promise<{ ok: true } | { ok: false; error: string }> {
@@ -856,6 +873,7 @@ export async function savePromoCode(
             code: promo.code.trim().toUpperCase(),
             label: promo.label.trim(),
             description: promo.description?.trim() || null,
+            max_uses_per_user: promo.max_uses_per_user ?? null,
             used_count: promo.used_count ?? 0,
           },
           { onConflict: "code" },
@@ -864,6 +882,118 @@ export async function savePromoCode(
         .maybeSingle();
       if (!error && data) return { ok: true, promo: data as PromoCodeRow };
       lastError = error ? formatSupabaseError(url, error.message) : "Promo code was not saved.";
+    } catch (error) {
+      lastError = networkError(error, [url]);
+    }
+  }
+
+  return { ok: false, error: lastError || networkError("No Supabase URL responded", supabase.urls) };
+}
+
+export async function deletePromoCode(
+  code: string,
+  adminToken: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const supabase = getSupabase();
+  if (!supabase.ok) return { ok: false, error: supabase.error };
+  if (adminToken !== "lunaris-admin-2024") return { ok: false, error: "Incorrect admin password." };
+
+  let lastError = "";
+  for (const url of supabase.urls) {
+    try {
+      const client = getSupabaseDataClient(url);
+      const { error } = await client.from("promo_codes").delete().eq("code", code.trim().toUpperCase());
+      if (!error) return { ok: true };
+      lastError = formatSupabaseError(url, error.message);
+    } catch (error) {
+      lastError = networkError(error, [url]);
+    }
+  }
+
+  return { ok: false, error: lastError || networkError("No Supabase URL responded", supabase.urls) };
+}
+
+export async function listStoreProducts(): Promise<
+  { ok: true; products: StoreProductRow[] } | { ok: false; error: string }
+> {
+  const supabase = getSupabase();
+  if (!supabase.ok) return { ok: false, error: supabase.error };
+
+  let lastError = "";
+  for (const url of supabase.urls) {
+    try {
+      const client = getSupabaseDataClient(url);
+      const { data, error } = await withTimeout(
+        client
+          .from("store_products")
+          .select("*")
+          .order("category", { ascending: true })
+          .order("sort_order", { ascending: true }),
+        "Loading store products",
+        10000,
+      );
+      if (!error) return { ok: true, products: (data ?? []) as StoreProductRow[] };
+      lastError = formatSupabaseError(url, error.message);
+    } catch (error) {
+      lastError = networkError(error, [url]);
+    }
+  }
+
+  return { ok: false, error: lastError || networkError("No Supabase URL responded", supabase.urls) };
+}
+
+export async function saveStoreProduct(
+  product: Omit<StoreProductRow, "created_at" | "updated_at">,
+  adminToken: string,
+): Promise<{ ok: true; product: StoreProductRow } | { ok: false; error: string }> {
+  const supabase = getSupabase();
+  if (!supabase.ok) return { ok: false, error: supabase.error };
+  if (adminToken !== "lunaris-admin-2024") return { ok: false, error: "Incorrect admin password." };
+
+  let lastError = "";
+  for (const url of supabase.urls) {
+    try {
+      const client = getSupabaseDataClient(url);
+      const { data, error } = await client
+        .from("store_products")
+        .upsert(
+          {
+            ...product,
+            id: product.id.trim().toLowerCase(),
+            name: product.name.trim(),
+            tagline: product.tagline.trim(),
+            perks: Array.isArray(product.perks) ? product.perks : [],
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "id" },
+        )
+        .select("*")
+        .maybeSingle();
+      if (!error && data) return { ok: true, product: data as StoreProductRow };
+      lastError = error ? formatSupabaseError(url, error.message) : "Product was not saved.";
+    } catch (error) {
+      lastError = networkError(error, [url]);
+    }
+  }
+
+  return { ok: false, error: lastError || networkError("No Supabase URL responded", supabase.urls) };
+}
+
+export async function deleteStoreProduct(
+  id: string,
+  adminToken: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const supabase = getSupabase();
+  if (!supabase.ok) return { ok: false, error: supabase.error };
+  if (adminToken !== "lunaris-admin-2024") return { ok: false, error: "Incorrect admin password." };
+
+  let lastError = "";
+  for (const url of supabase.urls) {
+    try {
+      const client = getSupabaseDataClient(url);
+      const { error } = await client.from("store_products").delete().eq("id", id.trim().toLowerCase());
+      if (!error) return { ok: true };
+      lastError = formatSupabaseError(url, error.message);
     } catch (error) {
       lastError = networkError(error, [url]);
     }

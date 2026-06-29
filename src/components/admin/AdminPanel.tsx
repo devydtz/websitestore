@@ -24,6 +24,9 @@ import {
   Trash2,
   UserPlus,
   Percent,
+  KeyRound,
+  Save,
+  CalendarDays,
 } from "lucide-react";
 import { Starfield } from "@/components/Starfield";
 import { Navbar } from "@/components/Navbar";
@@ -38,11 +41,16 @@ import {
   deleteAccount,
   listPromoCodes,
   savePromoCode,
+  deletePromoCode,
+  listStoreProducts,
+  saveStoreProduct,
+  deleteStoreProduct,
   safeOrderItems,
   syncAccountsFromOrders,
   type Order,
   type OrderStatus,
   type PromoCodeRow,
+  type StoreProductRow,
   type StoreAccount,
 } from "@/lib/supabase";
 
@@ -519,6 +527,8 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
 
       <PromoManager token={token} />
 
+      <ProductManager token={token} />
+
       {/* Detail drawer */}
       {selected && (
         <OrderDrawer
@@ -842,10 +852,44 @@ function PromoManager({ token }: { token: string }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState<PromoCodeRow | null>(null);
   const [code, setCode] = useState("");
+  const [label, setLabel] = useState("");
+  const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("10");
   const [kind, setKind] = useState<"percent" | "fixed">("percent");
   const [minSpend, setMinSpend] = useState("0");
+  const [maxUses, setMaxUses] = useState("");
+  const [maxUsesPerUser, setMaxUsesPerUser] = useState("");
+  const [expiresAt, setExpiresAt] = useState("");
+  const [active, setActive] = useState(true);
+
+  const resetPromoForm = () => {
+    setEditing(null);
+    setCode("");
+    setLabel("");
+    setDescription("");
+    setAmount(kind === "percent" ? "10" : "50");
+    setMinSpend("0");
+    setMaxUses("");
+    setMaxUsesPerUser("");
+    setExpiresAt("");
+    setActive(true);
+  };
+
+  const editPromo = (promo: PromoCodeRow) => {
+    setEditing(promo);
+    setCode(promo.code);
+    setLabel(promo.label);
+    setDescription(promo.description ?? "");
+    setKind(promo.kind);
+    setAmount(promo.kind === "percent" ? String(promo.amount) : String(promo.amount / 100));
+    setMinSpend(String((promo.min_subtotal_cents ?? 0) / 100));
+    setMaxUses(promo.max_uses ? String(promo.max_uses) : "");
+    setMaxUsesPerUser(promo.max_uses_per_user ? String(promo.max_uses_per_user) : "");
+    setExpiresAt(promo.expires_at ? promo.expires_at.slice(0, 16) : "");
+    setActive(promo.active);
+  };
 
   const loadPromos = useCallback(async () => {
     setLoading(true);
@@ -876,26 +920,42 @@ function PromoManager({ token }: { token: string }) {
     const res = await savePromoCode(
       {
         code: cleanCode,
-        label: cleanCode,
-        description: kind === "percent" ? `${amountValue}% off checkout.` : `PHP ${amountValue} off checkout.`,
+        label: label.trim() || cleanCode,
+        description:
+          description.trim() ||
+          (kind === "percent" ? `${amountValue}% off checkout.` : `PHP ${amountValue} off checkout.`),
         kind,
         amount: kind === "percent" ? Math.round(amountValue) : Math.round(amountValue * 100),
         min_subtotal_cents: minValue,
-        active: true,
-        max_uses: null,
-        expires_at: null,
+        active,
+        max_uses: maxUses ? Math.max(1, Math.floor(Number(maxUses))) : null,
+        max_uses_per_user: maxUsesPerUser ? Math.max(1, Math.floor(Number(maxUsesPerUser))) : null,
+        expires_at: expiresAt ? new Date(expiresAt).toISOString() : null,
       },
       token,
     );
     if (res.ok) {
       setPromos((prev) => [res.promo, ...prev.filter((promo) => promo.code !== res.promo.code)]);
-      setCode("");
-      setAmount(kind === "percent" ? "10" : "50");
-      setMinSpend("0");
+      resetPromoForm();
     } else {
       setError(res.error);
     }
     setSaving(false);
+  };
+
+  const removePromo = async (promo: PromoCodeRow) => {
+    if (!window.confirm(`Delete promo code ${promo.code}?`)) return;
+    setError(null);
+    const res = await deletePromoCode(promo.code, token);
+    if (res.ok) setPromos((prev) => prev.filter((item) => item.code !== promo.code));
+    else setError(res.error);
+  };
+
+  const togglePromo = async (promo: PromoCodeRow) => {
+    setError(null);
+    const res = await savePromoCode({ ...promo, active: !promo.active }, token);
+    if (res.ok) setPromos((prev) => prev.map((item) => (item.code === res.promo.code ? res.promo : item)));
+    else setError(res.error);
   };
 
   return (
@@ -907,7 +967,9 @@ function PromoManager({ token }: { token: string }) {
           </div>
           <div>
             <h2 className="text-lg font-bold">Promo Codes</h2>
-            <p className="text-xs text-muted-foreground">Create checkout discounts without editing the website code.</p>
+            <p className="text-xs text-muted-foreground">
+              Create, expire, limit, disable, and delete checkout discounts.
+            </p>
           </div>
         </div>
         <button
@@ -928,46 +990,123 @@ function PromoManager({ token }: { token: string }) {
         </div>
       )}
 
-      <form onSubmit={submitPromo} className="mt-5 grid gap-3 rounded-2xl border border-border/70 bg-background/30 p-4 md:grid-cols-[1fr_150px_140px_150px_auto]">
-        <input
-          value={code}
-          onChange={(e) => setCode(e.target.value.toUpperCase())}
-          placeholder="CODE"
-          className="rounded-xl border border-border bg-card/70 px-3 py-2 font-mono text-sm uppercase outline-none transition focus:border-accent"
-        />
-        <select
-          value={kind}
-          onChange={(e) => {
-            const next = e.target.value as "percent" | "fixed";
-            setKind(next);
-            setAmount(next === "percent" ? "10" : "50");
-          }}
-          className="rounded-xl border border-border bg-card/70 px-3 py-2 text-sm outline-none transition focus:border-accent"
-        >
-          <option value="percent">Percent</option>
-          <option value="fixed">PHP off</option>
-        </select>
-        <input
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          placeholder={kind === "percent" ? "10" : "50"}
-          inputMode="decimal"
-          className="rounded-xl border border-border bg-card/70 px-3 py-2 text-sm outline-none transition focus:border-accent"
-        />
-        <input
-          value={minSpend}
-          onChange={(e) => setMinSpend(e.target.value)}
-          placeholder="Min PHP"
-          inputMode="decimal"
-          className="rounded-xl border border-border bg-card/70 px-3 py-2 text-sm outline-none transition focus:border-accent"
-        />
-        <button
-          type="submit"
-          disabled={saving}
-          className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-accent disabled:opacity-50"
-        >
-          {saving ? "Saving..." : "Add Promo"}
-        </button>
+      <form onSubmit={submitPromo} className="mt-5 grid gap-3 rounded-2xl border border-border/70 bg-background/30 p-4">
+        <div className="grid gap-3 md:grid-cols-4">
+          <Field label="Code">
+            <input
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              placeholder="CODE"
+              disabled={Boolean(editing)}
+              className="w-full rounded-xl border border-border bg-card/70 px-3 py-2 font-mono text-sm uppercase outline-none transition focus:border-accent disabled:opacity-60"
+            />
+          </Field>
+          <Field label="Label">
+            <input
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              placeholder="Launch Discount"
+              className="w-full rounded-xl border border-border bg-card/70 px-3 py-2 text-sm outline-none transition focus:border-accent"
+            />
+          </Field>
+          <Field label="Discount Type">
+            <select
+              value={kind}
+              onChange={(e) => {
+                const next = e.target.value as "percent" | "fixed";
+                setKind(next);
+                setAmount(next === "percent" ? "10" : "50");
+              }}
+              className="w-full rounded-xl border border-border bg-card/70 px-3 py-2 text-sm outline-none transition focus:border-accent"
+            >
+              <option value="percent">Percent</option>
+              <option value="fixed">PHP off</option>
+            </select>
+          </Field>
+          <Field label={kind === "percent" ? "Percent" : "PHP Amount"}>
+            <input
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder={kind === "percent" ? "10" : "50"}
+              inputMode="decimal"
+              className="w-full rounded-xl border border-border bg-card/70 px-3 py-2 text-sm outline-none transition focus:border-accent"
+            />
+          </Field>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-4">
+          <Field label="Min Spend PHP">
+            <input
+              value={minSpend}
+              onChange={(e) => setMinSpend(e.target.value)}
+              placeholder="0"
+              inputMode="decimal"
+              className="w-full rounded-xl border border-border bg-card/70 px-3 py-2 text-sm outline-none transition focus:border-accent"
+            />
+          </Field>
+          <Field label="Max Total Uses">
+            <input
+              value={maxUses}
+              onChange={(e) => setMaxUses(e.target.value)}
+              placeholder="Unlimited"
+              inputMode="numeric"
+              className="w-full rounded-xl border border-border bg-card/70 px-3 py-2 text-sm outline-none transition focus:border-accent"
+            />
+          </Field>
+          <Field label="Max Uses Per User">
+            <input
+              value={maxUsesPerUser}
+              onChange={(e) => setMaxUsesPerUser(e.target.value)}
+              placeholder="Unlimited"
+              inputMode="numeric"
+              className="w-full rounded-xl border border-border bg-card/70 px-3 py-2 text-sm outline-none transition focus:border-accent"
+            />
+          </Field>
+          <Field label="Expires At">
+            <input
+              type="datetime-local"
+              value={expiresAt}
+              onChange={(e) => setExpiresAt(e.target.value)}
+              className="w-full rounded-xl border border-border bg-card/70 px-3 py-2 text-sm outline-none transition focus:border-accent"
+            />
+          </Field>
+        </div>
+
+        <Field label="Description">
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Shown in admin and future promo displays."
+            rows={2}
+            className="w-full rounded-xl border border-border bg-card/70 px-3 py-2 text-sm outline-none transition focus:border-accent"
+          />
+        </Field>
+
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <label className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+            <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />
+            Active promo
+          </label>
+          <div className="flex gap-2">
+            {editing && (
+              <button
+                type="button"
+                onClick={resetPromoForm}
+                className="rounded-xl border border-border bg-card/60 px-4 py-2 text-sm font-semibold text-foreground"
+              >
+                Cancel Edit
+              </button>
+            )}
+            <button
+              type="submit"
+              disabled={saving}
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-accent disabled:opacity-50"
+            >
+              <Save className="h-4 w-4" />
+              {saving ? "Saving..." : editing ? "Save Promo" : "Add Promo"}
+            </button>
+          </div>
+        </div>
       </form>
 
       <div className="mt-5 grid gap-3 md:grid-cols-3">
@@ -985,14 +1124,385 @@ function PromoManager({ token }: { token: string }) {
                 </span>
               </div>
               <p className="mt-2 text-sm text-muted-foreground">{promo.description || promo.label}</p>
-              <p className="mt-3 text-xs text-muted-foreground">
-                Used {promo.used_count}{promo.max_uses ? ` / ${promo.max_uses}` : ""} times
-              </p>
+              <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+                <p>Used {promo.used_count}{promo.max_uses ? ` / ${promo.max_uses}` : ""} times</p>
+                <p>Per user: {promo.max_uses_per_user ?? "Unlimited"}</p>
+                <p>Min spend: {formatCents(promo.min_subtotal_cents ?? 0)}</p>
+                <p className="flex items-center gap-1">
+                  <CalendarDays className="h-3 w-3" />
+                  Expires: {promo.expires_at ? new Date(promo.expires_at).toLocaleString("en-PH") : "Never"}
+                </p>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => editPromo(promo)}
+                  className="rounded-full border border-border bg-card/60 px-3 py-1.5 text-xs font-semibold text-foreground transition hover:border-accent"
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => togglePromo(promo)}
+                  className="rounded-full border border-border bg-card/60 px-3 py-1.5 text-xs font-semibold text-foreground transition hover:border-accent"
+                >
+                  {promo.active ? "Disable" : "Enable"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removePromo(promo)}
+                  className="rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-300 transition hover:bg-red-500/20"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           ))
         )}
       </div>
     </section>
+  );
+}
+
+const emptyProduct: Omit<StoreProductRow, "created_at" | "updated_at"> = {
+  id: "",
+  category: "rank",
+  name: "",
+  tagline: "",
+  price_cents: 0,
+  price_display: "PHP 0",
+  perks: [],
+  active: true,
+  coming_soon: false,
+  featured: false,
+  sort_order: 0,
+};
+
+function ProductManager({ token }: { token: string }) {
+  const [products, setProducts] = useState<StoreProductRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState(emptyProduct);
+  const [pricePhp, setPricePhp] = useState("");
+  const [perksText, setPerksText] = useState("");
+
+  const loadProducts = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    const res = await listStoreProducts();
+    if (res.ok) setProducts(res.products);
+    else setError(res.error);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    loadProducts();
+  }, [loadProducts]);
+
+  const resetProductForm = () => {
+    setEditingId(null);
+    setForm(emptyProduct);
+    setPricePhp("");
+    setPerksText("");
+  };
+
+  const editProduct = (product: StoreProductRow) => {
+    setEditingId(product.id);
+    setForm({
+      id: product.id,
+      category: product.category,
+      name: product.name,
+      tagline: product.tagline,
+      price_cents: product.price_cents,
+      price_display: product.price_display,
+      perks: product.perks ?? [],
+      active: product.active,
+      coming_soon: product.coming_soon,
+      featured: product.featured,
+      sort_order: product.sort_order,
+    });
+    setPricePhp(String(product.price_cents / 100));
+    setPerksText((product.perks ?? []).join("\n"));
+  };
+
+  const submitProduct = async (e: FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setError(null);
+
+    const cleanId = form.id.trim().toLowerCase();
+    const php = Math.max(0, Number(pricePhp || 0));
+    if (!cleanId || !form.name.trim()) {
+      setError("Product needs an ID and name.");
+      setSaving(false);
+      return;
+    }
+    if (!Number.isFinite(php)) {
+      setError("Enter a valid PHP price.");
+      setSaving(false);
+      return;
+    }
+
+    const priceCents = Math.round(php * 100);
+    const res = await saveStoreProduct(
+      {
+        ...form,
+        id: cleanId,
+        price_cents: priceCents,
+        price_display: formatCents(priceCents),
+        perks: perksText
+          .split("\n")
+          .map((perk) => perk.trim())
+          .filter(Boolean),
+      },
+      token,
+    );
+
+    if (res.ok) {
+      setProducts((prev) => [res.product, ...prev.filter((product) => product.id !== res.product.id)]);
+      resetProductForm();
+    } else {
+      setError(res.error);
+    }
+    setSaving(false);
+  };
+
+  const removeProduct = async (product: StoreProductRow) => {
+    if (!window.confirm(`Delete ${product.name}?`)) return;
+    setError(null);
+    const res = await deleteStoreProduct(product.id, token);
+    if (res.ok) setProducts((prev) => prev.filter((item) => item.id !== product.id));
+    else setError(res.error);
+  };
+
+  const byCategory = (category: StoreProductRow["category"]) =>
+    products.filter((product) => product.category === category);
+
+  return (
+    <section className="mt-10 rounded-2xl border border-border bg-card/40 p-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="grid h-10 w-10 place-items-center rounded-lg bg-primary/10 text-accent ring-1 ring-accent/30">
+            <Package className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold">Store Products</h2>
+            <p className="text-xs text-muted-foreground">
+              Add and edit ranks, keys, and bundles from the admin panel.
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={loadProducts}
+          disabled={loading}
+          className="inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-4 py-2 text-sm font-semibold text-foreground transition hover:border-accent disabled:opacity-50"
+        >
+          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+          Refresh Products
+        </button>
+      </div>
+
+      {error && (
+        <div className="mt-4 flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {error}
+        </div>
+      )}
+
+      <form onSubmit={submitProduct} className="mt-5 grid gap-3 rounded-2xl border border-border/70 bg-background/30 p-4">
+        <div className="grid gap-3 md:grid-cols-4">
+          <Field label="Product ID">
+            <input
+              value={form.id}
+              onChange={(e) => setForm((prev) => ({ ...prev, id: e.target.value }))}
+              placeholder="rank-example"
+              disabled={Boolean(editingId)}
+              className="w-full rounded-xl border border-border bg-card/70 px-3 py-2 font-mono text-sm outline-none transition focus:border-accent disabled:opacity-60"
+            />
+          </Field>
+          <Field label="Category">
+            <select
+              value={form.category}
+              onChange={(e) => setForm((prev) => ({ ...prev, category: e.target.value as StoreProductRow["category"] }))}
+              className="w-full rounded-xl border border-border bg-card/70 px-3 py-2 text-sm outline-none transition focus:border-accent"
+            >
+              <option value="rank">Rank</option>
+              <option value="key">Key</option>
+              <option value="bundle">Bundle</option>
+            </select>
+          </Field>
+          <Field label="Name">
+            <input
+              value={form.name}
+              onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
+              placeholder="Crescent"
+              className="w-full rounded-xl border border-border bg-card/70 px-3 py-2 text-sm outline-none transition focus:border-accent"
+            />
+          </Field>
+          <Field label="Price PHP">
+            <input
+              value={pricePhp}
+              onChange={(e) => setPricePhp(e.target.value)}
+              placeholder="99"
+              inputMode="decimal"
+              className="w-full rounded-xl border border-border bg-card/70 px-3 py-2 text-sm outline-none transition focus:border-accent"
+            />
+          </Field>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-[1.3fr_120px]">
+          <Field label="Tagline">
+            <input
+              value={form.tagline}
+              onChange={(e) => setForm((prev) => ({ ...prev, tagline: e.target.value }))}
+              placeholder="Short product description"
+              className="w-full rounded-xl border border-border bg-card/70 px-3 py-2 text-sm outline-none transition focus:border-accent"
+            />
+          </Field>
+          <Field label="Sort Order">
+            <input
+              value={form.sort_order}
+              onChange={(e) => setForm((prev) => ({ ...prev, sort_order: Math.floor(Number(e.target.value || 0)) }))}
+              inputMode="numeric"
+              className="w-full rounded-xl border border-border bg-card/70 px-3 py-2 text-sm outline-none transition focus:border-accent"
+            />
+          </Field>
+        </div>
+
+        <Field label="Perks / Contents">
+          <textarea
+            value={perksText}
+            onChange={(e) => setPerksText(e.target.value)}
+            placeholder="One perk per line"
+            rows={5}
+            className="w-full rounded-xl border border-border bg-card/70 px-3 py-2 text-sm outline-none transition focus:border-accent"
+          />
+        </Field>
+
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+            <label className="inline-flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={form.active}
+                onChange={(e) => setForm((prev) => ({ ...prev, active: e.target.checked }))}
+              />
+              Active
+            </label>
+            <label className="inline-flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={form.coming_soon}
+                onChange={(e) => setForm((prev) => ({ ...prev, coming_soon: e.target.checked }))}
+              />
+              Coming soon
+            </label>
+            <label className="inline-flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={form.featured}
+                onChange={(e) => setForm((prev) => ({ ...prev, featured: e.target.checked }))}
+              />
+              Most popular
+            </label>
+          </div>
+          <div className="flex gap-2">
+            {editingId && (
+              <button
+                type="button"
+                onClick={resetProductForm}
+                className="rounded-xl border border-border bg-card/60 px-4 py-2 text-sm font-semibold text-foreground"
+              >
+                Cancel Edit
+              </button>
+            )}
+            <button
+              type="submit"
+              disabled={saving}
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-accent disabled:opacity-50"
+            >
+              <Save className="h-4 w-4" />
+              {saving ? "Saving..." : editingId ? "Save Product" : "Add Product"}
+            </button>
+          </div>
+        </div>
+      </form>
+
+      <div className="mt-5 grid gap-4 lg:grid-cols-3">
+        {(["rank", "key", "bundle"] as const).map((category) => (
+          <div key={category} className="rounded-2xl border border-border/70 bg-background/30 p-4">
+            <div className="mb-3 flex items-center gap-2">
+              {category === "key" ? <KeyRound className="h-4 w-4 text-accent" /> : <Package className="h-4 w-4 text-accent" />}
+              <h3 className="font-bold capitalize">{category}s</h3>
+            </div>
+            {loading ? (
+              <p className="text-sm text-muted-foreground">Loading...</p>
+            ) : byCategory(category).length === 0 ? (
+              <p className="text-sm text-muted-foreground">No {category}s yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {byCategory(category).map((product) => (
+                  <div key={product.id} className="rounded-xl border border-border/60 bg-card/40 p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold text-foreground">{product.name}</p>
+                        <p className="font-mono text-[11px] text-muted-foreground">{product.id}</p>
+                      </div>
+                      <span className="text-sm font-bold text-foreground">{product.price_display}</span>
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      <MiniPill active={product.active} label={product.active ? "Active" : "Off"} />
+                      <MiniPill active={product.featured} label="Popular" />
+                      <MiniPill active={product.coming_soon} label="Soon" />
+                    </div>
+                    <div className="mt-3 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => editProduct(product)}
+                        className="rounded-full border border-border bg-card/60 px-3 py-1.5 text-xs font-semibold text-foreground transition hover:border-accent"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeProduct(product)}
+                        className="rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-300 transition hover:bg-red-500/20"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function MiniPill({ active, label }: { active: boolean; label: string }) {
+  return (
+    <span
+      className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+        active ? "bg-accent/15 text-accent" : "bg-muted/40 text-muted-foreground"
+      }`}
+    >
+      {label}
+    </span>
   );
 }
 

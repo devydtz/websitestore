@@ -58,7 +58,6 @@ function CheckoutPage() {
     () =>
       items.filter(
         (item) =>
-          item.category === "rank" &&
           isLiveProduct(item.id) &&
           Number.isFinite(item.priceCents) &&
           item.priceCents > 0 &&
@@ -114,7 +113,7 @@ function CheckoutPage() {
       return;
     }
     if (hasUnavailableItems || liveItems.length === 0) {
-      setError("Remove old keys/bundles from your cart and add a live rank.");
+      setError("Remove unavailable items from your cart and add a live product.");
       return;
     }
     if (!/^09\d{9}$/.test(gcashDigits)) {
@@ -229,7 +228,7 @@ function CheckoutPage() {
           <div className="pixel-card rounded-2xl p-8">
             <ShoppingBag className="mx-auto h-10 w-10 text-muted-foreground" />
             <h1 className="mt-4 font-display text-4xl">Your cart is empty</h1>
-            <p className="mt-2 text-sm text-muted-foreground">Add a rank before checking out.</p>
+            <p className="mt-2 text-sm text-muted-foreground">Add a product before checking out.</p>
             <Link
               to="/ranks"
               className="mt-6 inline-flex rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground"
@@ -268,7 +267,7 @@ function CheckoutPage() {
           {!account && <Notice text="Sign in or create an account before checking out." />}
           {account && !account.emailVerified && <Notice text="Verify your email before checking out." />}
           {account?.disabled && <Notice text="This account is disabled. Contact support before checking out." danger />}
-          {hasUnavailableItems && <Notice text="Your cart has unavailable items. Remove keys/bundles and add a live rank." danger />}
+          {hasUnavailableItems && <Notice text="Your cart has unavailable items. Remove unavailable products and add a live item." danger />}
           {error && <Notice text={error} danger />}
 
           <form onSubmit={submitOrder} className="mt-8 grid gap-6 lg:grid-cols-[1.45fr_0.75fr]">

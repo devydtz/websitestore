@@ -1,23 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { KeyRound } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Starfield } from "@/components/Starfield";
 import { Navbar } from "@/components/Navbar";
 import { SiteFooter } from "@/components/SiteFooter";
 import { PageHero } from "@/components/PageHero";
 import { ProductGrid, type Product } from "@/components/ProductGrid";
-
-const keys: Product[] = [
-  {
-    id: "keys-coming-soon",
-    category: "key",
-    name: "Crate Keys",
-    tagline: "Keys are coming soon. Details will be added once the rewards are finalized.",
-    price: "PHP 0",
-    Icon: KeyRound,
-    comingSoon: true,
-    perks: [],
-  },
-];
+import { fallbackKeys, loadProductsForCategory } from "@/lib/products";
 
 export const Route = createFileRoute("/keys")({
   head: () => ({
@@ -32,6 +20,18 @@ export const Route = createFileRoute("/keys")({
 });
 
 function KeysPage() {
+  const [products, setProducts] = useState<Product[]>(fallbackKeys);
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadProductsForCategory("key", fallbackKeys).then((res) => {
+      if (!cancelled) setProducts(res.products);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <div className="relative min-h-screen bg-background text-foreground">
       <Starfield />
@@ -42,7 +42,7 @@ function KeysPage() {
           title="Crate Keys"
           description="Crate keys are coming soon. We will add the final key names, rewards, and prices once they are ready."
         />
-        <ProductGrid products={keys} />
+        <ProductGrid products={products} />
         <SiteFooter />
       </div>
     </div>
