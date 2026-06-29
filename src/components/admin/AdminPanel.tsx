@@ -47,7 +47,6 @@ import {
   type StoreAccount,
 } from "@/lib/supabase";
 import { enableLocalAdminNotifications } from "@/lib/pwa-notifications";
-import { notifyDiscord } from "@/lib/discord";
 
 const ADMIN_TOKEN_KEY = "lunaris.admin.token.v1";
 const DEFAULT_ADMIN_PASSWORD = "lunaris-admin-2024";
@@ -241,15 +240,6 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
       setOrders((prev) => prev.map((o) => (o.id === res.order.id ? res.order : o)));
       setSelected(res.order);
       setNote("");
-      void notifyDiscord({
-        title: action === "confirm" ? "Order Confirmed" : "Order Rejected",
-        description: `Order #${order.id} for ${displayName(order)} was ${action === "confirm" ? "confirmed" : "rejected"}.`,
-        color: action === "confirm" ? 5763719 : 15548997,
-        fields: [
-          { name: "Total", value: order.total_display, inline: true },
-          { name: "Reference", value: order.reference_no || "N/A", inline: true },
-        ],
-      });
     } else {
       setActionError(res.error);
     }

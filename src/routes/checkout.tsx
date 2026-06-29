@@ -44,7 +44,7 @@ export const Route = createFileRoute("/checkout")({
 
 function CheckoutPage() {
   const { items, clear } = useCart();
-  const { account } = useAccount();
+  const { account, recordPurchase } = useAccount();
   const navigate = useNavigate();
 
   const [gcashNumber, setGcashNumber] = useState("");
@@ -161,6 +161,18 @@ function CheckoutPage() {
         return;
       }
 
+      recordPurchase({
+        id: orderId,
+        date: new Date().toISOString(),
+        items: liveItems.map((i) => ({
+          id: i.id,
+          name: `${i.name} x${i.qty}`,
+          price: lineTotalDisplay(i.priceCents, i.qty),
+        })),
+        total: checkoutTotalDisplay,
+        method: "gcash",
+        discount: discountDisplay,
+      });
       setSubmittedTotal(checkoutTotalDisplay);
       setDone(orderId);
       clear();
