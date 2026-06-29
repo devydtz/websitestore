@@ -1,5 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AdminPanel } from "@/components/admin/AdminPanel";
+import { lazy, Suspense } from "react";
+
+const AdminPanel = lazy(() =>
+  import("@/components/admin/AdminPanel").then((module) => ({ default: module.AdminPanel })),
+);
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -9,5 +13,13 @@ export const Route = createFileRoute("/admin")({
       { property: "og:title", content: "Admin - Lunaris Craft" },
     ],
   }),
-  component: AdminPanel,
+  component: AdminRoute,
 });
+
+function AdminRoute() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background" />}>
+      <AdminPanel />
+    </Suspense>
+  );
+}

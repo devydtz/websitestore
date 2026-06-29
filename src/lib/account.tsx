@@ -218,19 +218,28 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   const [account, setAccount] = useState<Account | null>(null);
 
   useEffect(() => {
-    const supabase = getSupabaseBrowserClient();
-    if (!supabase.ok) return;
+    let unsubscribe = () => {};
 
-    supabase.client.auth.getSession().then(({ data }) => {
-      if (data.session?.user) void applyAuthUser(data.session.user, setAccount);
-    }).catch((error) => console.warn(error));
+    const timer = window.setTimeout(() => {
+      const supabase = getSupabaseBrowserClient();
+      if (!supabase.ok) return;
 
-    const { data } = supabase.client.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) void applyAuthUser(session.user, setAccount).catch((error) => console.warn(error));
-      else setAccount(null);
-    });
+      supabase.client.auth.getSession().then(({ data }) => {
+        if (data.session?.user) void applyAuthUser(data.session.user, setAccount);
+      }).catch((error) => console.warn(error));
 
-    return () => data.subscription.unsubscribe();
+      const { data } = supabase.client.auth.onAuthStateChange((_event, session) => {
+        if (session?.user) void applyAuthUser(session.user, setAccount).catch((error) => console.warn(error));
+        else setAccount(null);
+      });
+
+      unsubscribe = () => data.subscription.unsubscribe();
+    }, 150);
+
+    return () => {
+      window.clearTimeout(timer);
+      unsubscribe();
+    };
   }, []);
 
   const value = useMemo<AccountCtx>(

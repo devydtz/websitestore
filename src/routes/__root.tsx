@@ -1,9 +1,13 @@
 import { HeadContent, Outlet, Scripts, createRootRoute, useLocation, useRouter } from "@tanstack/react-router";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { ShoppingCart } from "lucide-react";
 import appCss from "../styles.css?url";
 import { AccountProvider } from "@/lib/account";
 import { CartProvider, useCart } from "@/lib/cart";
-import { CartDrawer } from "@/components/CartDrawer";
+
+const LazyCartDrawer = lazy(() =>
+  import("@/components/CartDrawer").then((module) => ({ default: module.CartDrawer })),
+);
 
 export const Route = createRootRoute({
   head: () => ({
@@ -73,7 +77,7 @@ function RootComponent() {
         {!isAdminRoute && (
           <>
             <CartButton />
-            <CartDrawer />
+            <CartDrawerGate />
           </>
         )}
         <div className="relative">
@@ -83,6 +87,23 @@ function RootComponent() {
         </div>
       </CartProvider>
     </AccountProvider>
+  );
+}
+
+function CartDrawerGate() {
+  const { isOpen } = useCart();
+  const [shouldLoad, setShouldLoad] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) setShouldLoad(true);
+  }, [isOpen]);
+
+  if (!shouldLoad) return null;
+
+  return (
+    <Suspense fallback={null}>
+      <LazyCartDrawer />
+    </Suspense>
   );
 }
 

@@ -43,7 +43,6 @@
     "@supabase/supabase-js": "^2.108.2",
     "@tanstack/react-query": "^5.101.1",
     "@tanstack/react-router": "^1.112.18",
-    "@tanstack/react-router-devtools": "^1.112.18",
     "@tanstack/react-start": "^1.112.18",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
