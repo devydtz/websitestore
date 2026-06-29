@@ -39,6 +39,7 @@ import {
   saveAdminNote,
   setAccountFlags,
   deleteAccount,
+  syncAccountsFromAuthUsers,
   listPromoCodes,
   savePromoCode,
   deletePromoCode,
@@ -53,6 +54,7 @@ import {
   type StoreProductRow,
   type StoreAccount,
 } from "@/lib/supabase";
+import { fallbackProductRows } from "@/lib/products";
 
 const ADMIN_TOKEN_KEY = "lunaris.admin.token.v1";
 const DEFAULT_ADMIN_PASSWORD = "lunaris-admin-2024";
@@ -231,10 +233,26 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
     const pending = orders.filter((o) => o.status === "pending").length;
     const confirmed = orders.filter((o) => o.status === "confirmed").length;
     const delivered = orders.filter((o) => o.status === "delivered").length;
+    const rejected = orders.filter((o) => o.status === "rejected").length;
     const revenue = orders
       .filter((o) => o.status === "delivered" || o.status === "confirmed")
       .reduce((sum, o) => sum + o.total_cents, 0);
-    return { pending, confirmed, delivered, revenue, total: orders.length };
+    const failedDeliveries = orders.filter((o) => (o.delivery_log ?? []).some((log) => !log.ok)).length;
+    const itemCounts = new Map<string, number>();
+    orders.forEach((order) => {
+      safeOrderItems(order.items).forEach((item) => itemCounts.set(item.name, (itemCounts.get(item.name) ?? 0) + item.qty));
+    });
+    const topProduct = [...itemCounts.entries()].sort((a, b) => b[1] - a[1])[0];
+    return {
+      pending,
+      confirmed,
+      delivered,
+      rejected,
+      failedDeliveries,
+      revenue,
+      total: orders.length,
+      topProduct: topProduct ? `${topProduct[0]} x${topProduct[1]}` : "None yet",
+    };
   }, [orders]);
 
   const doAction = async (order: Order, action: "confirm" | "reject") => {
@@ -281,7 +299,7 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
 
   const doDeleteAccount = async (account: StoreAccount) => {
     const confirmed = window.confirm(
-      `Delete ${account.display_name} from Manage Accounts? Their old browser login will not be erased, but this admin record will be removed.`,
+      `Fully delete ${account.display_name}? This removes their admin account row, matching orders, and Supabase Auth login when available.`,
     );
     if (!confirmed) return;
 
@@ -292,6 +310,21 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
     } else {
       setAccountError(res.error);
     }
+  };
+
+  const doSyncAuthAccounts = async () => {
+    setAccountError(null);
+    setAccountsLoading(true);
+    const res = await syncAccountsFromAuthUsers(token);
+    if (!res.ok) {
+      setAccountError(res.error);
+      setAccountsLoading(false);
+      return;
+    }
+    const accountRes = await listAccounts();
+    if (accountRes.ok) setAccounts(accountRes.accounts);
+    else setAccountError(accountRes.error);
+    setAccountsLoading(false);
   };
 
   const doCreateAccount = async (input: {
@@ -353,6 +386,12 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
           value={formatCents(stats.revenue)}
           tone="primary"
         />
+      </div>
+
+      <div className="mt-4 grid gap-4 md:grid-cols-3">
+        <AdminInsight title="Top Product" value={stats.topProduct} copy="Most bought item across loaded orders." />
+        <AdminInsight title="Rejected Orders" value={stats.rejected} copy="Payments or entries rejected by admin." />
+        <AdminInsight title="Delivery Issues" value={stats.failedDeliveries} copy="Orders with failed RCON/manual logs." />
       </div>
 
       {error && (
@@ -523,6 +562,7 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
         onToggleDisabled={(account) => doAccountFlag(account, { disabled: !account.disabled })}
         onDelete={doDeleteAccount}
         onCreate={doCreateAccount}
+        onSyncAuthAccounts={doSyncAuthAccounts}
       />
 
       <PromoManager token={token} />
@@ -574,6 +614,16 @@ function StatCard({
   );
 }
 
+function AdminInsight({ title, value, copy }: { title: string; value: string | number; copy: string }) {
+  return (
+    <div className="rounded-2xl border border-border/70 bg-card/40 p-4">
+      <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{title}</div>
+      <div className="mt-2 text-lg font-black text-foreground">{value}</div>
+      <p className="mt-1 text-xs leading-5 text-muted-foreground">{copy}</p>
+    </div>
+  );
+}
+
 function AccountsManager({
   accounts,
   loading,
@@ -583,6 +633,7 @@ function AccountsManager({
   onToggleDisabled,
   onDelete,
   onCreate,
+  onSyncAuthAccounts,
 }: {
   accounts: StoreAccount[];
   loading: boolean;
@@ -597,6 +648,7 @@ function AccountsManager({
     email: string;
     emailVerified: boolean;
   }) => Promise<{ ok: true } | { ok: false; error: string }>;
+  onSyncAuthAccounts: () => Promise<void>;
 }) {
   const verified = accounts.filter((a) => a.email_verified).length;
   const disabled = accounts.filter((a) => a.disabled).length;
@@ -648,6 +700,25 @@ function AccountsManager({
             {disabled} disabled
           </span>
         </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 rounded-2xl border border-accent/20 bg-accent/5 p-4 md:grid-cols-[1fr_auto] md:items-center">
+        <div>
+          <p className="text-sm font-bold text-foreground">Account scan</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Pulls every Supabase Auth signup into Manage Accounts, including players with no orders yet.
+            Passwords are protected by Supabase and cannot be viewed.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => void onSyncAuthAccounts()}
+          disabled={loading}
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-accent/30 bg-accent/10 px-4 py-2 text-sm font-semibold text-accent transition hover:bg-accent/20 disabled:opacity-50"
+        >
+          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+          Scan All Accounts
+        </button>
       </div>
 
       {error && (
@@ -729,6 +800,7 @@ function AccountsManager({
                 <tr>
                   <th className="px-4 py-3 font-semibold">Player</th>
                   <th className="px-4 py-3 font-semibold">Email</th>
+                  <th className="px-4 py-3 font-semibold">Password</th>
                   <th className="px-4 py-3 font-semibold">Status</th>
                   <th className="px-4 py-3 font-semibold">Orders</th>
                   <th className="px-4 py-3 font-semibold">Spent</th>
@@ -743,6 +815,11 @@ function AccountsManager({
                       <div className="text-xs capitalize text-muted-foreground">{account.edition}</div>
                     </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground">{account.email}</td>
+                    <td className="px-4 py-3">
+                      <span className="rounded-full border border-border bg-background/40 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">
+                        Protected hash
+                      </span>
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1.5">
                         <span
@@ -1178,6 +1255,21 @@ const emptyProduct: Omit<StoreProductRow, "created_at" | "updated_at"> = {
   sort_order: 0,
 };
 
+function isDefaultProduct(product: StoreProductRow) {
+  return !product.created_at && !product.updated_at;
+}
+
+function mergeProductRows(saved: StoreProductRow[]) {
+  const fallback = fallbackProductRows();
+  const savedIds = new Set(saved.map((product) => product.id));
+  return [...fallback.filter((product) => !savedIds.has(product.id)), ...saved].sort(
+    (a, b) =>
+      a.category.localeCompare(b.category) ||
+      a.sort_order - b.sort_order ||
+      a.name.localeCompare(b.name),
+  );
+}
+
 function ProductManager({ token }: { token: string }) {
   const [products, setProducts] = useState<StoreProductRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1192,7 +1284,7 @@ function ProductManager({ token }: { token: string }) {
     setLoading(true);
     setError(null);
     const res = await listStoreProducts();
-    if (res.ok) setProducts(res.products);
+    if (res.ok) setProducts(mergeProductRows(res.products));
     else setError(res.error);
     setLoading(false);
   }, []);
@@ -1261,7 +1353,12 @@ function ProductManager({ token }: { token: string }) {
     );
 
     if (res.ok) {
-      setProducts((prev) => [res.product, ...prev.filter((product) => product.id !== res.product.id)]);
+      setProducts((prev) =>
+        mergeProductRows([
+          res.product,
+          ...prev.filter((product) => !isDefaultProduct(product) && product.id !== res.product.id),
+        ]),
+      );
       resetProductForm();
     } else {
       setError(res.error);
@@ -1270,6 +1367,10 @@ function ProductManager({ token }: { token: string }) {
   };
 
   const removeProduct = async (product: StoreProductRow) => {
+    if (isDefaultProduct(product)) {
+      setError("Default ranks are protected. Edit the rank to customize it instead of deleting it.");
+      return;
+    }
     if (!window.confirm(`Delete ${product.name}?`)) return;
     setError(null);
     const res = await deleteStoreProduct(product.id, token);
@@ -1290,7 +1391,7 @@ function ProductManager({ token }: { token: string }) {
           <div>
             <h2 className="text-lg font-bold">Store Products</h2>
             <p className="text-xs text-muted-foreground">
-              Add and edit ranks, keys, and bundles from the admin panel.
+              Add and edit ranks, keys, and bundles. Default ranks stay protected so old ranks do not disappear.
             </p>
           </div>
         </div>
@@ -1444,7 +1545,9 @@ function ProductManager({ token }: { token: string }) {
               <p className="text-sm text-muted-foreground">No {category}s yet.</p>
             ) : (
               <div className="space-y-3">
-                {byCategory(category).map((product) => (
+                {byCategory(category).map((product) => {
+                  const defaultProduct = isDefaultProduct(product);
+                  return (
                   <div key={product.id} className="rounded-xl border border-border/60 bg-card/40 p-3">
                     <div className="flex items-start justify-between gap-3">
                       <div>
@@ -1455,8 +1558,9 @@ function ProductManager({ token }: { token: string }) {
                     </div>
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       <MiniPill active={product.active} label={product.active ? "Active" : "Off"} />
-                      <MiniPill active={product.featured} label="Popular" />
-                      <MiniPill active={product.coming_soon} label="Soon" />
+                      {product.featured && <MiniPill active label="Popular" />}
+                      {product.coming_soon && <MiniPill active label="Soon" />}
+                      {defaultProduct && <MiniPill active label="Default" />}
                     </div>
                     <div className="mt-3 flex gap-2">
                       <button
@@ -1469,13 +1573,15 @@ function ProductManager({ token }: { token: string }) {
                       <button
                         type="button"
                         onClick={() => removeProduct(product)}
+                        disabled={defaultProduct}
                         className="rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-300 transition hover:bg-red-500/20"
                       >
-                        Delete
+                        {defaultProduct ? "Protected" : "Delete"}
                       </button>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -1554,6 +1660,8 @@ function OrderDrawer({
             </span>
           </div>
 
+          <OrderTimeline order={order} />
+
           {/* Player */}
           <div className="pixel-card rounded-2xl p-5">
             <div className="flex items-center gap-4">
@@ -1608,7 +1716,7 @@ function OrderDrawer({
               {safeOrderItems(order.items).map((item, i) => (
                 <li key={i} className="flex items-center justify-between text-sm">
                   <span className="text-foreground">
-                    {item.name} <span className="text-muted-foreground">×{item.qty}</span>
+                    {item.name} <span className="text-muted-foreground">x{item.qty}</span>
                   </span>
                   <span className="text-muted-foreground">{item.price}</span>
                 </li>
@@ -1634,7 +1742,7 @@ function OrderDrawer({
                       <span className="text-foreground">{log.command}</span>
                     </div>
                     {log.response && (
-                      <div className="mt-1 text-muted-foreground">→ {log.response}</div>
+                      <div className="mt-1 text-muted-foreground">-&gt; {log.response}</div>
                     )}
                   </li>
                 ))}
@@ -1735,6 +1843,46 @@ function Row({
       <dd className={`${mono ? "font-mono" : ""} ${bold ? "font-bold text-foreground" : "text-foreground"}`}>
         {value}
       </dd>
+    </div>
+  );
+}
+
+function OrderTimeline({ order }: { order: Order }) {
+  const fallback = [
+    { status: "submitted" as const, label: "Order submitted", at: order.created_at },
+    {
+      status: order.status,
+      label:
+        order.status === "pending"
+          ? "Waiting for payment verification"
+          : order.status === "confirmed"
+            ? "Payment confirmed"
+            : order.status === "delivered"
+              ? "Delivered in-game"
+              : "Order rejected",
+      at: order.delivered_at ?? order.created_at,
+      note: order.admin_note ?? undefined,
+    },
+  ];
+  const entries = order.status_history && order.status_history.length > 0 ? order.status_history : fallback;
+
+  return (
+    <div className="pixel-card rounded-2xl p-5">
+      <h3 className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Order Timeline</h3>
+      <ol className="space-y-3">
+        {entries.map((entry, index) => (
+          <li key={`${entry.status}-${entry.at}-${index}`} className="flex gap-3">
+            <div className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full border border-accent/30 bg-accent/10 text-accent">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-foreground">{entry.label}</p>
+              <p className="text-xs text-muted-foreground">{new Date(entry.at).toLocaleString("en-PH")}</p>
+              {entry.note && <p className="mt-1 text-xs text-muted-foreground">{entry.note}</p>}
+            </div>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }

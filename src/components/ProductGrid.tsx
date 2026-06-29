@@ -16,6 +16,20 @@ export type Product = {
 
 export function ProductGrid({ products }: { products: Product[] }) {
   const { add } = useCart();
+  if (products.length === 0) {
+    return (
+      <section className="px-6 pb-24">
+        <div className="pixel-card mx-auto max-w-2xl rounded-3xl p-8 text-center">
+          <Clock className="mx-auto h-8 w-8 text-accent" />
+          <h3 className="mt-4 text-xl font-bold text-foreground">No products listed yet</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            This category is ready. Add items from the admin panel and they will appear here automatically.
+          </p>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="px-6 pb-24">
       <div className="mx-auto grid max-w-6xl gap-6 sm:grid-cols-2 lg:grid-cols-3">

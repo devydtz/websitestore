@@ -33,10 +33,36 @@ type Order = {
   created_at: string;
 };
 
+type AuthMetadata = {
+  username?: string;
+  edition?: "java" | "bedrock";
+  display_name?: string;
+};
+
+type AccountRow = {
+  history_count?: number | null;
+  total_spent_cents?: number | null;
+  total_spent_display?: string | null;
+  disabled?: boolean | null;
+};
+
+type OrderSummaryRow = {
+  id: string;
+  total_cents?: number | null;
+};
+
+function formatPhp(cents: number): string {
+  return new Intl.NumberFormat("en-PH", {
+    style: "currency",
+    currency: "PHP",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(cents / 100);
+}
+
 // ---- Minimal RCON client (Source RCON protocol) ----
 const SERVERDATA_AUTH = 3;
 const SERVERDATA_EXECCOMMAND = 2;
-const SERVERDATA_RESPONSE_VALUE = 0;
 const SERVERDATA_AUTH_RESPONSE = 2;
 
 function rconPacket(id: number, type: number, body: string): Uint8Array {
@@ -189,12 +215,112 @@ Deno.serve(async (req: Request) => {
   try {
     const { orderId, action, adminToken, note } = await req.json();
 
-    if (!orderId || !action) {
-      return json({ error: "Missing orderId or action" }, 400);
-    }
+    if (!action) return json({ error: "Missing action" }, 400);
     if (adminToken !== ADMIN_PASSWORD) {
       return json({ error: "Unauthorized: invalid admin token" }, 403);
     }
+    if (action === "sync-accounts") {
+      const { data, error } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
+      if (error) return json({ error: error.message }, 500);
+
+      const rows = (data.users ?? [])
+        .map((user) => {
+          const meta = (user.user_metadata ?? {}) as AuthMetadata;
+          const username = String(meta.username ?? user.email?.split("@")[0] ?? "").trim().replace(/^\.+/, "");
+          if (!username || !user.email) return null;
+          const edition = meta.edition === "bedrock" ? "bedrock" : "java";
+          const id = `${edition}:${username.toLowerCase()}`;
+          const displayName = edition === "bedrock" ? `.${username}` : username;
+          return {
+            id,
+            username,
+            edition,
+            email: user.email,
+            display_name: String(meta.display_name ?? displayName),
+            email_verified: Boolean(user.email_confirmed_at),
+            disabled: false,
+            history_count: 0,
+            total_spent_cents: 0,
+            total_spent_display: "PHP 0",
+            last_seen_at: user.last_sign_in_at ?? user.created_at ?? new Date().toISOString(),
+          };
+        })
+        .filter(Boolean);
+
+      for (const row of rows) {
+        const { data: existing } = await supabase
+          .from("accounts")
+          .select("history_count,total_spent_cents,total_spent_display,disabled")
+          .eq("id", row.id)
+          .maybeSingle<AccountRow>();
+        const { data: emailOrders } = await supabase
+          .from("orders")
+          .select("id,total_cents")
+          .eq("email", row.email);
+        const { data: playerOrders } = await supabase
+          .from("orders")
+          .select("id,total_cents")
+          .eq("edition", row.edition)
+          .ilike("username", row.username);
+        const ordersById = new Map<string, OrderSummaryRow>();
+        for (const order of ([...(emailOrders ?? []), ...(playerOrders ?? [])] as OrderSummaryRow[])) {
+          if (order.id) ordersById.set(order.id, order);
+        }
+        const orderCount = ordersById.size;
+        const orderTotal = [...ordersById.values()].reduce((sum, order) => sum + Number(order.total_cents ?? 0), 0);
+        const existingCount = Number(existing?.history_count ?? row.history_count ?? 0);
+        const existingTotal = Number(existing?.total_spent_cents ?? row.total_spent_cents ?? 0);
+        const totalSpentCents = Math.max(existingTotal, orderTotal);
+        const merged = {
+          ...row,
+          disabled: Boolean(existing?.disabled),
+          history_count: Math.max(existingCount, orderCount),
+          total_spent_cents: totalSpentCents,
+          total_spent_display:
+            totalSpentCents > 0 ? formatPhp(totalSpentCents) : existing?.total_spent_display ?? row.total_spent_display,
+        };
+        const { error: upsertError } = await supabase.from("accounts").upsert(merged, { onConflict: "id" });
+        if (upsertError) return json({ error: upsertError.message }, 500);
+      }
+
+      return json({ synced: rows.length });
+    }
+    if (action === "delete-account") {
+      const accountId = String(orderId ?? "");
+      if (!accountId || !accountId.includes(":")) return json({ error: "Missing account id" }, 400);
+      const [editionRaw, usernameRaw] = accountId.split(":");
+      const edition = editionRaw === "bedrock" ? "bedrock" : "java";
+      const username = usernameRaw.trim().replace(/^\.+/, "");
+      if (!username) return json({ error: "Invalid account id" }, 400);
+
+      const { data: account } = await supabase.from("accounts").select("*").eq("id", accountId).maybeSingle();
+      const email = typeof account?.email === "string" ? account.email : "";
+
+      if (email) {
+        const { data: users } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
+        const authUser = users?.users.find((user) => user.email?.toLowerCase() === email.toLowerCase());
+        if (authUser) {
+          const { error: authDeleteError } = await supabase.auth.admin.deleteUser(authUser.id);
+          if (authDeleteError) return json({ error: authDeleteError.message }, 500);
+        }
+      }
+
+      const ordersDelete = await supabase
+        .from("orders")
+        .delete()
+        .eq("edition", edition)
+        .ilike("username", username);
+      if (ordersDelete.error) return json({ error: ordersDelete.error.message }, 500);
+
+      const accountDelete = await supabase.from("accounts").delete().eq("id", accountId);
+      if (accountDelete.error) return json({ error: accountDelete.error.message }, 500);
+
+      const tombstoneDelete = await supabase.from("deleted_accounts").delete().eq("id", accountId);
+      if (tombstoneDelete.error) return json({ error: tombstoneDelete.error.message }, 500);
+
+      return json({ deleted: true });
+    }
+    if (!orderId) return json({ error: "Missing orderId" }, 400);
     if (action !== "confirm" && action !== "reject") {
       return json({ error: "Invalid action" }, 400);
     }

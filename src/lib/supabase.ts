@@ -515,6 +515,47 @@ export async function listAccounts(): Promise<{ ok: true; accounts: StoreAccount
   return { ok: false, error: lastError || networkError("No Supabase URL responded", supabase.urls) };
 }
 
+async function callAdminFunction<T>(
+  body: Record<string, unknown>,
+): Promise<{ ok: true; data: T } | { ok: false; error: string }> {
+  const supabase = getSupabase();
+  if (!supabase.ok) return { ok: false, error: supabase.error };
+
+  let lastError = "";
+  for (const url of supabase.urls) {
+    try {
+      const response = await fetch(`${url}/functions/v1/admin-manage-order`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${supabaseAnonKey}`,
+          Apikey: supabaseAnonKey,
+        },
+        body: JSON.stringify(body),
+      });
+      const payload = (await response.json().catch(() => null)) as (T & { error?: string }) | null;
+      if (!response.ok) {
+        lastError = payload?.error || `Admin function failed with HTTP ${response.status}`;
+        continue;
+      }
+      return { ok: true, data: payload as T };
+    } catch (error) {
+      lastError = networkError(error, [`${url}/functions/v1/admin-manage-order`]);
+    }
+  }
+
+  return { ok: false, error: lastError || "Admin function did not respond." };
+}
+
+export async function syncAccountsFromAuthUsers(
+  adminToken: string,
+): Promise<{ ok: true; synced: number } | { ok: false; error: string }> {
+  if (adminToken !== "lunaris-admin-2024") return { ok: false, error: "Incorrect admin password." };
+  const res = await callAdminFunction<{ synced: number }>({ action: "sync-accounts", adminToken });
+  if (!res.ok) return res;
+  return { ok: true, synced: Number(res.data.synced ?? 0) };
+}
+
 function formatPhp(cents: number) {
   return new Intl.NumberFormat("en-PH", {
     style: "currency",
@@ -705,6 +746,13 @@ export async function deleteAccount(
   if (adminToken !== "lunaris-admin-2024") {
     return { ok: false, error: "Incorrect admin password." };
   }
+
+  const fullDelete = await callAdminFunction<{ deleted: boolean }>({
+    action: "delete-account",
+    orderId: id,
+    adminToken,
+  });
+  if (fullDelete.ok) return { ok: true };
 
   let lastError = "";
   for (const url of supabase.urls) {

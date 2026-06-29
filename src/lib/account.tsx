@@ -152,9 +152,9 @@ function writeUsers(users: Record<string, StoredUser>) {
   }
 }
 
-function authRedirectUrl() {
+function authRedirectUrl(mode: "signin" | "reset" = "signin") {
   if (typeof window === "undefined") return undefined;
-  return `${window.location.origin}/account`;
+  return `${window.location.origin}/account?mode=${mode}`;
 }
 
 function userFromAuth(authUser: User): StoredUser | null {
@@ -262,7 +262,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
           email: email.trim(),
           password,
           options: {
-            emailRedirectTo: authRedirectUrl(),
+            emailRedirectTo: authRedirectUrl("signin"),
             data: { username: clean, edition },
           },
         });
@@ -355,7 +355,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
         if (emailErr) return { ok: false, error: emailErr };
 
         const { error } = await supabase.client.auth.resetPasswordForEmail(email.trim(), {
-          redirectTo: authRedirectUrl(),
+          redirectTo: authRedirectUrl("reset"),
         });
         if (error) return { ok: false, error: error.message };
         return { ok: true, message: "Password reset email sent. Open the link, then set your new password here." };

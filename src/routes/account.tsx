@@ -79,8 +79,12 @@ function AccountPage() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const authParams = `${window.location.search} ${window.location.hash}`;
-    if (authParams.includes("type=recovery")) setMode("reset");
-    if (authParams.includes("type=signup")) setSuccess("Email verified. You can sign in now.");
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("mode") === "reset" || authParams.includes("type=recovery")) setMode("reset");
+    if (params.get("mode") === "signin" || authParams.includes("type=signup")) {
+      setMode("signin");
+      if (authParams.includes("type=signup")) setSuccess("Email verified. You can sign in now.");
+    }
   }, []);
 
   const resetForm = (nextMode: AuthMode) => {

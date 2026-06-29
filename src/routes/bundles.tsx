@@ -11,9 +11,9 @@ export const Route = createFileRoute("/bundles")({
   head: () => ({
     meta: [
       { title: "Bundles - Lunaris Craft" },
-      { name: "description", content: "Bundles are coming soon to the Lunaris Craft store." },
+      { name: "description", content: "Bundles for the Lunaris Craft store." },
       { property: "og:title", content: "Bundles - Lunaris Craft" },
-      { property: "og:description", content: "Bundles are coming soon to the Lunaris Craft store." },
+      { property: "og:description", content: "Bundles for the Lunaris Craft store." },
     ],
   }),
   component: BundlesPage,
@@ -40,7 +40,7 @@ function BundlesPage() {
         <PageHero
           eyebrow="Maximum Value"
           title="Bundles"
-          description="Bundles are coming soon. We will add the final bundle names, contents, and prices once they are ready."
+          description="Browse available bundles once they are added by the admin team."
         />
         <ProductGrid products={products} />
         <SiteFooter />

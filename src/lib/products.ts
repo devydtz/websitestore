@@ -116,29 +116,9 @@ export const fallbackRanks: Product[] = [
 ];
 
 export const fallbackKeys: Product[] = [
-  {
-    id: "keys-coming-soon",
-    category: "key",
-    name: "Crate Keys",
-    tagline: "Keys are coming soon. Details will be added once the rewards are finalized.",
-    price: "PHP 0",
-    Icon: KeyRound,
-    comingSoon: true,
-    perks: [],
-  },
 ];
 
 export const fallbackBundles: Product[] = [
-  {
-    id: "bundles-coming-soon",
-    category: "bundle",
-    name: "Bundles",
-    tagline: "Bundles are coming soon. Details will be added once the offers are finalized.",
-    price: "PHP 0",
-    Icon: Package,
-    comingSoon: true,
-    perks: [],
-  },
 ];
 
 function iconFor(category: Product["category"], featured: boolean): LucideIcon {
@@ -164,6 +144,30 @@ export function productFromRow(row: StoreProductRow): Product {
 export async function loadProductsForCategory(category: Product["category"], fallback: Product[]) {
   const res = await listStoreProducts();
   if (!res.ok) return { products: fallback, error: res.error };
-  const products = res.products.filter((product) => product.category === category).map(productFromRow);
-  return { products: products.length ? products : fallback, error: null };
+  const savedProducts = res.products.filter((product) => product.category === category).map(productFromRow);
+  const merged = mergeProducts(fallback, savedProducts);
+  return { products: merged, error: null };
+}
+
+export function mergeProducts(fallback: Product[], savedProducts: Product[]) {
+  const savedIds = new Set(savedProducts.map((product) => product.id));
+  return [...fallback.filter((product) => !savedIds.has(product.id)), ...savedProducts];
+}
+
+export function fallbackProductRows(): StoreProductRow[] {
+  return fallbackRanks.map((product, index) => ({
+    id: product.id,
+    category: product.category,
+    name: product.name,
+    tagline: product.tagline,
+    price_cents: LIVE_PRODUCT_DETAILS[product.id]?.priceCents ?? 0,
+    price_display: product.price,
+    perks: product.perks,
+    active: true,
+    coming_soon: false,
+    featured: Boolean(product.featured),
+    sort_order: (index + 1) * 10,
+    created_at: "",
+    updated_at: "",
+  }));
 }

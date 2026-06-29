@@ -11,9 +11,9 @@ export const Route = createFileRoute("/keys")({
   head: () => ({
     meta: [
       { title: "Crate Keys - Lunaris Craft" },
-      { name: "description", content: "Crate keys are coming soon to the Lunaris Craft store." },
+      { name: "description", content: "Crate keys for the Lunaris Craft store." },
       { property: "og:title", content: "Crate Keys - Lunaris Craft" },
-      { property: "og:description", content: "Crate keys are coming soon to the Lunaris Craft store." },
+      { property: "og:description", content: "Crate keys for the Lunaris Craft store." },
     ],
   }),
   component: KeysPage,
@@ -40,7 +40,7 @@ function KeysPage() {
         <PageHero
           eyebrow="Unlock the Unknown"
           title="Crate Keys"
-          description="Crate keys are coming soon. We will add the final key names, rewards, and prices once they are ready."
+          description="Browse available crate keys once they are added by the admin team."
         />
         <ProductGrid products={products} />
         <SiteFooter />

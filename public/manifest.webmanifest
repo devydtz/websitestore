@@ -1,13 +1,14 @@
 {
   "name": "Lunaris Admin",
   "short_name": "Lunaris",
-  "description": "Lunaris Craft admin panel",
+  "description": "Manage Lunaris Craft store orders, accounts, products, and promos.",
   "start_url": "/admin",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#07020f",
   "theme_color": "#bda7ff",
+  "categories": ["business", "shopping", "games"],
   "icons": [
     {
       "src": "/pwa-192.png",
@@ -20,6 +21,29 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Admin Panel",
+      "short_name": "Admin",
+      "description": "Open order management.",
+      "url": "/admin",
+      "icons": [{ "src": "/pwa-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Orders",
+      "short_name": "Orders",
+      "description": "View order status pages.",
+      "url": "/orders",
+      "icons": [{ "src": "/pwa-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Account",
+      "short_name": "Account",
+      "description": "Open customer account page.",
+      "url": "/account",
+      "icons": [{ "src": "/pwa-192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ]
 }
