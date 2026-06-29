@@ -23,7 +23,6 @@ import {
   Ban,
   Trash2,
   UserPlus,
-  BellRing,
   Percent,
 } from "lucide-react";
 import { Starfield } from "@/components/Starfield";
@@ -46,7 +45,6 @@ import {
   type PromoCodeRow,
   type StoreAccount,
 } from "@/lib/supabase";
-import { enableLocalAdminNotifications } from "@/lib/pwa-notifications";
 
 const ADMIN_TOKEN_KEY = "lunaris.admin.token.v1";
 const DEFAULT_ADMIN_PASSWORD = "lunaris-admin-2024";
@@ -178,7 +176,6 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
   const [noteSaving, setNoteSaving] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [note, setNote] = useState("");
-  const [notificationMessage, setNotificationMessage] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -305,12 +302,6 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
     return { ok: false as const, error: res.error };
   };
 
-  const enableNotifications = async () => {
-    setNotificationMessage("Requesting notification permission...");
-    const res = await enableLocalAdminNotifications();
-    setNotificationMessage(res.ok ? "Admin alerts are enabled on this device." : res.error);
-  };
-
   return (
     <section className="mx-auto max-w-7xl px-4 pb-24 pt-8 md:px-8">
       {/* Header */}
@@ -325,13 +316,6 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={enableNotifications}
-            className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-4 py-2 text-sm font-semibold text-accent transition hover:bg-accent/20"
-          >
-            <BellRing className="h-4 w-4" />
-            Enable iPhone Alerts
-          </button>
           <button
             onClick={load}
             disabled={loading}
@@ -521,12 +505,6 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
           </div>
         )}
       </div>
-
-      {notificationMessage && (
-        <div className="mt-6 rounded-2xl border border-accent/25 bg-accent/10 px-5 py-3 text-sm text-accent">
-          {notificationMessage}
-        </div>
-      )}
 
       <AccountsManager
         accounts={accounts}
