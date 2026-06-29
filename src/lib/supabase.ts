@@ -33,6 +33,36 @@ function networkError(error: unknown, urls: string[]) {
   return `Could not reach Supabase (${message}). Tried: ${urls.join(", ")}. Check VITE_SUPABASE_URL and redeploy Cloudflare.`;
 }
 
+async function postWithAbort(url: string, payload: unknown, label: string, ms = 10000) {
+  const controller = new AbortController();
+  const timer = globalThis.setTimeout(() => controller.abort(new Error(`${label} timed out after ${ms / 1000}s`)), ms);
+  try {
+    const response = await globalThis.fetch(`${url}/rest/v1/orders`, {
+      method: "POST",
+      headers: {
+        apikey: supabaseAnonKey,
+        authorization: `Bearer ${supabaseAnonKey}`,
+        "content-type": "application/json",
+        prefer: "return=minimal",
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+
+    if (response.ok) return { ok: true as const };
+
+    const text = await response.text().catch(() => "");
+    let message = text || `HTTP ${response.status}`;
+    try {
+      const parsed = JSON.parse(text) as { message?: string; details?: string; hint?: string; code?: string };
+      message = parsed.message || parsed.details || parsed.hint || parsed.code || message;
+    } catch {}
+    return { ok: false as const, error: message };
+  } finally {
+    globalThis.clearTimeout(timer);
+  }
+}
+
 function withTimeout<T>(promise: PromiseLike<T>, label: string, ms = 15000): Promise<T> {
   return new Promise((resolve, reject) => {
     const timer = globalThis.setTimeout(() => reject(new Error(`${label} timed out after ${ms / 1000}s`)), ms);
@@ -203,7 +233,6 @@ export async function createOrder(order: NewOrder): Promise<{ ok: true } | { ok:
   let lastError = "";
   for (const url of supabase.urls) {
     try {
-      const client = createClient(url, supabaseAnonKey);
       const now = new Date().toISOString();
       const baseInsert = {
         id: order.id,
@@ -251,35 +280,17 @@ export async function createOrder(order: NewOrder): Promise<{ ok: true } | { ok:
             at: now,
           },
         ],
-        receipt_issued_at: now,
-      };
-      const insertRes = await withTimeout(
-        client.from("orders").insert({ ...baseInsert, ...timelineInsert }),
-        "Submitting order",
-        10000,
-      );
-      let error = insertRes.error;
-      if (
-        error &&
-        /status_history|receipt_issued_at|schema cache|column/i.test(error.message)
-      ) {
-        const fallbackRes = await withTimeout(
-          client.from("orders").insert(baseInsert),
-          "Submitting order without receipt timeline",
-          10000,
-        );
-        error = fallbackRes.error;
-        if (error && /schema cache|column/i.test(error.message)) {
-          const minimalRes = await withTimeout(
-            client.from("orders").insert(minimalInsert),
-            "Submitting order with older database schema",
-            10000,
-          );
-          error = minimalRes.error;
+          receipt_issued_at: now,
+        };
+      let insertRes = await postWithAbort(url, { ...baseInsert, ...timelineInsert }, "Submitting order");
+      if (!insertRes.ok && /status_history|receipt_issued_at|schema cache|column/i.test(insertRes.error)) {
+        insertRes = await postWithAbort(url, baseInsert, "Submitting order without receipt timeline");
+        if (!insertRes.ok && /schema cache|column/i.test(insertRes.error)) {
+          insertRes = await postWithAbort(url, minimalInsert, "Submitting order with older database schema");
         }
       }
-      if (!error) return { ok: true };
-      lastError = formatSupabaseError(url, error.message);
+      if (insertRes.ok) return { ok: true };
+      lastError = formatSupabaseError(url, insertRes.error);
     } catch (error) {
       lastError = networkError(error, [url]);
     }

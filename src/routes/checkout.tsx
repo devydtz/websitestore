@@ -1,21 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, type FormEvent, type ReactNode } from "react";
-import {
-  AlertCircle,
-  ArrowLeft,
-  Check,
-  CheckCircle2,
-  Clock3,
-  Copy,
-  FileText,
-  Lock,
-  ReceiptText,
-  ShieldCheck,
-  ShoppingBag,
-  Tag,
-  User as UserIcon,
-} from "lucide-react";
-import { Starfield } from "@/components/Starfield";
+import { useMemo, useState, type FormEvent } from "react";
+import { AlertCircle, ArrowLeft, Check, CheckCircle2, Copy, Lock, ShoppingBag } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { SiteFooter } from "@/components/SiteFooter";
 import { centsToDisplay, lineTotalDisplay, useCart } from "@/lib/cart";
@@ -34,9 +19,9 @@ export const Route = createFileRoute("/checkout")({
   head: () => ({
     meta: [
       { title: "Checkout - Lunaris Craft" },
-      { name: "description", content: "Pay securely with GCash. Items deliver in-game within minutes." },
+      { name: "description", content: "Pay with GCash and submit your Lunaris Craft order." },
       { property: "og:title", content: "Checkout - Lunaris Craft" },
-      { property: "og:description", content: "Pay securely with GCash. Items deliver in-game within minutes." },
+      { property: "og:description", content: "Pay with GCash and submit your Lunaris Craft order." },
     ],
   }),
   component: CheckoutPage,
@@ -51,48 +36,58 @@ function CheckoutPage() {
   const [referenceNo, setReferenceNo] = useState("");
   const [confirmed, setConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [done, setDone] = useState<string | null>(null);
-  const [submittedTotal, setSubmittedTotal] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const liveItems = useMemo(
+    () =>
+      items.filter(
+        (item) =>
+          item.category === "rank" &&
+          isLiveProduct(item.id) &&
+          Number.isFinite(item.priceCents) &&
+          item.priceCents > 0 &&
+          Number.isFinite(item.qty) &&
+          item.qty > 0,
+      ),
+    [items],
+  );
 
   const gcashDigits = gcashNumber.replace(/\D/g, "");
   const referenceDigits = referenceNo.replace(/\D/g, "");
-  const subtotalCents = items.reduce((sum, i) => sum + i.priceCents * i.qty, 0);
+  const subtotalCents = liveItems.reduce((sum, item) => sum + item.priceCents * item.qty, 0);
   const subtotalDisplay = centsToDisplay(subtotalCents);
-  const discountCents = 0;
-  const discountDisplay = centsToDisplay(0);
-  const checkoutTotalCents = subtotalCents;
-  const checkoutTotalDisplay = centsToDisplay(checkoutTotalCents);
-  const paymentReady =
+  const totalDisplay = centsToDisplay(subtotalCents);
+  const hasUnavailableItems = liveItems.length !== items.length;
+  const canSubmit =
     Boolean(account) &&
-    Boolean(account.emailVerified) &&
-    !account.disabled &&
+    Boolean(account?.emailVerified) &&
+    !account?.disabled &&
+    liveItems.length > 0 &&
+    !hasUnavailableItems &&
+    subtotalCents > 0 &&
     /^09\d{9}$/.test(gcashDigits) &&
     referenceDigits.length >= 10 &&
-    confirmed &&
-    items.every((item) => isLiveProduct(item.id) && item.priceCents > 0);
-  const unavailableItems = items.filter((item) => !isLiveProduct(item.id) || item.priceCents <= 0);
+    confirmed;
 
   const copyNumber = async () => {
     try {
       await navigator.clipboard.writeText(STORE_GCASH_NUMBER);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {}
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setCopied(false);
+    }
   };
 
-  const onSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const submitOrder = async (event: FormEvent) => {
+    event.preventDefault();
     if (submitting) return;
+
     setError(null);
 
-    const liveItems = items.filter(
-      (item) => isLiveProduct(item.id) && item.category === "rank" && Number.isFinite(item.priceCents) && item.priceCents > 0,
-    );
-
     if (!account) {
-      setError("Please sign in or create an account before checking out.");
+      setError("Sign in before checking out.");
       return;
     }
     if (account.disabled) {
@@ -100,489 +95,290 @@ function CheckoutPage() {
       return;
     }
     if (!account.emailVerified) {
-      setError("Verify your email before checking out. Open the verification email, then refresh your account page.");
+      setError("Verify your email first, then refresh your account page.");
+      return;
+    }
+    if (hasUnavailableItems || liveItems.length === 0) {
+      setError("Remove old keys/bundles from your cart and add a live rank.");
       return;
     }
     if (!/^09\d{9}$/.test(gcashDigits)) {
-      setError("Enter a valid GCash mobile number (09XX XXX XXXX).");
+      setError("Enter a valid GCash number that starts with 09.");
       return;
     }
     if (referenceDigits.length < 10) {
-      setError("Enter your GCash reference number (at least 10 digits).");
+      setError("Enter your GCash reference number.");
       return;
     }
     if (!confirmed) {
-      setError("Please confirm you have sent the exact amount via GCash.");
-      return;
-    }
-    if (items.length === 0 || unavailableItems.length > 0 || liveItems.length !== items.length) {
-      setError("Some cart items are not available yet. Remove them and add a live rank before checking out.");
-      return;
-    }
-    if (checkoutTotalCents <= 0) {
-      setError("Your total is invalid. Remove the item and add the rank again before checking out.");
+      setError("Check the confirmation box before submitting.");
       return;
     }
 
     setSubmitting(true);
+    let submitted = false;
+
     try {
-      await new Promise((r) => setTimeout(r, 500));
       const orderId =
         "LC-" +
         (globalThis.crypto?.randomUUID?.().replace(/-/g, "").slice(0, 6) ??
           Math.random().toString(36).slice(2, 8)).toUpperCase();
-      const orderItems = liveItems.map((i) => ({
-        id: i.id,
-        name: i.name,
-        price: lineTotalDisplay(i.priceCents, i.qty),
-        qty: i.qty,
+      const orderItems = liveItems.map((item) => ({
+        id: item.id,
+        name: item.name,
+        price: lineTotalDisplay(item.priceCents, item.qty),
+        qty: item.qty,
       }));
 
-      const supa = await createOrder({
+      const result = await createOrder({
         id: orderId,
         username: account.username,
         edition: account.edition,
         email: account.email,
         items: orderItems,
-        total_cents: checkoutTotalCents,
-        total_display: checkoutTotalDisplay,
+        total_cents: subtotalCents,
+        total_display: totalDisplay,
         method: "gcash",
         gcash_number: formatMobileNumber(gcashNumber),
         reference_no: referenceDigits,
         promo_code: null,
-        discount_cents: discountCents,
-        discount_display: discountDisplay,
+        discount_cents: 0,
+        discount_display: centsToDisplay(0),
         subtotal_cents: subtotalCents,
         subtotal_display: subtotalDisplay,
       });
 
-      if (!supa.ok) {
-        setError(`Could not submit order: ${supa.error}. Please try again.`);
+      if (!result.ok) {
+        setError(`Could not submit order: ${result.error}`);
         return;
       }
 
       recordPurchase({
         id: orderId,
         date: new Date().toISOString(),
-        items: liveItems.map((i) => ({
-          id: i.id,
-          name: `${i.name} x${i.qty}`,
-          price: lineTotalDisplay(i.priceCents, i.qty),
+        items: liveItems.map((item) => ({
+          id: item.id,
+          name: `${item.name} x${item.qty}`,
+          price: lineTotalDisplay(item.priceCents, item.qty),
         })),
-        total: checkoutTotalDisplay,
+        total: totalDisplay,
         method: "gcash",
-        discount: discountDisplay,
+        discount: centsToDisplay(0),
       });
-      setSubmittedTotal(checkoutTotalDisplay);
-      setDone(orderId);
+
+      submitted = true;
       clear();
+      await navigate({ to: "/order/$orderId", params: { orderId } });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      setError(`Could not submit order: ${message}. Please try again.`);
+      setError(`Could not submit order: ${message}`);
     } finally {
-      setSubmitting(false);
+      if (!submitted) setSubmitting(false);
     }
   };
 
   return (
-    <div className="relative min-h-screen bg-background text-foreground">
-      <Starfield />
-      <div className="relative z-10">
-        <Navbar />
+    <div className="min-h-screen bg-background text-foreground">
+      <Navbar />
 
-        {done ? (
-          <section className="px-6 py-24">
-            <div className="pixel-card mx-auto max-w-lg rounded-2xl p-10 text-center animate-fade-in">
-              <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-[#007DFF]/15 text-[#007DFF] ring-1 ring-[#007DFF]/40">
-                <CheckCircle2 className="h-8 w-8" />
-              </div>
-              <h1 className="mt-5 font-display text-5xl">Order Submitted</h1>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Order <span className="font-mono text-foreground">#{done}</span> is awaiting payment verification by
-                our team. Once your GCash payment is confirmed, your rewards will be delivered in-game.
-              </p>
-              <div className="mt-6 rounded-2xl border border-border/60 bg-background/40 p-4 text-left">
-                <div className="flex items-center gap-2 text-sm font-bold text-foreground">
-                  <ReceiptText className="h-4 w-4 text-accent" />
-                  Receipt Snapshot
-                </div>
-                <div className="mt-3 space-y-2 text-sm text-muted-foreground">
-                  <InfoLine label="Order ID" value={`#${done}`} mono />
-                  <InfoLine label="Status" value="Pending Verification" valueClass="font-semibold text-amber-400" />
-                  <InfoLine label="Total" value={submittedTotal ?? checkoutTotalDisplay} valueClass="font-bold text-foreground" />
-                </div>
-              </div>
-              <div className="mt-6 flex flex-wrap justify-center gap-3">
-                <Link
-                  to="/order/$orderId"
-                  params={{ orderId: done }}
-                  className="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-accent"
-                >
-                  Track Order
-                </Link>
-                <Link
-                  to="/account"
-                  className="rounded-full border border-border bg-card/60 px-5 py-2.5 text-sm font-semibold text-foreground transition hover:border-accent"
-                >
-                  View Account
-                </Link>
-                <button
-                  onClick={() => navigate({ to: "/" })}
-                  className="rounded-full border border-border bg-card/60 px-5 py-2.5 text-sm font-semibold text-foreground transition hover:border-accent"
-                >
-                  Back to Home
-                </button>
-              </div>
-            </div>
-          </section>
-        ) : items.length === 0 ? (
-          <section className="px-6 py-24 text-center">
-            <div className="pixel-card mx-auto max-w-md rounded-2xl p-10">
-              <ShoppingBag className="mx-auto h-10 w-10 text-muted-foreground" />
-              <h1 className="mt-4 font-display text-4xl">Your cart is empty</h1>
-              <p className="mt-2 text-sm text-muted-foreground">Add a live rank before checking out.</p>
-              <Link
-                to="/ranks"
-                className="mt-6 inline-flex rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-accent"
-              >
-                Browse Ranks
-              </Link>
-            </div>
-          </section>
-        ) : (
-          <section className="mx-auto max-w-6xl px-6 pb-24 pt-10">
+      {items.length === 0 ? (
+        <section className="mx-auto max-w-lg px-6 py-24 text-center">
+          <div className="pixel-card rounded-2xl p-8">
+            <ShoppingBag className="mx-auto h-10 w-10 text-muted-foreground" />
+            <h1 className="mt-4 font-display text-4xl">Your cart is empty</h1>
+            <p className="mt-2 text-sm text-muted-foreground">Add a rank before checking out.</p>
             <Link
-              to="/"
-              className="mb-6 inline-flex items-center gap-1 text-xs text-muted-foreground transition hover:text-foreground"
+              to="/ranks"
+              className="mt-6 inline-flex rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground"
             >
-              <ArrowLeft className="h-3.5 w-3.5" /> Continue shopping
+              Browse Ranks
             </Link>
-            <h1 className="font-display text-5xl">Checkout</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Pay in Philippine Peso (PHP) via GCash. Fast, secure, and local.
+          </div>
+        </section>
+      ) : (
+        <section className="mx-auto max-w-6xl px-6 pb-20 pt-10">
+          <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="h-4 w-4" />
+            Continue shopping
+          </Link>
+
+          <div className="mt-6">
+            <p className="text-xs font-bold uppercase tracking-[0.25em] text-accent">Secure GCash Checkout</p>
+            <h1 className="mt-2 font-display text-4xl md:text-5xl">Checkout</h1>
+            <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+              Send the exact GCash amount, enter your payment details, then track the order from the status page.
             </p>
+          </div>
 
-            <div className="mt-6 grid gap-3 md:grid-cols-3">
-              <CheckoutStep
-                icon={<UserIcon className="h-4 w-4" />}
-                title="1. Account"
-                copy={account ? `${account.displayName} is selected` : "Sign in before paying"}
-                active={Boolean(account)}
-              />
-              <CheckoutStep
-                icon={<FileText className="h-4 w-4" />}
-                title="2. Payment Details"
-                copy={paymentReady ? "Ready to submit" : "Enter GCash receipt info"}
-                active={paymentReady}
-              />
-              <CheckoutStep
-                icon={<ShieldCheck className="h-4 w-4" />}
-                title="3. Admin Verify"
-                copy="We confirm, then deliver in-game"
-                active={false}
-              />
-            </div>
+          {!account && <Notice text="Sign in or create an account before checking out." />}
+          {account && !account.emailVerified && <Notice text="Verify your email before checking out." />}
+          {account?.disabled && <Notice text="This account is disabled. Contact support before checking out." danger />}
+          {hasUnavailableItems && <Notice text="Your cart has unavailable items. Remove keys/bundles and add a live rank." danger />}
+          {error && <Notice text={error} danger />}
 
-            {!account && (
-              <div className="mt-6 flex items-start gap-3 rounded-2xl border border-accent/30 bg-accent/5 px-5 py-4">
-                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
-                <div>
-                  <p className="text-sm font-semibold text-foreground">Account required</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Create an account first, then come back to complete your GCash payment.
-                  </p>
-                  <Link
-                    to="/account"
-                    className="mt-3 inline-flex rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition hover:bg-accent"
-                  >
-                    Sign Up / Sign In
-                  </Link>
-                </div>
-              </div>
-            )}
-
-            {account && !account.emailVerified && (
-              <div className="mt-6 flex items-start gap-3 rounded-2xl border border-amber-400/30 bg-amber-400/10 px-5 py-4 text-amber-200">
-                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
-                <div>
-                  <p className="text-sm font-semibold">Email verification required</p>
-                  <p className="mt-1 text-sm opacity-90">
-                    This prevents people from checking out with random emails. Open the verification email from Lunaris Craft,
-                    then refresh your account page.
-                  </p>
-                  <Link
-                    to="/account"
-                    className="mt-3 inline-flex rounded-full border border-amber-300/30 bg-background/30 px-4 py-2 text-xs font-semibold transition hover:bg-background/50"
-                  >
-                    View Account Status
-                  </Link>
-                </div>
-              </div>
-            )}
-
-            {account?.disabled && (
-              <div className="mt-6 flex items-start gap-3 rounded-2xl border border-red-500/30 bg-red-500/10 px-5 py-4 text-red-300">
-                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
-                <div>
-                  <p className="text-sm font-semibold">Account disabled</p>
-                  <p className="mt-1 text-sm opacity-90">Contact support before checking out.</p>
-                </div>
-              </div>
-            )}
-
-            {unavailableItems.length > 0 && (
-              <div className="mt-6 flex items-start gap-3 rounded-2xl border border-red-500/30 bg-red-500/10 px-5 py-4 text-red-300">
-                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
-                <div>
-                  <p className="text-sm font-semibold">Cart has unavailable items</p>
-                  <p className="mt-1 text-sm opacity-90">
-                    Keys and bundles are not live yet. Remove old cart items and add a current rank.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            <form onSubmit={onSubmit} className="mt-8 grid gap-6 lg:grid-cols-[2fr_1fr]">
-              <div className="space-y-6">
-                {account && (
-                  <div className="pixel-card rounded-2xl p-6">
-                    <h2 className="mb-4 flex items-center gap-2 text-lg font-bold">
-                      <UserIcon className="h-5 w-5 text-accent" /> Delivery Account
-                    </h2>
-                    <div className="flex items-center gap-4 rounded-xl border border-border/60 bg-background/40 p-4">
-                      <img
-                        src={account.avatarUrl}
-                        alt=""
-                        className="h-12 w-12 rounded-full ring-2 ring-accent/40"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).src = "https://mc-heads.net/avatar/MHF_Steve/64";
-                        }}
-                      />
-                      <div>
-                        <p className="font-semibold text-foreground">{account.displayName}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {account.edition === "bedrock" ? "Bedrock" : "Java"} / {account.email}
-                        </p>
-                      </div>
+          <form onSubmit={submitOrder} className="mt-8 grid gap-6 lg:grid-cols-[1.4fr_0.8fr]">
+            <div className="space-y-5">
+              {account && (
+                <section className="pixel-card rounded-2xl p-5">
+                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Account</p>
+                  <div className="mt-3 flex items-center gap-3">
+                    <img
+                      src={account.avatarUrl}
+                      alt=""
+                      className="h-11 w-11 rounded-xl border border-border"
+                      onError={(event) => {
+                        event.currentTarget.src = "https://mc-heads.net/avatar/MHF_Steve/64";
+                      }}
+                    />
+                    <div>
+                      <p className="font-semibold">{account.displayName}</p>
+                      <p className="text-xs text-muted-foreground">{account.email}</p>
                     </div>
                   </div>
-                )}
+                </section>
+              )}
 
-                <div className="overflow-hidden rounded-2xl border border-[#007DFF]/30 bg-gradient-to-br from-[#007DFF]/10 via-card to-card">
-                  <div className="border-b border-[#007DFF]/20 bg-[#007DFF]/10 px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <GcashLogo />
-                      <div>
-                        <h2 className="text-lg font-bold text-foreground">Pay with GCash</h2>
-                        <p className="text-xs text-muted-foreground">Scan the QR, pay the exact total, then enter your reference number.</p>
-                      </div>
-                    </div>
+              <section className="pixel-card rounded-2xl p-5">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Pay To</p>
+                    <h2 className="mt-1 text-xl font-bold">{STORE_GCASH_NAME}</h2>
+                    <p className="mt-1 font-mono text-lg text-[#007DFF]">{STORE_GCASH_DISPLAY}</p>
                   </div>
+                  <button
+                    type="button"
+                    onClick={copyNumber}
+                    className="inline-flex items-center gap-2 rounded-full border border-[#007DFF]/30 px-4 py-2 text-sm font-semibold text-[#007DFF]"
+                  >
+                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    {copied ? "Copied" : "Copy"}
+                  </button>
+                </div>
 
-                  <div className="space-y-5 p-6">
-                    <div className="grid gap-4 rounded-xl border border-[#007DFF]/25 bg-background/50 p-4 md:grid-cols-[180px_1fr]">
-                      <div className="rounded-2xl border border-white/10 bg-white p-3 shadow-[0_0_30px_-12px_rgba(0,125,255,0.7)]">
-                        <img
-                          src={STORE_GCASH_QR}
-                          alt="GCash QR code"
-                          className="aspect-square w-full rounded-xl object-cover"
-                        />
-                      </div>
-                      <div className="flex flex-col justify-center">
-                        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                          Scan or send payment to
-                        </p>
-                        <p className="mt-1 text-sm font-medium text-foreground">{STORE_GCASH_NAME}</p>
-                        <div className="mt-3 flex flex-wrap items-center gap-3">
-                          <p className="font-mono text-2xl font-bold tracking-wide text-[#007DFF]">
-                            {STORE_GCASH_DISPLAY}
-                          </p>
-                          <button
-                            type="button"
-                            onClick={copyNumber}
-                            className="inline-flex items-center gap-1.5 rounded-full border border-[#007DFF]/30 bg-[#007DFF]/10 px-3 py-1.5 text-xs font-semibold text-[#007DFF] transition hover:bg-[#007DFF]/20"
-                          >
-                            {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                            {copied ? "Copied" : "Copy"}
-                          </button>
-                        </div>
-                        <p className="mt-4 rounded-xl border border-[#007DFF]/20 bg-[#007DFF]/10 px-4 py-3 text-lg font-bold text-foreground">
-                          Send exactly <span className="text-[#007DFF]">{checkoutTotalDisplay}</span>
-                        </p>
-                      </div>
+                <div className="mt-5 grid gap-5 md:grid-cols-[180px_1fr]">
+                  <div className="rounded-2xl bg-white p-3">
+                    <img src={STORE_GCASH_QR} alt="GCash QR code" className="aspect-square w-full rounded-xl object-cover" />
+                  </div>
+                  <div className="space-y-4">
+                    <div className="rounded-2xl border border-[#007DFF]/25 bg-[#007DFF]/10 px-4 py-3">
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Send exactly</p>
+                      <p className="mt-1 text-3xl font-black">{totalDisplay}</p>
                     </div>
 
-                    <label className="block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                      Your GCash Number
-                    </label>
+                    <FieldLabel text="Your GCash Number" />
                     <input
                       value={gcashNumber}
-                      onChange={(e) => setGcashNumber(formatMobileNumber(e.target.value))}
+                      onChange={(event) => setGcashNumber(formatMobileNumber(event.target.value))}
                       placeholder="09XX XXX XXXX"
                       inputMode="numeric"
                       disabled={!account}
-                      className="w-full rounded-xl border border-border bg-background/60 px-4 py-3 font-mono text-sm tracking-wider focus:border-[#007DFF] focus:outline-none disabled:opacity-50"
+                      className="w-full rounded-xl border border-border bg-background/70 px-4 py-3 font-mono text-sm outline-none focus:border-[#007DFF] disabled:opacity-50"
                     />
 
-                    <label className="block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                      GCash Reference Number
-                    </label>
+                    <FieldLabel text="GCash Reference Number" />
                     <input
                       value={referenceNo}
-                      onChange={(e) => setReferenceNo(e.target.value.replace(/\D/g, "").slice(0, 13))}
-                      placeholder="13-digit reference from your receipt"
+                      onChange={(event) => setReferenceNo(event.target.value.replace(/\D/g, "").slice(0, 13))}
+                      placeholder="Reference number"
                       inputMode="numeric"
                       disabled={!account}
-                      className="w-full rounded-xl border border-border bg-background/60 px-4 py-3 font-mono text-sm tracking-wider focus:border-[#007DFF] focus:outline-none disabled:opacity-50"
+                      className="w-full rounded-xl border border-border bg-background/70 px-4 py-3 font-mono text-sm outline-none focus:border-[#007DFF] disabled:opacity-50"
                     />
-
-                    <div className="grid gap-2 rounded-xl border border-border/60 bg-background/30 p-4 text-xs text-muted-foreground sm:grid-cols-2">
-                      <VerificationCheck ok={Boolean(account)} label="Account selected" />
-                      <VerificationCheck ok={/^09\d{9}$/.test(gcashDigits)} label="Valid GCash number" />
-                      <VerificationCheck ok={referenceDigits.length >= 10} label="Reference number entered" />
-                      <VerificationCheck ok={confirmed} label="Payment confirmation checked" />
-                    </div>
-
-                    <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border/60 bg-background/30 p-4">
-                      <input
-                        type="checkbox"
-                        checked={confirmed}
-                        onChange={(e) => setConfirmed(e.target.checked)}
-                        disabled={!account}
-                        className="mt-1 h-4 w-4 rounded border-border accent-[#007DFF]"
-                      />
-                      <span className="text-sm text-muted-foreground">
-                        I confirm I have sent <span className="font-semibold text-foreground">{checkoutTotalDisplay}</span>{" "}
-                        via GCash to <span className="font-mono text-foreground">{STORE_GCASH_DISPLAY}</span>.
-                      </span>
-                    </label>
-
-                    <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                      <Lock className="h-3 w-3" /> Payments are verified manually. Keep your GCash receipt until your
-                      order is delivered.
-                    </p>
                   </div>
                 </div>
 
-                {error && (
-                  <div className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive ring-1 ring-destructive/30">
-                    {error}
-                  </div>
-                )}
+                <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-border/70 bg-background/40 p-4">
+                  <input
+                    type="checkbox"
+                    checked={confirmed}
+                    onChange={(event) => setConfirmed(event.target.checked)}
+                    disabled={!account}
+                    className="mt-1 h-4 w-4 accent-[#007DFF]"
+                  />
+                  <span className="text-sm text-muted-foreground">
+                    I confirm I sent <span className="font-bold text-foreground">{totalDisplay}</span> to{" "}
+                    <span className="font-mono text-foreground">{STORE_GCASH_DISPLAY}</span>.
+                  </span>
+                </label>
+              </section>
+            </div>
+
+            <aside className="pixel-card h-fit rounded-2xl p-5">
+              <h2 className="text-lg font-bold">Order Summary</h2>
+              <ul className="mt-4 space-y-3">
+                {liveItems.map((item) => (
+                  <li key={item.id} className="flex justify-between gap-3 text-sm">
+                    <div>
+                      <p className="font-semibold">{item.name}</p>
+                      <p className="text-xs text-muted-foreground">Qty {item.qty}</p>
+                    </div>
+                    <span className="font-bold">{lineTotalDisplay(item.priceCents, item.qty)}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="mt-5 space-y-2 border-t border-border/70 pt-4 text-sm">
+                <SummaryLine label="Subtotal" value={subtotalDisplay} />
+                <SummaryLine label="Payment" value="GCash" />
+                <SummaryLine label="Total" value={totalDisplay} strong />
               </div>
 
-              <aside className="pixel-card sticky top-20 h-fit rounded-2xl p-6">
-                <h2 className="mb-4 text-lg font-bold">Order Summary</h2>
-                <ul className="space-y-3">
-                  {items.map((i) => (
-                    <li key={i.id} className="flex items-start justify-between gap-3 text-sm">
-                      <div className="min-w-0">
-                        <p className="truncate font-semibold text-foreground">{i.name}</p>
-                        <p className="text-xs text-muted-foreground">Qty {i.qty}</p>
-                      </div>
-                      <span className="font-bold text-foreground">{lineTotalDisplay(i.priceCents, i.qty)}</span>
-                    </li>
-                  ))}
-                </ul>
-                <div className="mt-5 border-t border-border/60 pt-4">
-                  <InfoLine label="Subtotal" value={subtotalDisplay} />
-                  <InfoLine label="Payment method" value="GCash" valueClass="font-semibold text-[#007DFF]" />
-                  <InfoLine label="Currency" value="PHP" />
-                  <div className="mt-3 flex items-center justify-between text-base font-bold">
-                    <span>Total</span>
-                    <span className="text-xl">{checkoutTotalDisplay}</span>
-                  </div>
-                </div>
-                <div className="mt-5 rounded-2xl border border-border/60 bg-background/35 p-4">
-                  <h3 className="flex items-center gap-2 text-sm font-bold text-foreground">
-                    <Clock3 className="h-4 w-4 text-accent" />
-                    What happens next
-                  </h3>
-                  <ol className="mt-3 space-y-2 text-xs text-muted-foreground">
-                    <li>1. Submit your GCash number and reference number.</li>
-                    <li>2. Admin verifies the payment in the panel.</li>
-                    <li>3. Your rank is delivered in-game after approval.</li>
-                  </ol>
-                </div>
-                <button
-                  type="submit"
-                  disabled={submitting || !paymentReady}
-                  className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#007DFF] px-5 py-3 text-sm font-semibold text-white shadow-[0_0_30px_-5px_rgba(0,125,255,0.5)] transition hover:bg-[#0066d6] disabled:opacity-60"
-                >
-                  {submitting ? (
-                    <>
-                      <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-                      Submitting order...
-                    </>
-                  ) : (
-                    <>
-                      <Lock className="h-4 w-4" />
-                      {paymentReady ? "Confirm GCash Payment" : "Complete Details"}
-                    </>
-                  )}
-                </button>
-                <p className="mt-3 text-center text-[11px] text-muted-foreground">
-                  Items deliver in-game within minutes after verification.
-                </p>
-              </aside>
-            </form>
-          </section>
-        )}
+              <div className="mt-5 rounded-2xl border border-border/70 bg-background/35 p-4 text-xs text-muted-foreground">
+                <p className="font-bold text-foreground">Before clicking submit:</p>
+                <p className="mt-2">Use a new GCash reference number each time. Reusing the same test reference can make admin records messy.</p>
+              </div>
 
-        <SiteFooter />
-      </div>
+              <button
+                type="submit"
+                disabled={!canSubmit || submitting}
+                className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#007DFF] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#006bd6] disabled:cursor-not-allowed disabled:opacity-55"
+              >
+                {submitting ? (
+                  <>
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <Lock className="h-4 w-4" />
+                    Submit Order
+                  </>
+                )}
+              </button>
+            </aside>
+          </form>
+        </section>
+      )}
+
+      <SiteFooter />
     </div>
   );
 }
 
-function CheckoutStep({ icon, title, copy, active }: { icon: ReactNode; title: string; copy: string; active: boolean }) {
+function Notice({ text, danger = false }: { text: string; danger?: boolean }) {
   return (
     <div
-      className={`rounded-2xl border px-4 py-3 ${
-        active ? "border-accent/40 bg-accent/10 text-foreground" : "border-border/60 bg-card/45 text-muted-foreground"
+      className={`mt-5 flex items-start gap-3 rounded-2xl border px-5 py-4 text-sm ${
+        danger
+          ? "border-red-500/30 bg-red-500/10 text-red-300"
+          : "border-accent/30 bg-accent/10 text-muted-foreground"
       }`}
     >
-      <div className="flex items-center gap-2 text-sm font-bold">
-        <span className={active ? "text-accent" : "text-muted-foreground"}>{icon}</span>
-        {title}
-      </div>
-      <p className="mt-1 text-xs">{copy}</p>
+      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+      <span>{text}</span>
     </div>
   );
 }
 
-function VerificationCheck({ ok, label }: { ok: boolean; label: string }) {
+function FieldLabel({ text }: { text: string }) {
+  return <label className="block text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">{text}</label>;
+}
+
+function SummaryLine({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
   return (
-    <div className={`flex items-center gap-2 ${ok ? "text-emerald-400" : "text-muted-foreground"}`}>
-      {ok ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Clock3 className="h-3.5 w-3.5" />}
+    <div className={`flex justify-between gap-3 ${strong ? "text-base font-black text-foreground" : "text-muted-foreground"}`}>
       <span>{label}</span>
-    </div>
-  );
-}
-
-function InfoLine({
-  label,
-  value,
-  mono,
-  valueClass,
-}: {
-  label: string;
-  value: string;
-  mono?: boolean;
-  valueClass?: string;
-}) {
-  return (
-    <div className="flex justify-between gap-3 text-sm text-muted-foreground">
-      <span>{label}</span>
-      <span className={`${mono ? "font-mono" : ""} ${valueClass ?? "text-foreground"}`}>{value}</span>
-    </div>
-  );
-}
-
-function GcashLogo() {
-  return (
-    <div className="grid h-10 w-10 place-items-center rounded-xl bg-[#007DFF] text-sm font-black text-white shadow-lg">
-      G
+      <span>{value}</span>
     </div>
   );
 }
