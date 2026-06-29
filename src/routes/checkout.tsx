@@ -1,6 +1,20 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState, type FormEvent } from "react";
-import { AlertCircle, ArrowLeft, Check, CheckCircle2, Copy, Lock, ShoppingBag } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowLeft,
+  Check,
+  CheckCircle2,
+  Copy,
+  CreditCard,
+  Lock,
+  Moon,
+  ReceiptText,
+  ShieldCheck,
+  ShoppingBag,
+  Sparkles,
+} from "lucide-react";
+import { Starfield } from "@/components/Starfield";
 import { Navbar } from "@/components/Navbar";
 import { SiteFooter } from "@/components/SiteFooter";
 import { centsToDisplay, lineTotalDisplay, useCart } from "@/lib/cart";
@@ -36,6 +50,7 @@ function CheckoutPage() {
   const [referenceNo, setReferenceNo] = useState("");
   const [confirmed, setConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [submitStep, setSubmitStep] = useState("");
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -116,6 +131,7 @@ function CheckoutPage() {
     }
 
     setSubmitting(true);
+    setSubmitStep("Saving order...");
     let submitted = false;
 
     try {
@@ -128,6 +144,11 @@ function CheckoutPage() {
         name: item.name,
         price: lineTotalDisplay(item.priceCents, item.qty),
         qty: item.qty,
+      }));
+      const purchaseItems = liveItems.map((item) => ({
+        id: item.id,
+        name: `${item.name} x${item.qty}`,
+        price: lineTotalDisplay(item.priceCents, item.qty),
       }));
 
       const result = await createOrder({
@@ -153,33 +174,37 @@ function CheckoutPage() {
         return;
       }
 
-      recordPurchase({
-        id: orderId,
-        date: new Date().toISOString(),
-        items: liveItems.map((item) => ({
-          id: item.id,
-          name: `${item.name} x${item.qty}`,
-          price: lineTotalDisplay(item.priceCents, item.qty),
-        })),
-        total: totalDisplay,
-        method: "gcash",
-        discount: centsToDisplay(0),
-      });
-
+      setSubmitStep("Opening order tracker...");
       submitted = true;
       clear();
-      await navigate({ to: "/order/$orderId", params: { orderId } });
+      window.setTimeout(() => {
+        recordPurchase({
+          id: orderId,
+          date: new Date().toISOString(),
+          items: purchaseItems,
+          total: totalDisplay,
+          method: "gcash",
+          discount: centsToDisplay(0),
+        });
+      }, 0);
+      void navigate({ to: "/order/$orderId", params: { orderId } });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       setError(`Could not submit order: ${message}`);
     } finally {
-      if (!submitted) setSubmitting(false);
+      if (!submitted) {
+        setSubmitting(false);
+        setSubmitStep("");
+      }
     }
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <Navbar />
+    <div className="relative min-h-screen overflow-hidden bg-background text-foreground">
+      <Starfield />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(circle_at_50%_0%,rgba(189,167,255,0.22),transparent_58%)]" />
+      <div className="relative z-10">
+        <Navbar />
 
       {items.length === 0 ? (
         <section className="mx-auto max-w-lg px-6 py-24 text-center">
@@ -202,12 +227,24 @@ function CheckoutPage() {
             Continue shopping
           </Link>
 
-          <div className="mt-6">
-            <p className="text-xs font-bold uppercase tracking-[0.25em] text-accent">Secure GCash Checkout</p>
-            <h1 className="mt-2 font-display text-4xl md:text-5xl">Checkout</h1>
-            <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-              Send the exact GCash amount, enter your payment details, then track the order from the status page.
-            </p>
+          <div className="mt-6 grid gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-end">
+            <div>
+              <p className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.22em] text-accent">
+                <Moon className="h-3.5 w-3.5" />
+                Secure GCash Checkout
+              </p>
+              <h1 className="mt-4 font-display text-4xl md:text-5xl">Fast Checkout</h1>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
+                Send the exact GCash amount, enter your receipt details, and the order tracker opens as soon as the
+                order is saved.
+              </p>
+            </div>
+            <div className="grid gap-2 rounded-3xl border border-border/70 bg-card/60 p-4 shadow-[0_0_40px_-24px_rgba(189,167,255,0.9)] backdrop-blur">
+              <ProgressItem done={Boolean(account)} label="Account ready" />
+              <ProgressItem done={/^09\d{9}$/.test(gcashDigits)} label="GCash number valid" />
+              <ProgressItem done={referenceDigits.length >= 10} label="Reference entered" />
+              <ProgressItem done={confirmed} label="Payment confirmed" />
+            </div>
           </div>
 
           {!account && <Notice text="Sign in or create an account before checking out." />}
@@ -216,11 +253,14 @@ function CheckoutPage() {
           {hasUnavailableItems && <Notice text="Your cart has unavailable items. Remove keys/bundles and add a live rank." danger />}
           {error && <Notice text={error} danger />}
 
-          <form onSubmit={submitOrder} className="mt-8 grid gap-6 lg:grid-cols-[1.4fr_0.8fr]">
+          <form onSubmit={submitOrder} className="mt-8 grid gap-6 lg:grid-cols-[1.45fr_0.75fr]">
             <div className="space-y-5">
               {account && (
-                <section className="pixel-card rounded-2xl p-5">
-                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Account</p>
+                <section className="pixel-card rounded-3xl p-5">
+                  <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                    <ShieldCheck className="h-4 w-4 text-accent" />
+                    Delivery Account
+                  </p>
                   <div className="mt-3 flex items-center gap-3">
                     <img
                       src={account.avatarUrl}
@@ -238,10 +278,13 @@ function CheckoutPage() {
                 </section>
               )}
 
-              <section className="pixel-card rounded-2xl p-5">
+              <section className="pixel-card rounded-3xl p-5">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Pay To</p>
+                    <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                      <CreditCard className="h-4 w-4 text-[#007DFF]" />
+                      Pay To
+                    </p>
                     <h2 className="mt-1 text-xl font-bold">{STORE_GCASH_NAME}</h2>
                     <p className="mt-1 font-mono text-lg text-[#007DFF]">{STORE_GCASH_DISPLAY}</p>
                   </div>
@@ -260,7 +303,7 @@ function CheckoutPage() {
                     <img src={STORE_GCASH_QR} alt="GCash QR code" className="aspect-square w-full rounded-xl object-cover" />
                   </div>
                   <div className="space-y-4">
-                    <div className="rounded-2xl border border-[#007DFF]/25 bg-[#007DFF]/10 px-4 py-3">
+                    <div className="rounded-2xl border border-[#007DFF]/25 bg-[#007DFF]/10 px-4 py-3 shadow-[0_0_30px_-18px_rgba(0,125,255,0.9)]">
                       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Send exactly</p>
                       <p className="mt-1 text-3xl font-black">{totalDisplay}</p>
                     </div>
@@ -303,8 +346,11 @@ function CheckoutPage() {
               </section>
             </div>
 
-            <aside className="pixel-card h-fit rounded-2xl p-5">
-              <h2 className="text-lg font-bold">Order Summary</h2>
+            <aside className="pixel-card h-fit rounded-3xl p-5 lg:sticky lg:top-24">
+              <h2 className="flex items-center gap-2 text-lg font-bold">
+                <ReceiptText className="h-5 w-5 text-accent" />
+                Order Summary
+              </h2>
               <ul className="mt-4 space-y-3">
                 {liveItems.map((item) => (
                   <li key={item.id} className="flex justify-between gap-3 text-sm">
@@ -323,9 +369,12 @@ function CheckoutPage() {
                 <SummaryLine label="Total" value={totalDisplay} strong />
               </div>
 
-              <div className="mt-5 rounded-2xl border border-border/70 bg-background/35 p-4 text-xs text-muted-foreground">
-                <p className="font-bold text-foreground">Before clicking submit:</p>
-                <p className="mt-2">Use a new GCash reference number each time. Reusing the same test reference can make admin records messy.</p>
+              <div className="mt-5 rounded-2xl border border-accent/25 bg-accent/10 p-4 text-xs text-muted-foreground">
+                <p className="flex items-center gap-2 font-bold text-foreground">
+                  <Sparkles className="h-4 w-4 text-accent" />
+                  Faster flow
+                </p>
+                <p className="mt-2">The tracker opens right after the order is saved. Account history syncs quietly after.</p>
               </div>
 
               <button
@@ -336,7 +385,7 @@ function CheckoutPage() {
                 {submitting ? (
                   <>
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-                    Submitting...
+                    {submitStep || "Submitting..."}
                   </>
                 ) : (
                   <>
@@ -351,6 +400,16 @@ function CheckoutPage() {
       )}
 
       <SiteFooter />
+      </div>
+    </div>
+  );
+}
+
+function ProgressItem({ done, label }: { done: boolean; label: string }) {
+  return (
+    <div className={`flex items-center gap-3 rounded-2xl px-3 py-2 text-sm ${done ? "text-emerald-300" : "text-muted-foreground"}`}>
+      <CheckCircle2 className={`h-4 w-4 ${done ? "text-emerald-300" : "text-muted-foreground/60"}`} />
+      <span>{label}</span>
     </div>
   );
 }
