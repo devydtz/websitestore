@@ -3,6 +3,7 @@ import type { LunarisIntent } from "./intentDetector";
 import { routeTool } from "./toolRouter";
 import { responseEngine } from "./responseEngine";
 import { providerAdapter } from "./providerAdapter";
+import type { LunarisCoreRequestContext } from "./client";
 
 function sourceForIntent(intent: LunarisIntent, message: string, rawSource: string) {
   if (rawSource && rawSource !== "intentDetector") return rawSource;
@@ -67,7 +68,7 @@ function nextForIntent(intent: LunarisIntent) {
   }
 }
 
-export async function askLunarisCore(message: string) {
+export async function askLunarisCore(message: string, context: LunarisCoreRequestContext = {}) {
   const intent = detectIntent(message);
   const result = await routeTool(intent, message);
   const source = sourceForIntent(intent, message, result.source);
@@ -84,6 +85,8 @@ export async function askLunarisCore(message: string) {
     groundedAnswer: localAnswer,
     source,
     next,
+    mode: context.mode || "general",
+    history: (context.history || []).slice(-12),
   });
 
   return {

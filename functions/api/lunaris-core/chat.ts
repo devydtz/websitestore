@@ -130,6 +130,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     groundedAnswer?: string;
     source?: string;
     next?: string;
+    mode?: string;
+    history?: Array<{ role?: string; content?: string }>;
   } | null;
 
   const message = safeText(body?.message);
@@ -137,6 +139,13 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const source = safeText(body?.source);
   const next = safeText(body?.next);
   const intent = safeText(body?.intent);
+  const mode = safeText(body?.mode || "general");
+  const history = Array.isArray(body?.history)
+    ? body.history
+        .slice(-12)
+        .map((item) => `${item.role === "admin" ? "Admin" : "Lunaris Core"}: ${safeText(item.content)}`)
+        .join("\n")
+    : "";
 
   if (!message) return json({ error: "Message is required." }, { status: 400 });
 
@@ -152,11 +161,16 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     "For casual greetings, answer naturally and briefly.",
     "For coding/admin questions, give the best practical answer first, then concise steps or bullets if useful.",
     "For analysis questions, summarize the main findings clearly and professionally.",
+    "Use conversation history to understand follow-ups like 'that', 'it', 'the file', or 'fix it'.",
+    "Mode behavior: general is balanced, coder is technical and implementation-focused, data is analytical and metric-focused, minecraft is server/plugin-focused, security is risk-focused, store is sales/order/product-focused.",
+    "Sound human and helpful, but do not pretend to have emotions or access you do not have.",
     "Keep the response focused on what the admin asked.",
   ].join("\n");
 
   const prompt = [
     `Admin question:\n${message}`,
+    `Current mode:\n${mode}`,
+    `Recent conversation:\n${history || "No previous chat context."}`,
     `Detected intent:\n${intent || "unknown"}`,
     `Grounded Lunaris Core tool/context result:\n${groundedAnswer || "No grounded result was available."}`,
     `Known source/context:\n${source || "No source was available."}`,

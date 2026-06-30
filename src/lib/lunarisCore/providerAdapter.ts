@@ -1,4 +1,5 @@
 import { getSupabaseBrowserClient } from "@/lib/supabase";
+import type { LunarisCoreMessage, LunarisCoreMode } from "./client";
 
 type ProviderInput = {
   message: string;
@@ -6,6 +7,8 @@ type ProviderInput = {
   groundedAnswer: string;
   source: string;
   next: string;
+  mode?: LunarisCoreMode;
+  history?: LunarisCoreMessage[];
 };
 
 export async function providerAdapter(input: ProviderInput): Promise<{ ok: true; answer: string; model?: string } | { ok: false; error: string }> {

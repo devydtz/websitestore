@@ -5,6 +5,13 @@ export type LunarisCoreMessage = {
   content: string;
 };
 
-export async function sendToLunarisCore(message: string) {
-  return askLunarisCore(message);
+export type LunarisCoreMode = "general" | "coder" | "data" | "minecraft" | "security" | "store";
+
+export type LunarisCoreRequestContext = {
+  mode?: LunarisCoreMode;
+  history?: LunarisCoreMessage[];
+};
+
+export async function sendToLunarisCore(message: string, context: LunarisCoreRequestContext = {}) {
+  return askLunarisCore(message, context);
 }
