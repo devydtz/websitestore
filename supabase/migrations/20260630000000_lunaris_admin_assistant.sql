@@ -5,69 +5,6 @@
 
 create extension if not exists pgcrypto;
 
-create or replace function public.admin_role()
-returns text
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select role
-  from public.admin_profiles
-  where id = auth.uid()
-  limit 1
-$$;
-
-create or replace function public.is_admin()
-returns boolean
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select coalesce(public.admin_role() in ('owner', 'admin', 'staff', 'viewer'), false)
-$$;
-
-create or replace function public.can_manage_store()
-returns boolean
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select coalesce(public.admin_role() in ('owner', 'admin'), false)
-$$;
-
-create or replace function public.can_manage_requests()
-returns boolean
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select coalesce(public.admin_role() in ('owner', 'admin', 'staff'), false)
-$$;
-
-create or replace function public.is_owner()
-returns boolean
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select coalesce(public.admin_role() = 'owner', false)
-$$;
-
-create or replace function public.touch_updated_at()
-returns trigger
-language plpgsql
-as $$
-begin
-  new.updated_at = now();
-  return new;
-end;
-$$;
-
 create table if not exists public.admin_profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   display_name text,
@@ -252,6 +189,69 @@ create table if not exists public.assistant_edit_proposals (
   created_at timestamptz default now(),
   applied_at timestamptz
 );
+
+create or replace function public.admin_role()
+returns text
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select role
+  from public.admin_profiles
+  where id = auth.uid()
+  limit 1
+$$;
+
+create or replace function public.is_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(public.admin_role() in ('owner', 'admin', 'staff', 'viewer'), false)
+$$;
+
+create or replace function public.can_manage_store()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(public.admin_role() in ('owner', 'admin'), false)
+$$;
+
+create or replace function public.can_manage_requests()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(public.admin_role() in ('owner', 'admin', 'staff'), false)
+$$;
+
+create or replace function public.is_owner()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(public.admin_role() = 'owner', false)
+$$;
+
+create or replace function public.touch_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
 
 create index if not exists ranks_slug_idx on public.ranks (slug);
 create index if not exists ranks_active_idx on public.ranks (is_active, sort_order);
