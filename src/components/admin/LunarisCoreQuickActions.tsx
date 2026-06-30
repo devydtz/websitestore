@@ -8,6 +8,8 @@ const quickActions = [
   "Scan ranks keys bundles",
   "What do you know?",
   "Minecraft RCON help",
+  "Research latest Minecraft version",
+  "Search Modrinth plugins",
   "Heavy coding debug help",
   "Security checklist",
   "Where is checkout code?",

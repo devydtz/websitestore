@@ -34,7 +34,7 @@ export function detectIntent(message: string): LunarisIntent {
   if (/\b(time|clock|what time)\b/.test(text)) return "current_time";
   if (/\b(date|today|tomorrow|yesterday|day of week)\b/.test(text)) return "current_date";
   if (/^[\d\s+\-*/().,%]+$/.test(text) || /\b(calculate|percent|percentage|total|minus|plus)\b/.test(text)) return "calculator";
-  if (/\b(research|latest|search web|look up|internet)\b/.test(text)) return "web_research";
+  if (/\b(research|latest|current|search web|search for|look up|internet|find online|website)\b/.test(text)) return "web_research";
   if (/\b(route|url|page|where is)\b/.test(text)) return "route_search";
   if (/\b(config|vite|cloudflare|wrangler|package|env)\b/.test(text)) return "config_search";
   if (/\b(build failed|build error|npm|pnpm|vite error|typescript)\b/.test(text)) return "build_error";

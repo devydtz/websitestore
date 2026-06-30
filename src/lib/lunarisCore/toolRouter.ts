@@ -19,7 +19,7 @@ export async function routeTool(intent: LunarisIntent, message: string) {
     case "capabilities":
       return {
         answer:
-          "I can help with:\n- Heavy coding help: React, Vite, TypeScript, debugging, build errors, frontend/backend structure\n- Minecraft server ops: Paper/Purpur, LuckPerms, RCON, ranks, crates, Geyser/Floodgate, store delivery\n- Lunaris website knowledge: routes, components, checkout, account, cart, products, admin panel, Supabase, Cloudflare\n- Supabase scans: orders, accounts, promos, products, and admin data your current permissions can read\n- Security checks: secrets, service-role safety, RCON/password exposure, RLS issues\n- Time/date in Asia/Manila and calculator/price math\n- General stable knowledge and planning\n\nI do not use an external AI model. I can answer from my built-in knowledge, repo map, and database tools. For live current internet facts, web research is not configured yet.",
+          "I can help with:\n- Heavy coding help: React, Vite, TypeScript, debugging, build errors, frontend/backend structure\n- Minecraft server ops: Paper/Purpur, LuckPerms, RCON, ranks, crates, Geyser/Floodgate, store delivery\n- Lunaris website knowledge: routes, components, checkout, account, cart, products, admin panel, Supabase, Cloudflare\n- Supabase scans: orders, accounts, promos, products, and admin data your current permissions can read\n- Security checks: secrets, service-role safety, RCON/password exposure, RLS issues\n- Time/date in Asia/Manila and calculator/price math\n- Free no-key research using public sources like DuckDuckGo Instant Answer, Wikipedia, Modrinth, GitHub, and Mojang version metadata\n\nI do not use an external AI model or paid API key. Browser-based free research can be limited by public-source restrictions, but I will try multiple sources.",
         source: "lunarisCore capabilities",
       };
     case "coding_knowledge":
@@ -36,7 +36,7 @@ export async function routeTool(intent: LunarisIntent, message: string) {
     case "calculator":
       return { answer: calculatorTool(message), source: "calculatorTool" };
     case "web_research":
-      return { answer: searchTool(), source: "searchTool" };
+      return { answer: await searchTool(message), source: "searchTool" };
     case "database_question":
     case "admin_data_question":
       return { answer: await databaseTool(message), source: "databaseTool" };
