@@ -7,7 +7,7 @@ import { LunarisCoreQuickActions } from "./LunarisCoreQuickActions";
 const welcome: LunarisCoreMessage = {
   role: "core",
   content:
-    "Lunaris Core online. I can help with admin data, orders, accounts, promos, products, website files, build errors, time/date, and calculations. No external AI server or API key is connected.",
+    "Lunaris Core online. I can analyze admin data, summarize orders/accounts/products/promos, explain code and deployment issues, research free public sources, and produce clean reports. No external AI server or API key is connected.",
 };
 
 export function LunarisCorePanel({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -64,7 +64,7 @@ export function LunarisCorePanel({ open, onClose }: { open: boolean; onClose: ()
                 <Sparkles className="h-5 w-5 text-purple-200" />
                 Lunaris Core
               </h2>
-              <p className="mt-1 text-sm text-purple-100/70">Tool-based helper for this admin panel. No external AI server. No API key.</p>
+              <p className="mt-1 text-sm text-purple-100/70">Private admin intelligence, data analysis, project search, and free research tools.</p>
             </div>
             <button
               type="button"
@@ -104,7 +104,7 @@ export function LunarisCorePanel({ open, onClose }: { open: boolean; onClose: ()
                   void ask();
                 }
               }}
-              placeholder="Ask about orders, files, build errors, time, math..."
+              placeholder="Ask for analysis, reports, code help, research, orders, files..."
               className="h-20 w-full resize-none bg-transparent px-3 py-2 text-sm text-white outline-none placeholder:text-purple-100/45"
             />
             <div className="flex items-center justify-between gap-2">

@@ -8,6 +8,19 @@ export type KnowledgeTopic = {
 
 export const knowledgeBase: KnowledgeTopic[] = [
   {
+    id: "data-analysis",
+    title: "Data Analysis",
+    summary: "Professional analysis workflow for orders, accounts, products, promos, logs, and structured data.",
+    keywords: ["data", "analysis", "analyze", "report", "metrics", "duplicates", "anomalies", "revenue", "summary", "csv", "json", "logs"],
+    bullets: [
+      "Start by identifying the data source, row count, fields, and date range.",
+      "Calculate totals, averages, status breakdowns, category counts, and top items before giving recommendations.",
+      "Flag missing values, duplicate identifiers, invalid amounts, suspicious status combinations, and failed delivery logs.",
+      "For Lunaris admin data, prioritize orders, accounts, products, promos, payment references, and delivery status.",
+      "A good report has summary, key metrics, findings, issues, recommended actions, and limitations.",
+    ],
+  },
+  {
     id: "coding-debugging",
     title: "Coding and Debugging",
     summary: "How to approach frontend, backend, TypeScript, build, and runtime problems.",
@@ -115,24 +128,34 @@ export const knowledgeBase: KnowledgeTopic[] = [
 ];
 
 export function searchKnowledge(query: string) {
-  const terms = query.toLowerCase().split(/\W+/).filter(Boolean);
+  const stopWords = new Set(["the", "a", "an", "and", "or", "to", "of", "in", "it", "is", "are", "be", "me", "you", "my", "what", "how", "why", "can", "do", "does", "for"]);
+  const terms = query
+    .toLowerCase()
+    .split(/\W+/)
+    .filter((term) => term.length > 1 && !stopWords.has(term));
   return knowledgeBase
     .map((topic) => {
-      const haystack = `${topic.title} ${topic.summary} ${topic.keywords.join(" ")} ${topic.bullets.join(" ")}`.toLowerCase();
-      const score = terms.reduce((sum, term) => sum + (haystack.includes(term) ? 1 : 0), 0);
+      const keywordText = topic.keywords.join(" ").toLowerCase();
+      const haystack = `${topic.title} ${topic.summary} ${keywordText} ${topic.bullets.join(" ")}`.toLowerCase();
+      const score = terms.reduce((sum, term) => {
+        if (keywordText.split(" ").includes(term)) return sum + 4;
+        if (topic.title.toLowerCase().includes(term)) return sum + 3;
+        if (topic.summary.toLowerCase().includes(term)) return sum + 2;
+        return sum + (haystack.includes(term) ? 1 : 0);
+      }, 0);
       return { ...topic, score };
     })
-    .filter((topic) => topic.score > 0)
+    .filter((topic) => topic.score > 1)
     .sort((a, b) => b.score - a.score)
-    .slice(0, 4);
+    .slice(0, 2);
 }
 
 export function answerFromKnowledge(query: string) {
   const matches = searchKnowledge(query);
   if (matches.length === 0) {
     return [
-      "I can help with coding, Minecraft server setup, store/admin systems, Supabase, Cloudflare, checkout, security, time/date, and calculations.",
-      "For live current facts or internet research, web research is not configured yet.",
+      "I do not have enough specific context to answer that accurately yet.",
+      "I can help best when you ask about Lunaris code, admin data, orders, accounts, products, promos, Supabase, Cloudflare, Minecraft server ops, security, calculations, or research.",
     ].join("\n\n");
   }
 
@@ -146,6 +169,6 @@ export function fullKnowledgeSummary() {
     "I have local knowledge loaded for these areas:",
     ...knowledgeBase.map((topic) => `- ${topic.title}: ${topic.summary}`),
     "",
-    "I can answer a lot from this built-in knowledge plus the Lunaris repo map and Supabase scanner. I still cannot know live internet facts unless web research gets configured later.",
+    "I can answer from built-in knowledge, the Lunaris repo map, the safe repo file catalog, Supabase scanner, calculator, time/date tools, and free public research sources.",
   ].join("\n");
 }

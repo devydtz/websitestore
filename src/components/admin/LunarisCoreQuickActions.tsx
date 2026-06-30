@@ -3,19 +3,19 @@ const quickActions = [
   "What is today's date?",
   "Calculate 10% of 499",
   "Scan orders",
+  "Analyze all admin data",
+  "Find duplicates and anomalies",
   "Scan accounts",
   "Scan promos",
   "Scan ranks keys bundles",
   "What do you know?",
   "Minecraft RCON help",
-  "Research latest Minecraft version",
   "Search Modrinth plugins",
   "Heavy coding debug help",
   "Security checklist",
   "Where is checkout code?",
   "Where is admin code?",
   "Why would Cloudflare build fail?",
-  "Research latest Minecraft version",
 ];
 
 export function LunarisCoreQuickActions({ onPick, disabled }: { onPick: (value: string) => void; disabled?: boolean }) {

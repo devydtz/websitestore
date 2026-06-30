@@ -1,5 +1,6 @@
 import type { LunarisIntent } from "./intentDetector";
 import { calculatorTool } from "./tools/calculatorTool";
+import { dataAnalysisTool } from "./tools/dataAnalysisTool";
 import { dateTool } from "./tools/dateTool";
 import { databaseTool } from "./tools/databaseTool";
 import { knowledgeTool } from "./tools/knowledgeTool";
@@ -27,6 +28,8 @@ export async function routeTool(intent: LunarisIntent, message: string) {
     case "security_knowledge":
     case "knowledge_question":
       return { answer: knowledgeTool(message), source: "knowledgeTool" };
+    case "data_analysis":
+      return { answer: await dataAnalysisTool(message), source: "dataAnalysisTool" };
     case "system_overview":
       return { answer: websiteTool(message), source: "websiteTool projectOverview" };
     case "current_time":
