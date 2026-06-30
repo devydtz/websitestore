@@ -1,1 +1,13 @@
-/* /index.html 200
+/account /account/ 301
+/account/ /index.html 200
+/admin /admin/ 301
+/admin/ /index.html 200
+/bundles /bundles/ 301
+/bundles/ /index.html 200
+/checkout /checkout/ 301
+/checkout/ /index.html 200
+/keys /keys/ 301
+/keys/ /index.html 200
+/order/* /index.html 200
+/ranks /ranks/ 301
+/ranks/ /index.html 200
