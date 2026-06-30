@@ -7,10 +7,12 @@ import {
   FileText,
   Home,
   Image as ImageIcon,
+  Library,
   Loader2,
   MessageSquare,
   MessageSquarePlus,
   MoonStar,
+  MoreHorizontal,
   Paperclip,
   Search,
   Sparkles,
@@ -233,7 +235,7 @@ export function LunarisCoreWorkspace() {
 
   return (
     <main
-      className="relative h-screen overflow-hidden bg-[#fbfaff] text-slate-950"
+      className="relative h-screen overflow-hidden bg-white text-slate-950"
       onDragOver={(event) => {
         event.preventDefault();
         setDragging(true);
@@ -252,16 +254,16 @@ export function LunarisCoreWorkspace() {
           </div>
         </div>
       )}
-      <div className="relative grid h-screen lg:grid-cols-[260px_1fr]">
-        <aside className="hidden border-r border-slate-200/80 bg-white/90 p-3 backdrop-blur-xl lg:flex lg:flex-col">
-          <div className="mb-4 flex items-center justify-between">
+      <div className="relative grid h-screen lg:grid-cols-[296px_1fr]">
+        <aside className="hidden border-r border-slate-200 bg-[#f9f9f9] p-3 lg:flex lg:flex-col">
+          <div className="mb-5 flex items-center justify-between px-1 pt-1">
             <div className="flex items-center gap-3">
-              <span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-purple-700 to-indigo-600 text-white shadow-sm shadow-purple-200">
+              <span className="grid h-8 w-8 place-items-center rounded-xl bg-slate-950 text-white">
                 <MoonStar className="h-4 w-4" />
               </span>
               <div>
-                <p className="text-base font-black">Lunaris Core</p>
-                <p className="text-[11px] font-bold text-slate-500">Private admin AI</p>
+                <p className="text-lg font-black">Lunaris Core</p>
+                <p className="text-[11px] font-semibold text-slate-500">Admin assistant</p>
               </div>
             </div>
             <Link to="/admin/dashboard" className="rounded-xl p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-950" title="Back to admin">
@@ -272,18 +274,26 @@ export function LunarisCoreWorkspace() {
           <button
             type="button"
             onClick={startNewChat}
-            className="mb-3 flex w-full items-center gap-3 rounded-xl bg-slate-100 px-3 py-2.5 text-sm font-black transition hover:bg-purple-100"
+            className="mb-2 flex w-full items-center gap-3 rounded-xl bg-[#ececec] px-3 py-2.5 text-sm font-semibold transition hover:bg-[#e5e5e5]"
           >
             <MessageSquarePlus className="h-4 w-4" />
             New chat
           </button>
 
-          <label className="mb-4 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500">
+          <button type="button" className="mb-2 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-[#ececec]">
+            <Library className="h-4 w-4" />
+            Library
+          </button>
+
+          <label className="mb-5 flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm text-slate-700 transition hover:bg-[#ececec]">
             <Search className="h-4 w-4" />
             <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search chats" className="min-w-0 flex-1 bg-transparent outline-none" />
           </label>
 
-          <div className="mb-3 text-xs font-black uppercase tracking-[0.18em] text-slate-400">Chats</div>
+          <div className="mb-2 px-2 text-sm font-bold text-slate-800">Projects</div>
+          <div className="mb-5 rounded-xl bg-[#ececec] px-3 py-2 text-sm font-semibold">Lunaris Craft</div>
+
+          <div className="mb-3 px-2 text-sm font-bold text-slate-800">Chats</div>
           <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
             {visibleChats.map((chat) => (
               <button
@@ -291,7 +301,7 @@ export function LunarisCoreWorkspace() {
                 type="button"
                 onClick={() => commitState((current) => ({ ...current, activeId: chat.id }))}
                 className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition ${
-                  chat.id === activeChat.id ? "bg-purple-100 font-black text-purple-950" : "text-slate-600 hover:bg-slate-100"
+                  chat.id === activeChat.id ? "bg-[#ececec] font-semibold text-slate-950" : "text-slate-700 hover:bg-[#ececec]"
                 }`}
               >
                 <MessageSquare className="h-4 w-4 shrink-0" />
@@ -299,40 +309,48 @@ export function LunarisCoreWorkspace() {
               </button>
             ))}
           </div>
+          <div className="mt-3 flex items-center gap-3 rounded-xl px-3 py-2 text-sm">
+            <div className="grid h-8 w-8 place-items-center rounded-full bg-orange-500 text-xs font-black text-white">LC</div>
+            <div className="min-w-0 flex-1">
+              <div className="truncate font-semibold">Lunaris Admin</div>
+              <div className="text-xs text-slate-500">Private</div>
+            </div>
+            <MoreHorizontal className="h-4 w-4 text-slate-500" />
+          </div>
         </aside>
 
         <section className="flex h-screen min-h-0 flex-col">
-          <header className="z-10 flex h-16 shrink-0 items-center justify-between border-b border-slate-200/80 bg-white/90 px-4 backdrop-blur-xl sm:px-6">
+          <header className="z-10 flex h-16 shrink-0 items-center justify-between border-b border-slate-100 bg-white px-4 sm:px-7">
             <div className="flex min-w-0 items-center gap-3">
               <Link to="/admin/dashboard" className="rounded-xl p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-950 lg:hidden">
                 <Home className="h-5 w-5" />
               </Link>
               <div className="min-w-0">
-                <p className="truncate text-xs font-black text-slate-500">Lunaris Core</p>
-                <h1 className="truncate text-base font-black sm:text-xl">{activeChat.title}</h1>
+                <p className="truncate text-sm font-semibold text-slate-500">Lunaris Craft</p>
+                <h1 className="truncate text-base font-semibold sm:text-lg">{activeChat.title}</h1>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <button type="button" onClick={clearActiveChat} className="rounded-full p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-950" title="Clear chat">
                 <Eraser className="h-5 w-5" />
               </button>
-              <button type="button" onClick={startNewChat} className="rounded-full bg-slate-950 px-4 py-2 text-sm font-black text-white transition hover:bg-purple-950">
+              <button type="button" onClick={startNewChat} className="rounded-full bg-slate-950 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800">
                 New
               </button>
             </div>
           </header>
 
-          <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
-            <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
+          <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-5 pb-32 sm:px-6">
+            <div className="mx-auto flex w-full flex-col gap-1">
               {activeChat.messages.length <= 1 && (
-                <div className="grid min-h-[34vh] place-items-center py-4 text-center">
+                <div className="grid min-h-[46vh] place-items-center py-4 text-center">
                   <div>
-                  <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-purple-200 via-white to-indigo-200 shadow-lg shadow-purple-100">
-                    <Sparkles className="h-7 w-7 text-purple-700" />
+                  <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-slate-950 text-white shadow-lg shadow-slate-200">
+                    <Sparkles className="h-6 w-6" />
                   </div>
-                  <h2 className="mt-4 text-2xl font-black">Ask Lunaris Core anything.</h2>
+                  <h2 className="mt-5 text-3xl font-semibold">What are we building today?</h2>
                   <p className="mx-auto mt-2 max-w-xl text-sm text-slate-500">
-                    I will answer from your project knowledge, admin data tools, and safe general knowledge without forcing modes or random prompt buttons.
+                    Ask about code, Minecraft, admin data, files, research, reports, or generated content.
                   </p>
                   </div>
                 </div>
@@ -348,9 +366,9 @@ export function LunarisCoreWorkspace() {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="shrink-0 border-t border-slate-200/80 bg-[#fbfaff]/95 px-4 py-3 backdrop-blur-xl sm:px-6">
+          <form onSubmit={handleSubmit} className="absolute bottom-0 left-0 right-0 shrink-0 bg-gradient-to-t from-white via-white to-white/20 px-4 pb-4 pt-8 sm:px-6">
             {attachments.length > 0 && (
-              <div className="mx-auto mb-2 flex max-w-4xl gap-2 overflow-x-auto pb-1">
+              <div className="mx-auto mb-2 flex max-w-3xl gap-2 overflow-x-auto pb-1">
                 {attachments.map((file) => (
                   <div key={file.id} className="flex max-w-xs items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm">
                     {file.kind === "image" ? <ImageIcon className="h-4 w-4 text-purple-600" /> : <FileText className="h-4 w-4 text-purple-600" />}
@@ -362,7 +380,7 @@ export function LunarisCoreWorkspace() {
                 ))}
               </div>
             )}
-            <div className="mx-auto flex max-w-4xl items-end gap-2 rounded-[1.25rem] border border-slate-200 bg-white px-3 py-2 shadow-xl shadow-purple-950/5">
+            <div className="mx-auto flex max-w-3xl items-end gap-2 rounded-[1.75rem] border border-slate-200 bg-white px-3 py-3 shadow-xl shadow-slate-950/10">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -377,7 +395,7 @@ export function LunarisCoreWorkspace() {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-purple-700"
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-slate-600 transition hover:bg-slate-100 hover:text-slate-950"
                 aria-label="Attach files"
               >
                 <Paperclip className="h-5 w-5" />
@@ -392,18 +410,18 @@ export function LunarisCoreWorkspace() {
                   }
                 }}
                 placeholder="Ask anything about Lunaris Craft..."
-                className="h-10 max-h-24 min-h-10 flex-1 resize-none bg-transparent px-2 py-2 text-[15px] outline-none placeholder:text-slate-400"
+                className="h-9 max-h-24 min-h-9 flex-1 resize-none bg-transparent px-2 py-1.5 text-[16px] outline-none placeholder:text-slate-400"
               />
               <button
                 type="submit"
                 disabled={loading || (!input.trim() && attachments.length === 0)}
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-purple-600 text-white shadow-sm shadow-purple-200 transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-45"
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-slate-950 text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-45"
                 aria-label="Send message"
               >
                 {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ArrowUp className="h-5 w-5" />}
               </button>
             </div>
-            <p className="mt-1 text-center text-[11px] font-semibold text-slate-400">Private admin assistant. Verify important server and payment actions.</p>
+            <p className="mt-2 text-center text-xs text-slate-400">Lunaris Core can make mistakes. Verify important server and payment actions.</p>
           </form>
         </section>
       </div>

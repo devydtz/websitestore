@@ -4,6 +4,8 @@ import { dataAnalysisTool } from "./tools/dataAnalysisTool";
 import { dateTool } from "./tools/dateTool";
 import { databaseTool } from "./tools/databaseTool";
 import { knowledgeTool } from "./tools/knowledgeTool";
+import { fileGeneratorTool } from "./tools/fileGeneratorTool";
+import { imageGeneratorTool } from "./tools/imageGeneratorTool";
 import { runCoreMinecraftCommand } from "./tools/minecraftCommandTool";
 import { minecraftServerTool } from "./tools/minecraftServerTool";
 import { projectTool } from "./tools/projectTool";
@@ -51,6 +53,18 @@ export async function routeTool(intent: LunarisIntent, message: string): Promise
       return { answer: `The date is ${dateTool(message)}.`, source: "Date tool." };
     case "calculator":
       return { answer: calculatorTool(message), source: "Calculator tool." };
+    case "file_generation":
+      return {
+        answer: fileGeneratorTool(message),
+        source: "Lunaris Core file generator helper.",
+        tools: [{ name: "File Generator", status: "done", summary: "Prepared this answer for Markdown/text export from the chat." }],
+      };
+    case "image_generation":
+      return {
+        answer: imageGeneratorTool(),
+        source: "Lunaris Core image generation capability check.",
+        tools: [{ name: "Image Generator", status: "error", summary: "No image model endpoint is configured yet, so no fake image was generated." }],
+      };
     case "web_research":
       return { answer: await searchTool(message), source: "Free public research tool." };
     case "database_question":

@@ -21,6 +21,8 @@ export type LunarisIntent =
   | "current_time"
   | "current_date"
   | "calculator"
+  | "file_generation"
+  | "image_generation"
   | "general_question"
   | "web_research"
   | "unknown";
@@ -40,6 +42,8 @@ export function detectIntent(message: string): LunarisIntent {
   if (/\b(time|clock|what time)\b/.test(text)) return "current_time";
   if (/\b(date|today|tomorrow|yesterday|day of week)\b/.test(text)) return "current_date";
   if (/^[\d\s+\-*/().,%]+$/.test(text) || /\b(calculate|percent|percentage|total|minus|plus)\b/.test(text)) return "calculator";
+  if (/\b(generate|create|make|export|download)\b.*\b(file|document|markdown|md|txt|json|csv|html|report)\b/.test(text)) return "file_generation";
+  if (/\b(generate|create|make)\b.*\b(image|picture|photo|art|logo|icon|wallpaper|banner)\b/.test(text)) return "image_generation";
   if (/\b(research|latest|current|search web|search for|look up|internet|find online|website)\b/.test(text)) return "web_research";
   if (/\b(route|url|page|where is)\b/.test(text)) return "route_search";
   if (/\b(config|vite|cloudflare|wrangler|package|env)\b/.test(text)) return "config_search";
