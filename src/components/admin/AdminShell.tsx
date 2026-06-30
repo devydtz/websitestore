@@ -30,6 +30,7 @@ const nav = [
   { to: "/admin/admins", label: "Admins", icon: UserCog },
   { to: "/admin/settings", label: "Settings", icon: Settings },
   { to: "/admin/logs", label: "Logs", icon: Logs },
+  { to: "/admin/assistant", label: "Assistant", icon: Sparkles },
 ] as const;
 
 export function AdminShell({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
