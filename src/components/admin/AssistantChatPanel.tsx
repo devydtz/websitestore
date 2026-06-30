@@ -1,53 +1,59 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Bot, Database, FileSearch, Loader2, Send, Sparkles, Trash2, X } from "lucide-react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { Bot, Database, FileSearch, Loader2, MessageSquarePlus, Send, Sparkles, Trash2, X } from "lucide-react";
 import {
   assistantAction,
-  getAssistantModels,
   getAssistantStatus,
   sendAssistantMessage,
   type AssistantChatMessage,
-  type AssistantModel,
 } from "@/lib/assistantApi";
 import { AssistantDiffViewer } from "./AssistantDiffViewer";
 import { AssistantMessage } from "./AssistantMessage";
-import { AssistantSettings } from "./AssistantSettings";
+
+const DEFAULT_MODEL = "qwen2.5-coder:7b";
 
 const quickActions = [
-  ["Analyze Project", "/api/admin/assistant/analyze-project"],
-  ["Analyze Database", "/api/admin/assistant/analyze-database"],
-  ["Scan Website Data", "/api/admin/assistant/search-data"],
-  ["Scan Ranks", "/api/admin/assistant/scan-ranks"],
-  ["Scan Crates", "/api/admin/assistant/scan-crates"],
-  ["Scan Keys", "/api/admin/assistant/scan-keys"],
-  ["Scan Bundles", "/api/admin/assistant/scan-bundles"],
-  ["Scan Admin Logs", "/api/admin/assistant/scan-logs"],
+  ["Analyze admin panel", "/api/admin/assistant/analyze-project"],
+  ["Analyze database", "/api/admin/assistant/analyze-database"],
+  ["Scan orders/data", "/api/admin/assistant/search-data"],
+  ["Scan ranks", "/api/admin/assistant/scan-ranks"],
+  ["Scan keys", "/api/admin/assistant/scan-keys"],
+  ["Scan bundles", "/api/admin/assistant/scan-bundles"],
+  ["Scan logs", "/api/admin/assistant/scan-logs"],
 ] as const;
+
+const promptCards = [
+  "Why is this admin page not showing existing data?",
+  "Scan my active ranks, keys, bundles, and promos.",
+  "Check checkout bugs and explain the files involved.",
+  "Show recent admin actions and failed deliveries.",
+];
 
 export function AssistantChatPanel({ open, onClose, currentPage }: { open: boolean; onClose: () => void; currentPage: string }) {
   const [messages, setMessages] = useState<AssistantChatMessage[]>([
     {
       role: "assistant",
       content:
-        "Private Lunaris assistant ready. I can scan your admin data, project files, Supabase tables, logs, and propose safe fixes after you approve them.",
+        "I am your private Lunaris admin assistant. Ask me about orders, players, promos, products, Supabase, checkout bugs, or website code.",
     },
   ]);
-  const [models, setModels] = useState<AssistantModel[]>([]);
-  const [model, setModel] = useState("qwen2.5-coder:7b");
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState("Checking assistant backend...");
+  const [status, setStatus] = useState<"checking" | "online" | "offline">("checking");
   const [diff, setDiff] = useState<string | undefined>();
   const [conversationId, setConversationId] = useState<string | undefined>();
+  const scrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
+    setStatus("checking");
     void getAssistantStatus().then((result) => {
-      setStatus(result.ok && result.data.ollama ? `Online: ${result.data.model}` : "Assistant backend offline.");
-    });
-    void getAssistantModels().then((result) => {
-      if (result.ok) setModels(result.data.models);
+      setStatus(result.ok && result.data.ollama ? "online" : "offline");
     });
   }, [open]);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [messages, loading, diff]);
 
   const canSend = useMemo(() => input.trim().length > 0 && !loading, [input, loading]);
 
@@ -55,11 +61,15 @@ export function AssistantChatPanel({ open, onClose, currentPage }: { open: boole
     event?.preventDefault();
     const text = input.trim();
     if (!text) return;
-    const userMessage: AssistantChatMessage = { role: "user", content: text };
-    setMessages((current) => [...current, userMessage]);
+    setMessages((current) => [...current, { role: "user", content: text }]);
     setInput("");
     setLoading(true);
-    const result = await sendAssistantMessage({ message: text, model, conversationId, context: { currentPage } });
+    const result = await sendAssistantMessage({
+      message: text,
+      model: DEFAULT_MODEL,
+      conversationId,
+      context: { currentPage },
+    });
     setLoading(false);
     if (!result.ok) {
       setMessages((current) => [...current, { role: "assistant", content: result.error }]);
@@ -75,7 +85,7 @@ export function AssistantChatPanel({ open, onClose, currentPage }: { open: boole
     setMessages((current) => [...current, { role: "user", content: label }]);
     const result = await assistantAction<{ summary?: string; rows?: unknown[]; output?: string; error?: string }>(path, {
       currentPage,
-      model,
+      model: DEFAULT_MODEL,
     });
     setLoading(false);
     if (!result.ok) {
@@ -86,100 +96,153 @@ export function AssistantChatPanel({ open, onClose, currentPage }: { open: boole
     setMessages((current) => [...current, { role: "assistant", content: body }]);
   }
 
+  function newChat() {
+    setMessages([
+      {
+        role: "assistant",
+        content: "New chat ready. What are we fixing or checking in Lunaris?",
+      },
+    ]);
+    setDiff(undefined);
+    setConversationId(undefined);
+    setInput("");
+  }
+
   if (!open) return null;
 
+  const statusCopy =
+    status === "online" ? "Online" : status === "offline" ? "Assistant backend offline." : "Checking backend...";
+
   return (
-    <div className="fixed inset-0 z-[90] bg-black/50 backdrop-blur-sm md:bg-transparent">
-      <aside className="ml-auto flex h-full w-full max-w-2xl flex-col border-l border-purple-300/20 bg-[#080414]/95 text-white shadow-2xl shadow-purple-950/70">
-        <header className="flex items-center justify-between border-b border-purple-300/15 p-4">
-          <div>
-            <div className="flex items-center gap-2 text-lg font-black">
-              <Bot className="h-5 w-5 text-purple-200" />
-              Lunaris AI Assistant
+    <div className="fixed inset-0 z-[90] bg-black/55 backdrop-blur-md md:bg-black/30">
+      <aside className="ml-auto flex h-full w-full max-w-3xl flex-col overflow-hidden border-l border-purple-200/20 bg-[#080414]/95 text-white shadow-2xl shadow-purple-950/70">
+        <header className="relative overflow-hidden border-b border-purple-200/15 p-5">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(199,168,255,0.24),transparent_32%),radial-gradient(circle_at_90%_20%,rgba(120,90,255,0.2),transparent_30%)]" />
+          <div className="relative flex items-start justify-between gap-4">
+            <div className="flex gap-3">
+              <div className="grid h-12 w-12 place-items-center rounded-2xl border border-purple-200/30 bg-purple-200/15 shadow-[0_0_30px_rgba(190,160,255,0.25)]">
+                <Bot className="h-6 w-6 text-purple-100" />
+              </div>
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-xl font-black tracking-tight">Lunaris Assistant</h2>
+                  <span
+                    className={`rounded-full px-3 py-1 text-[11px] font-bold ${
+                      status === "online"
+                        ? "bg-emerald-400/15 text-emerald-100"
+                        : status === "offline"
+                          ? "bg-red-400/15 text-red-100"
+                          : "bg-purple-300/15 text-purple-100"
+                    }`}
+                  >
+                    {statusCopy}
+                  </span>
+                </div>
+                <p className="mt-1 text-sm text-purple-100/70">
+                  Private admin helper for your website, database, products, players, and orders.
+                </p>
+              </div>
             </div>
-            <p className="text-xs text-purple-200/75">{status}</p>
+            <div className="flex gap-2">
+              <button onClick={newChat} className="rounded-full border border-white/10 p-2 hover:bg-white/10" aria-label="New chat">
+                <MessageSquarePlus className="h-5 w-5" />
+              </button>
+              <button onClick={onClose} className="rounded-full border border-white/10 p-2 hover:bg-white/10" aria-label="Close assistant">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
           </div>
-          <button onClick={onClose} className="rounded-full border border-white/10 p-2 hover:bg-white/10" aria-label="Close assistant">
-            <X className="h-5 w-5" />
-          </button>
         </header>
 
-        <div className="grid gap-3 border-b border-purple-300/10 p-4">
-          <AssistantSettings model={model} models={models} onModelChange={setModel} />
-          <div className="flex flex-wrap gap-2">
+        <div className="border-b border-purple-200/10 p-4">
+          <div className="mb-3 grid gap-2 sm:grid-cols-2">
+            {promptCards.map((prompt) => (
+              <button
+                key={prompt}
+                onClick={() => setInput(prompt)}
+                className="rounded-2xl border border-purple-200/15 bg-white/[0.04] p-3 text-left text-sm text-purple-50 transition hover:border-purple-200/35 hover:bg-purple-200/10"
+              >
+                {prompt}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1">
             {quickActions.map(([label, path]) => (
               <button
                 key={label}
                 onClick={() => runQuickAction(label, path)}
-                className="rounded-full border border-purple-300/20 bg-purple-300/10 px-3 py-2 text-xs font-bold text-purple-50 hover:bg-purple-300/20"
+                className="shrink-0 rounded-full border border-purple-300/20 bg-purple-300/10 px-3 py-2 text-xs font-bold text-purple-50 hover:bg-purple-300/20"
               >
                 {label}
               </button>
             ))}
             <button
-              onClick={() => setInput(`Search files for: `)}
-              className="rounded-full border border-purple-300/20 bg-purple-300/10 px-3 py-2 text-xs font-bold text-purple-50 hover:bg-purple-300/20"
+              onClick={() => setInput("Search files for ")}
+              className="shrink-0 rounded-full border border-purple-300/20 bg-purple-300/10 px-3 py-2 text-xs font-bold text-purple-50 hover:bg-purple-300/20"
             >
               <FileSearch className="mr-1 inline h-3 w-3" />
-              Search Files
+              Search files
             </button>
             <button
-              onClick={() => setInput(`Explain the current admin page: ${currentPage}`)}
-              className="rounded-full border border-purple-300/20 bg-purple-300/10 px-3 py-2 text-xs font-bold text-purple-50 hover:bg-purple-300/20"
+              onClick={() => setInput(`Explain this admin page: ${currentPage}`)}
+              className="shrink-0 rounded-full border border-purple-300/20 bg-purple-300/10 px-3 py-2 text-xs font-bold text-purple-50 hover:bg-purple-300/20"
             >
               <Database className="mr-1 inline h-3 w-3" />
-              Explain Current Page
+              Explain page
             </button>
           </div>
         </div>
 
-        <div className="flex-1 space-y-4 overflow-auto p-4">
+        <div ref={scrollRef} className="flex-1 space-y-5 overflow-auto p-5">
           {messages.map((message, index) => (
             <AssistantMessage key={`${message.role}-${index}`} message={message} />
           ))}
           {loading && (
-            <div className="flex items-center gap-2 text-sm text-purple-200">
+            <div className="flex items-center gap-3 rounded-3xl border border-purple-200/15 bg-purple-200/10 px-4 py-3 text-sm text-purple-100">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Thinking and scanning safely...
+              Checking Lunaris data...
             </div>
           )}
           <AssistantDiffViewer diff={diff} />
         </div>
 
-        <form onSubmit={submit} className="border-t border-purple-300/15 p-4">
+        <form onSubmit={submit} className="border-t border-purple-200/15 bg-black/20 p-4">
           <div className="mb-3 flex justify-between">
+            <p className="flex items-center gap-2 text-xs text-purple-100/55">
+              <Sparkles className="h-3 w-3" />
+              Private admin chat. Secrets stay hidden.
+            </p>
             <button
               type="button"
-              onClick={() => {
-                setMessages([]);
-                setDiff(undefined);
-                setConversationId(undefined);
-              }}
+              onClick={newChat}
               className="flex items-center gap-2 rounded-full border border-white/10 px-3 py-2 text-xs font-bold text-purple-100 hover:bg-white/10"
             >
               <Trash2 className="h-3 w-3" />
-              Clear chat
+              Clear
             </button>
           </div>
-          <div className="flex gap-2 rounded-3xl border border-purple-300/25 bg-black/40 p-2">
-            <input
+          <div className="flex items-end gap-2 rounded-[1.7rem] border border-purple-200/25 bg-black/45 p-2 shadow-inner">
+            <textarea
               value={input}
               onChange={(event) => setInput(event.target.value)}
-              placeholder="Ask about code, Supabase, ranks, bundles, logs, bugs..."
-              className="min-w-0 flex-1 bg-transparent px-3 text-sm text-white outline-none placeholder:text-purple-200/50"
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.shiftKey) {
+                  event.preventDefault();
+                  void submit();
+                }
+              }}
+              rows={1}
+              placeholder="Message Lunaris Assistant..."
+              className="max-h-32 min-h-11 min-w-0 flex-1 resize-none bg-transparent px-3 py-3 text-sm text-white outline-none placeholder:text-purple-200/45"
             />
             <button
               type="submit"
               disabled={!canSend}
-              className="grid h-11 w-11 place-items-center rounded-full bg-purple-200 text-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-purple-200 text-slate-950 transition hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </button>
           </div>
-          <p className="mt-2 flex items-center gap-1 text-[11px] text-purple-200/60">
-            <Sparkles className="h-3 w-3" />
-            No secrets are shown. Edits and commands require approval on the assistant server.
-          </p>
         </form>
       </aside>
     </div>
