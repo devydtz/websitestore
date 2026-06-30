@@ -5,6 +5,12 @@ import { QueryClient } from "@tanstack/react-query";
 import { getRouter } from "@/lib/router-client";
 import "@/styles.css";
 
+const canonicalRoutes = new Set(["/account", "/admin", "/bundles", "/checkout", "/keys", "/ranks"]);
+
+if (canonicalRoutes.has(window.location.pathname)) {
+  window.history.replaceState(window.history.state, "", `${window.location.pathname}/${window.location.search}${window.location.hash}`);
+}
+
 const queryClient = new QueryClient();
 const router = getRouter({ queryClient });
 
