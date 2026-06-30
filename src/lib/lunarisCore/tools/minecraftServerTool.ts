@@ -1,3 +1,5 @@
+import { getRconPlayerList } from "./minecraftCommandTool";
+
 type McSrvStatus = {
   online?: boolean;
   ip?: string;
@@ -32,7 +34,8 @@ function playerName(player: { name?: string } | string) {
   return typeof player === "string" ? player : player.name || "";
 }
 
-export async function minecraftServerTool() {
+export async function minecraftServerTool(message = "") {
+  const wantsList = /\b(list|members?|names?|who|current players?|players rn|online players)\b/i.test(message);
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), 8000);
 
@@ -58,12 +61,14 @@ export async function minecraftServerTool() {
     const online = Number(data.players?.online ?? 0);
     const max = Number(data.players?.max ?? 0);
     const names = (data.players?.list ?? []).map(playerName).map(cleanLine).filter(Boolean).slice(0, 20);
+    const rconList = wantsList ? await getRconPlayerList() : null;
     const motd = (data.motd?.clean ?? []).map(cleanLine).filter(Boolean).join(" ");
     const version = cleanLine(data.version || data.protocol?.name || "Unknown version");
 
     return [
       `The Minecraft server is online.`,
       `Players online: ${online}${max ? ` / ${max}` : ""}`,
+      rconList || "",
       `Server address: ${serverAddress}`,
       `Port: ${serverPort}`,
       `Version: ${version}`,

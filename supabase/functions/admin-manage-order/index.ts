@@ -213,11 +213,18 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { orderId, action, adminToken, note } = await req.json();
+    const { orderId, action, adminToken, note, command } = await req.json();
 
     if (!action) return json({ error: "Missing action" }, 400);
     if (adminToken !== ADMIN_PASSWORD) {
       return json({ error: "Unauthorized: invalid admin token" }, 403);
+    }
+    if (action === "rcon-command") {
+      const cmd = String(command ?? "").trim();
+      if (!cmd) return json({ error: "Missing command" }, 400);
+      if (cmd.length > 300) return json({ error: "Command is too long" }, 400);
+      const result = await rconCommand(RCON_HOST, Number(RCON_PORT), RCON_PASSWORD, cmd);
+      return json({ command: cmd, ok: result.ok, response: result.response });
     }
     if (action === "sync-accounts") {
       const { data, error } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });

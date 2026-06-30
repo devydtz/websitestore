@@ -556,6 +556,23 @@ export async function syncAccountsFromAuthUsers(
   return { ok: true, synced: Number(res.data.synced ?? 0) };
 }
 
+export async function runMinecraftCommand(
+  adminToken: string,
+  command: string,
+): Promise<{ ok: true; command: string; response: string } | { ok: false; error: string }> {
+  if (adminToken !== "lunaris-admin-2024") return { ok: false, error: "Incorrect admin password." };
+  const cleanCommand = command.trim().replace(/^\//, "");
+  if (!cleanCommand) return { ok: false, error: "Enter a Minecraft command." };
+  const res = await callAdminFunction<{ command: string; ok: boolean; response: string }>({
+    action: "rcon-command",
+    adminToken,
+    command: cleanCommand,
+  });
+  if (!res.ok) return res;
+  if (!res.data.ok) return { ok: false, error: res.data.response || "RCON command failed." };
+  return { ok: true, command: res.data.command, response: res.data.response || "OK" };
+}
+
 function formatPhp(cents: number) {
   return new Intl.NumberFormat("en-PH", {
     style: "currency",

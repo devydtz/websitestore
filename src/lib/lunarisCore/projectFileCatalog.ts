@@ -122,6 +122,7 @@
   "src\\lib\\lunarisCore\\tools\\timeTool.ts",
   "src\\lib\\lunarisCore\\tools\\searchTool.ts",
   "src\\lib\\lunarisCore\\tools\\projectTool.ts",
+  "src\\lib\\lunarisCore\\tools\\minecraftCommandTool.ts",
   "src\\lib\\lunarisCore\\tools\\minecraftServerTool.ts",
   "src\\lib\\lunarisCore\\tools\\knowledgeTool.ts",
   "src\\lib\\lunarisCore\\tools\\dateTool.ts",

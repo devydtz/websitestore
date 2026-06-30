@@ -4,6 +4,7 @@ import { dataAnalysisTool } from "./tools/dataAnalysisTool";
 import { dateTool } from "./tools/dateTool";
 import { databaseTool } from "./tools/databaseTool";
 import { knowledgeTool } from "./tools/knowledgeTool";
+import { runCoreMinecraftCommand } from "./tools/minecraftCommandTool";
 import { minecraftServerTool } from "./tools/minecraftServerTool";
 import { projectTool } from "./tools/projectTool";
 import { searchTool } from "./tools/searchTool";
@@ -30,7 +31,9 @@ export async function routeTool(intent: LunarisIntent, message: string) {
     case "knowledge_question":
       return { answer: knowledgeTool(message), source: "Imported Lunaris Core advanced knowledge pack and built-in knowledge base." };
     case "minecraft_server_status":
-      return { answer: await minecraftServerTool(), source: "Public Minecraft server status lookup for mclunaris.fun:19075." };
+      return { answer: await minecraftServerTool(message), source: "Live Minecraft server status lookup for lunaris.ultraga.me:19075." };
+    case "minecraft_command":
+      return { answer: await runCoreMinecraftCommand(message), source: "Protected Supabase Edge Function RCON command runner." };
     case "data_analysis":
       return { answer: await dataAnalysisTool(message), source: "Data analysis tool using Supabase admin data helpers." };
     case "system_overview":
