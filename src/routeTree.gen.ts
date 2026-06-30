@@ -17,6 +17,18 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OrderOrderIdRouteImport } from './routes/order.$orderId'
+import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
+import { Route as AdminRequestsRouteImport } from './routes/admin.requests'
+import { Route as AdminRanksRouteImport } from './routes/admin.ranks'
+import { Route as AdminLogsRouteImport } from './routes/admin.logs'
+import { Route as AdminLoginRouteImport } from './routes/admin.login'
+import { Route as AdminKeysRouteImport } from './routes/admin.keys'
+import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
+import { Route as AdminCratesRouteImport } from './routes/admin.crates'
+import { Route as AdminCosmeticsRouteImport } from './routes/admin.cosmetics'
+import { Route as AdminBundlesRouteImport } from './routes/admin.bundles'
+import { Route as AdminAdminsRouteImport } from './routes/admin.admins'
+import { Route as AdminRequestsIdRouteImport } from './routes/admin.requests.$id'
 
 const RanksRoute = RanksRouteImport.update({
   id: '/ranks',
@@ -58,37 +70,133 @@ const OrderOrderIdRoute = OrderOrderIdRouteImport.update({
   path: '/order/$orderId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminSettingsRoute = AdminSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminRequestsRoute = AdminRequestsRouteImport.update({
+  id: '/requests',
+  path: '/requests',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminRanksRoute = AdminRanksRouteImport.update({
+  id: '/ranks',
+  path: '/ranks',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminLogsRoute = AdminLogsRouteImport.update({
+  id: '/logs',
+  path: '/logs',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminLoginRoute = AdminLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminKeysRoute = AdminKeysRouteImport.update({
+  id: '/keys',
+  path: '/keys',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminDashboardRoute = AdminDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCratesRoute = AdminCratesRouteImport.update({
+  id: '/crates',
+  path: '/crates',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCosmeticsRoute = AdminCosmeticsRouteImport.update({
+  id: '/cosmetics',
+  path: '/cosmetics',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminBundlesRoute = AdminBundlesRouteImport.update({
+  id: '/bundles',
+  path: '/bundles',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAdminsRoute = AdminAdminsRouteImport.update({
+  id: '/admins',
+  path: '/admins',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminRequestsIdRoute = AdminRequestsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AdminRequestsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/bundles': typeof BundlesRoute
   '/checkout': typeof CheckoutRoute
   '/keys': typeof KeysRoute
   '/ranks': typeof RanksRoute
+  '/admin/admins': typeof AdminAdminsRoute
+  '/admin/bundles': typeof AdminBundlesRoute
+  '/admin/cosmetics': typeof AdminCosmeticsRoute
+  '/admin/crates': typeof AdminCratesRoute
+  '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/keys': typeof AdminKeysRoute
+  '/admin/login': typeof AdminLoginRoute
+  '/admin/logs': typeof AdminLogsRoute
+  '/admin/ranks': typeof AdminRanksRoute
+  '/admin/requests': typeof AdminRequestsRouteWithChildren
+  '/admin/settings': typeof AdminSettingsRoute
   '/order/$orderId': typeof OrderOrderIdRoute
+  '/admin/requests/$id': typeof AdminRequestsIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/bundles': typeof BundlesRoute
   '/checkout': typeof CheckoutRoute
   '/keys': typeof KeysRoute
   '/ranks': typeof RanksRoute
+  '/admin/admins': typeof AdminAdminsRoute
+  '/admin/bundles': typeof AdminBundlesRoute
+  '/admin/cosmetics': typeof AdminCosmeticsRoute
+  '/admin/crates': typeof AdminCratesRoute
+  '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/keys': typeof AdminKeysRoute
+  '/admin/login': typeof AdminLoginRoute
+  '/admin/logs': typeof AdminLogsRoute
+  '/admin/ranks': typeof AdminRanksRoute
+  '/admin/requests': typeof AdminRequestsRouteWithChildren
+  '/admin/settings': typeof AdminSettingsRoute
   '/order/$orderId': typeof OrderOrderIdRoute
+  '/admin/requests/$id': typeof AdminRequestsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/bundles': typeof BundlesRoute
   '/checkout': typeof CheckoutRoute
   '/keys': typeof KeysRoute
   '/ranks': typeof RanksRoute
+  '/admin/admins': typeof AdminAdminsRoute
+  '/admin/bundles': typeof AdminBundlesRoute
+  '/admin/cosmetics': typeof AdminCosmeticsRoute
+  '/admin/crates': typeof AdminCratesRoute
+  '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/keys': typeof AdminKeysRoute
+  '/admin/login': typeof AdminLoginRoute
+  '/admin/logs': typeof AdminLogsRoute
+  '/admin/ranks': typeof AdminRanksRoute
+  '/admin/requests': typeof AdminRequestsRouteWithChildren
+  '/admin/settings': typeof AdminSettingsRoute
   '/order/$orderId': typeof OrderOrderIdRoute
+  '/admin/requests/$id': typeof AdminRequestsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -100,7 +208,19 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/keys'
     | '/ranks'
+    | '/admin/admins'
+    | '/admin/bundles'
+    | '/admin/cosmetics'
+    | '/admin/crates'
+    | '/admin/dashboard'
+    | '/admin/keys'
+    | '/admin/login'
+    | '/admin/logs'
+    | '/admin/ranks'
+    | '/admin/requests'
+    | '/admin/settings'
     | '/order/$orderId'
+    | '/admin/requests/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -110,7 +230,19 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/keys'
     | '/ranks'
+    | '/admin/admins'
+    | '/admin/bundles'
+    | '/admin/cosmetics'
+    | '/admin/crates'
+    | '/admin/dashboard'
+    | '/admin/keys'
+    | '/admin/login'
+    | '/admin/logs'
+    | '/admin/ranks'
+    | '/admin/requests'
+    | '/admin/settings'
     | '/order/$orderId'
+    | '/admin/requests/$id'
   id:
     | '__root__'
     | '/'
@@ -120,13 +252,25 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/keys'
     | '/ranks'
+    | '/admin/admins'
+    | '/admin/bundles'
+    | '/admin/cosmetics'
+    | '/admin/crates'
+    | '/admin/dashboard'
+    | '/admin/keys'
+    | '/admin/login'
+    | '/admin/logs'
+    | '/admin/ranks'
+    | '/admin/requests'
+    | '/admin/settings'
     | '/order/$orderId'
+    | '/admin/requests/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccountRoute: typeof AccountRoute
-  AdminRoute: typeof AdminRoute
+  AdminRoute: typeof AdminRouteWithChildren
   BundlesRoute: typeof BundlesRoute
   CheckoutRoute: typeof CheckoutRoute
   KeysRoute: typeof KeysRoute
@@ -192,13 +336,139 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrderOrderIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/settings': {
+      id: '/admin/settings'
+      path: '/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AdminSettingsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/requests': {
+      id: '/admin/requests'
+      path: '/requests'
+      fullPath: '/admin/requests'
+      preLoaderRoute: typeof AdminRequestsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/ranks': {
+      id: '/admin/ranks'
+      path: '/ranks'
+      fullPath: '/admin/ranks'
+      preLoaderRoute: typeof AdminRanksRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/logs': {
+      id: '/admin/logs'
+      path: '/logs'
+      fullPath: '/admin/logs'
+      preLoaderRoute: typeof AdminLogsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/login': {
+      id: '/admin/login'
+      path: '/login'
+      fullPath: '/admin/login'
+      preLoaderRoute: typeof AdminLoginRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/keys': {
+      id: '/admin/keys'
+      path: '/keys'
+      fullPath: '/admin/keys'
+      preLoaderRoute: typeof AdminKeysRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/dashboard': {
+      id: '/admin/dashboard'
+      path: '/dashboard'
+      fullPath: '/admin/dashboard'
+      preLoaderRoute: typeof AdminDashboardRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/crates': {
+      id: '/admin/crates'
+      path: '/crates'
+      fullPath: '/admin/crates'
+      preLoaderRoute: typeof AdminCratesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/cosmetics': {
+      id: '/admin/cosmetics'
+      path: '/cosmetics'
+      fullPath: '/admin/cosmetics'
+      preLoaderRoute: typeof AdminCosmeticsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/bundles': {
+      id: '/admin/bundles'
+      path: '/bundles'
+      fullPath: '/admin/bundles'
+      preLoaderRoute: typeof AdminBundlesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/admins': {
+      id: '/admin/admins'
+      path: '/admins'
+      fullPath: '/admin/admins'
+      preLoaderRoute: typeof AdminAdminsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/requests/$id': {
+      id: '/admin/requests/$id'
+      path: '/$id'
+      fullPath: '/admin/requests/$id'
+      preLoaderRoute: typeof AdminRequestsIdRouteImport
+      parentRoute: typeof AdminRequestsRoute
+    }
   }
 }
+
+interface AdminRequestsRouteChildren {
+  AdminRequestsIdRoute: typeof AdminRequestsIdRoute
+}
+
+const AdminRequestsRouteChildren: AdminRequestsRouteChildren = {
+  AdminRequestsIdRoute: AdminRequestsIdRoute,
+}
+
+const AdminRequestsRouteWithChildren = AdminRequestsRoute._addFileChildren(
+  AdminRequestsRouteChildren,
+)
+
+interface AdminRouteChildren {
+  AdminAdminsRoute: typeof AdminAdminsRoute
+  AdminBundlesRoute: typeof AdminBundlesRoute
+  AdminCosmeticsRoute: typeof AdminCosmeticsRoute
+  AdminCratesRoute: typeof AdminCratesRoute
+  AdminDashboardRoute: typeof AdminDashboardRoute
+  AdminKeysRoute: typeof AdminKeysRoute
+  AdminLoginRoute: typeof AdminLoginRoute
+  AdminLogsRoute: typeof AdminLogsRoute
+  AdminRanksRoute: typeof AdminRanksRoute
+  AdminRequestsRoute: typeof AdminRequestsRouteWithChildren
+  AdminSettingsRoute: typeof AdminSettingsRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminAdminsRoute: AdminAdminsRoute,
+  AdminBundlesRoute: AdminBundlesRoute,
+  AdminCosmeticsRoute: AdminCosmeticsRoute,
+  AdminCratesRoute: AdminCratesRoute,
+  AdminDashboardRoute: AdminDashboardRoute,
+  AdminKeysRoute: AdminKeysRoute,
+  AdminLoginRoute: AdminLoginRoute,
+  AdminLogsRoute: AdminLogsRoute,
+  AdminRanksRoute: AdminRanksRoute,
+  AdminRequestsRoute: AdminRequestsRouteWithChildren,
+  AdminSettingsRoute: AdminSettingsRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountRoute: AccountRoute,
-  AdminRoute: AdminRoute,
+  AdminRoute: AdminRouteWithChildren,
   BundlesRoute: BundlesRoute,
   CheckoutRoute: CheckoutRoute,
   KeysRoute: KeysRoute,

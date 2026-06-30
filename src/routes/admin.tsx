@@ -1,9 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { lazy, Suspense } from "react";
-
-const AdminPanel = lazy(() =>
-  import("@/components/admin/AdminPanel").then((module) => ({ default: module.AdminPanel })),
-);
+import { Outlet, createFileRoute, useLocation, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -17,9 +13,14 @@ export const Route = createFileRoute("/admin")({
 });
 
 function AdminRoute() {
-  return (
-    <Suspense fallback={<div className="min-h-screen bg-background" />}>
-      <AdminPanel />
-    </Suspense>
-  );
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (location.pathname === "/admin") {
+      void navigate({ to: "/admin/dashboard", replace: true });
+    }
+  }, [location.pathname, navigate]);
+
+  return <Outlet />;
 }

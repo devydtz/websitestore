@@ -10,6 +10,7 @@
     "dev": "vinxi dev",
     "build": "vite build",
     "start": "vinxi start",
+    "index:project": "pnpm --dir assistant-server index:project",
     "lint": "eslint .",
     "preview": "vite preview"
   },
