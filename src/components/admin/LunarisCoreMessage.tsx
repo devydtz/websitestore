@@ -7,22 +7,22 @@ export function LunarisCoreMessage({ message }: { message: CoreMessage }) {
   return (
     <div className={`flex gap-3 ${isCore ? "justify-start" : "justify-end"}`}>
       {isCore && (
-        <div className="mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-2xl border border-purple-200/30 bg-purple-300/15 text-purple-100 shadow-lg shadow-purple-500/20">
-          <Bot className="h-4 w-4" />
+        <div className="mt-1 grid h-7 w-7 shrink-0 place-items-center rounded-xl border border-purple-200/40 bg-purple-100 text-purple-700">
+          <Bot className="h-3.5 w-3.5" />
         </div>
       )}
       <div
-        className={`max-w-[85%] whitespace-pre-wrap rounded-[1.35rem] px-4 py-3 text-sm leading-relaxed shadow-xl ${
+        className={`max-w-[78%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-[15px] leading-7 shadow-sm ${
           isCore
-            ? "border border-purple-200/15 bg-[#120920]/95 text-purple-50"
-            : "border border-purple-100/25 bg-purple-200 text-slate-950"
+            ? "border border-slate-200 bg-white text-slate-900"
+            : "border border-purple-100/40 bg-purple-100 text-slate-950"
         }`}
       >
         {message.content}
       </div>
       {!isCore && (
-        <div className="mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-2xl border border-white/15 bg-white/10 text-white">
-          <UserRound className="h-4 w-4" />
+        <div className="mt-1 grid h-7 w-7 shrink-0 place-items-center rounded-xl border border-purple-200 bg-purple-600 text-white">
+          <UserRound className="h-3.5 w-3.5" />
         </div>
       )}
     </div>

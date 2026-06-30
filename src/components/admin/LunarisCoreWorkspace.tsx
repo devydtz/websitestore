@@ -2,7 +2,6 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   ArrowUp,
-  BrainCircuit,
   ChevronLeft,
   Eraser,
   Home,
@@ -176,18 +175,17 @@ export function LunarisCoreWorkspace() {
   }
 
   return (
-    <main className="relative h-screen overflow-hidden bg-[#f6f3ff] text-slate-950">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(168,85,247,0.18),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(79,70,229,0.14),transparent_30%)]" />
-      <div className="relative grid h-screen lg:grid-cols-[310px_1fr]">
-        <aside className="hidden border-r border-slate-200/80 bg-white/80 p-4 shadow-xl shadow-purple-950/5 backdrop-blur-xl lg:flex lg:flex-col">
-          <div className="mb-5 flex items-center justify-between">
+    <main className="relative h-screen overflow-hidden bg-[#fbfaff] text-slate-950">
+      <div className="relative grid h-screen lg:grid-cols-[280px_1fr]">
+        <aside className="hidden border-r border-slate-200/80 bg-white/90 p-3 backdrop-blur-xl lg:flex lg:flex-col">
+          <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br from-purple-700 to-indigo-600 text-white shadow-lg shadow-purple-300">
-                <MoonStar className="h-5 w-5" />
+              <span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-purple-700 to-indigo-600 text-white shadow-sm shadow-purple-200">
+                <MoonStar className="h-4 w-4" />
               </span>
               <div>
-                <p className="text-lg font-black">Lunaris Core</p>
-                <p className="text-xs font-bold text-slate-500">Private admin AI</p>
+                <p className="text-base font-black">Lunaris Core</p>
+                <p className="text-[11px] font-bold text-slate-500">Private admin AI</p>
               </div>
             </div>
             <Link to="/admin/dashboard" className="rounded-xl p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-950" title="Back to admin">
@@ -198,13 +196,13 @@ export function LunarisCoreWorkspace() {
           <button
             type="button"
             onClick={startNewChat}
-            className="mb-3 flex w-full items-center gap-3 rounded-2xl bg-slate-100 px-4 py-3 text-sm font-black transition hover:bg-purple-100"
+            className="mb-3 flex w-full items-center gap-3 rounded-xl bg-slate-100 px-3 py-2.5 text-sm font-black transition hover:bg-purple-100"
           >
             <MessageSquarePlus className="h-4 w-4" />
             New chat
           </button>
 
-          <label className="mb-4 flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500">
+          <label className="mb-4 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500">
             <Search className="h-4 w-4" />
             <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search chats" className="min-w-0 flex-1 bg-transparent outline-none" />
           </label>
@@ -216,7 +214,7 @@ export function LunarisCoreWorkspace() {
                 key={chat.id}
                 type="button"
                 onClick={() => commitState((current) => ({ ...current, activeId: chat.id }))}
-                className={`flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm transition ${
+                className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition ${
                   chat.id === activeChat.id ? "bg-purple-100 font-black text-purple-950" : "text-slate-600 hover:bg-slate-100"
                 }`}
               >
@@ -228,14 +226,14 @@ export function LunarisCoreWorkspace() {
         </aside>
 
         <section className="flex h-screen min-h-0 flex-col">
-          <header className="z-10 flex shrink-0 items-center justify-between border-b border-slate-200/80 bg-white/75 px-4 py-3 backdrop-blur-xl sm:px-6">
+          <header className="z-10 flex h-16 shrink-0 items-center justify-between border-b border-slate-200/80 bg-white/90 px-4 backdrop-blur-xl sm:px-6">
             <div className="flex min-w-0 items-center gap-3">
               <Link to="/admin/dashboard" className="rounded-xl p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-950 lg:hidden">
                 <Home className="h-5 w-5" />
               </Link>
               <div className="min-w-0">
-                <p className="truncate text-sm font-black text-slate-500">Lunaris Core</p>
-                <h1 className="truncate text-lg font-black sm:text-2xl">{activeChat.title}</h1>
+                <p className="truncate text-xs font-black text-slate-500">Lunaris Core</p>
+                <h1 className="truncate text-base font-black sm:text-xl">{activeChat.title}</h1>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -248,16 +246,16 @@ export function LunarisCoreWorkspace() {
             </div>
           </header>
 
-          <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6">
-            <div className="mx-auto flex w-full max-w-4xl flex-col gap-5">
+          <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
+            <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
               {activeChat.messages.length <= 1 && (
-                <div className="grid min-h-[42vh] place-items-center py-6 text-center">
+                <div className="grid min-h-[34vh] place-items-center py-4 text-center">
                   <div>
-                  <div className="mx-auto grid h-24 w-24 place-items-center rounded-[2rem] bg-gradient-to-br from-purple-200 via-white to-indigo-200 shadow-2xl shadow-purple-200">
-                    <Sparkles className="h-10 w-10 text-purple-700" />
+                  <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-purple-200 via-white to-indigo-200 shadow-lg shadow-purple-100">
+                    <Sparkles className="h-7 w-7 text-purple-700" />
                   </div>
-                  <h2 className="mt-6 text-3xl font-black">Ask Lunaris Core anything.</h2>
-                  <p className="mx-auto mt-2 max-w-2xl text-slate-500">
+                  <h2 className="mt-4 text-2xl font-black">Ask Lunaris Core anything.</h2>
+                  <p className="mx-auto mt-2 max-w-xl text-sm text-slate-500">
                     I will answer from your project knowledge, admin data tools, and safe general knowledge without forcing modes or random prompt buttons.
                   </p>
                   </div>
@@ -277,8 +275,8 @@ export function LunarisCoreWorkspace() {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="shrink-0 border-t border-slate-200/80 bg-[#f6f3ff]/90 px-4 py-4 backdrop-blur-xl sm:px-6">
-            <div className="mx-auto max-w-4xl rounded-[2rem] border border-slate-200 bg-white p-2 shadow-2xl shadow-purple-950/10">
+          <form onSubmit={handleSubmit} className="shrink-0 border-t border-slate-200/80 bg-[#fbfaff]/95 px-4 py-3 backdrop-blur-xl sm:px-6">
+            <div className="mx-auto flex max-w-3xl items-end gap-2 rounded-[1.5rem] border border-slate-200 bg-white px-3 py-2 shadow-xl shadow-purple-950/5">
               <textarea
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
@@ -289,24 +287,18 @@ export function LunarisCoreWorkspace() {
                   }
                 }}
                 placeholder="Ask anything about Lunaris Craft..."
-                className="h-16 w-full resize-none bg-transparent px-4 py-3 text-base outline-none placeholder:text-slate-400"
+                className="h-10 max-h-28 min-h-10 flex-1 resize-none bg-transparent px-2 py-2 text-base outline-none placeholder:text-slate-400"
               />
-              <div className="flex items-center justify-between gap-3 px-2 pb-1">
-                <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-xs font-black text-slate-500">
-                  <BrainCircuit className="h-3.5 w-3.5" />
-                  Overall Core
-                </div>
-                <button
-                  type="submit"
-                  disabled={loading || !input.trim()}
-                  className="grid h-11 w-11 place-items-center rounded-full bg-purple-600 text-white shadow-lg shadow-purple-300 transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-45"
-                  aria-label="Send message"
-                >
-                  {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ArrowUp className="h-5 w-5" />}
-                </button>
-              </div>
+              <button
+                type="submit"
+                disabled={loading || !input.trim()}
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-purple-600 text-white shadow-sm shadow-purple-200 transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-45"
+                aria-label="Send message"
+              >
+                {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ArrowUp className="h-5 w-5" />}
+              </button>
             </div>
-            <p className="mt-2 text-center text-xs font-semibold text-slate-400">Private admin assistant. It can still make mistakes, so verify important server and payment actions.</p>
+            <p className="mt-1 text-center text-[11px] font-semibold text-slate-400">Private admin assistant. Verify important server and payment actions.</p>
           </form>
         </section>
       </div>
