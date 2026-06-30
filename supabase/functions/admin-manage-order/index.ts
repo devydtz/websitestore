@@ -11,6 +11,8 @@ const ADMIN_PASSWORD = Deno.env.get("ADMIN_PASSWORD") ?? "lunaris-admin-2024";
 const RCON_HOST = Deno.env.get("RCON_HOST") ?? "";
 const RCON_PORT = Deno.env.get("RCON_PORT") ?? "25575";
 const RCON_PASSWORD = Deno.env.get("RCON_PASSWORD") ?? "";
+const MINECRAFT_STATUS_HOST = Deno.env.get("MINECRAFT_STATUS_HOST") ?? "lunaris.ultraga.me";
+const MINECRAFT_STATUS_PORT = Deno.env.get("MINECRAFT_STATUS_PORT") ?? "19075";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL") ?? "",
@@ -156,6 +158,116 @@ async function rconCommand(host: string, port: number, password: string, command
   });
 }
 
+// ---- Direct Minecraft Java status ping (public player network, not RCON) ----
+function writeVarInt(value: number): number[] {
+  const bytes: number[] = [];
+  let current = value >>> 0;
+  do {
+    let temp = current & 0x7f;
+    current >>>= 7;
+    if (current !== 0) temp |= 0x80;
+    bytes.push(temp);
+  } while (current !== 0);
+  return bytes;
+}
+
+function readVarInt(buffer: Uint8Array, offset = 0): { value: number; size: number } | null {
+  let value = 0;
+  let size = 0;
+  let byte = 0;
+  do {
+    if (offset + size >= buffer.length || size > 5) return null;
+    byte = buffer[offset + size];
+    value |= (byte & 0x7f) << (7 * size);
+    size++;
+  } while ((byte & 0x80) === 0x80);
+  return { value, size };
+}
+
+function mcString(value: string): Uint8Array {
+  const text = new TextEncoder().encode(value);
+  return concatBytes(new Uint8Array(writeVarInt(text.length)), text);
+}
+
+function concatBytes(...parts: Uint8Array[]): Uint8Array {
+  const total = parts.reduce((sum, part) => sum + part.length, 0);
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const part of parts) {
+    out.set(part, offset);
+    offset += part.length;
+  }
+  return out;
+}
+
+function mcPacket(payload: Uint8Array): Uint8Array {
+  return concatBytes(new Uint8Array(writeVarInt(payload.length)), payload);
+}
+
+function unsignedShort(value: number): Uint8Array {
+  const out = new Uint8Array(2);
+  const dv = new DataView(out.buffer);
+  dv.setUint16(0, value, false);
+  return out;
+}
+
+async function minecraftStatus(host: string, port: number): Promise<{ ok: boolean; response?: unknown; error?: string }> {
+  return new Promise((resolve) => {
+    const socket = netConnect({ host, port });
+    let buffer = new Uint8Array(0);
+    let settled = false;
+    const timeout = setTimeout(() => finish({ ok: false, error: "Minecraft status timeout" }), 8000);
+
+    const finish = (result: { ok: boolean; response?: unknown; error?: string }) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      socket.destroy();
+      resolve(result);
+    };
+
+    socket.on("error", (err) => finish({ ok: false, error: err.message }));
+    socket.on("connect", () => {
+      const handshakePayload = concatBytes(
+        new Uint8Array([0x00]),
+        new Uint8Array(writeVarInt(774)),
+        mcString(host),
+        unsignedShort(port),
+        new Uint8Array([0x01]),
+      );
+      socket.write(mcPacket(handshakePayload));
+      socket.write(mcPacket(new Uint8Array([0x00])));
+    });
+
+    socket.on("data", (chunk: Uint8Array) => {
+      const merged = new Uint8Array(buffer.length + chunk.length);
+      merged.set(buffer, 0);
+      merged.set(chunk, buffer.length);
+      buffer = merged;
+
+      const length = readVarInt(buffer, 0);
+      if (!length) return;
+      const packetStart = length.size;
+      if (buffer.length < packetStart + length.value) return;
+      const packet = buffer.slice(packetStart, packetStart + length.value);
+      const packetId = readVarInt(packet, 0);
+      if (!packetId || packetId.value !== 0) {
+        finish({ ok: false, error: "Unexpected Minecraft status packet" });
+        return;
+      }
+      const jsonLength = readVarInt(packet, packetId.size);
+      if (!jsonLength) return;
+      const jsonStart = packetId.size + jsonLength.size;
+      const jsonText = new TextDecoder().decode(packet.slice(jsonStart, jsonStart + jsonLength.value));
+      try {
+        finish({ ok: true, response: JSON.parse(jsonText) });
+      } catch {
+        finish({ ok: false, error: "Could not parse Minecraft status JSON" });
+      }
+    });
+  });
+}
+
 // ---- Command generation per item ----
 function commandsForItem(item: OrderItem, username: string): string[] {
   const name = item.name.toLowerCase();
@@ -218,6 +330,16 @@ Deno.serve(async (req: Request) => {
     if (!action) return json({ error: "Missing action" }, 400);
     if (adminToken !== ADMIN_PASSWORD) {
       return json({ error: "Unauthorized: invalid admin token" }, 403);
+    }
+    if (action === "server-status") {
+      const result = await minecraftStatus(MINECRAFT_STATUS_HOST, Number(MINECRAFT_STATUS_PORT));
+      return json({
+        host: MINECRAFT_STATUS_HOST,
+        port: Number(MINECRAFT_STATUS_PORT),
+        ok: result.ok,
+        status: result.response,
+        error: result.error,
+      });
     }
     if (action === "rcon-command") {
       const cmd = String(command ?? "").trim();

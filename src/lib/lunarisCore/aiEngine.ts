@@ -87,7 +87,7 @@ export async function askLunarisCore(message: string, context: LunarisCoreReques
     next,
   });
 
-  if (intent === "minecraft_server_status" || intent === "minecraft_command") {
+  if (intent === "minecraft_server_status" || intent === "minecraft_command" || intent === "web_research") {
     return {
       intent,
       content: localAnswer,

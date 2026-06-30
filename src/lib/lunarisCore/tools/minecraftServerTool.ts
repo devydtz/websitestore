@@ -1,4 +1,4 @@
-import { getRconPlayerList } from "./minecraftCommandTool";
+import { getDirectMinecraftNetworkStatus, getRconPlayerList } from "./minecraftCommandTool";
 
 type McSrvStatus = {
   online?: boolean;
@@ -36,6 +36,21 @@ function playerName(player: { name?: string } | string) {
 
 export async function minecraftServerTool(message = "") {
   const wantsList = /\b(list|members?|names?|who|current players?|players rn|online players)\b/i.test(message);
+  const directStatus = await getDirectMinecraftNetworkStatus();
+  if (directStatus) {
+    const rconList = wantsList ? await getRconPlayerList() : null;
+    return [directStatus, rconList || ""].filter(Boolean).join("\n\n");
+  }
+
+  if (wantsList || /\b(players?\s+online|online\s+players?|how many players|server status|is the server online|server online)\b/i.test(message)) {
+    return [
+      "I cannot verify the live public network from the backend yet, so I will not guess the player count.",
+      "Deploy the admin-manage-order Supabase function first, then ask again.",
+      `Server address: ${serverAddress}`,
+      `Port: ${serverPort}`,
+    ].join("\n");
+  }
+
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), 8000);
 

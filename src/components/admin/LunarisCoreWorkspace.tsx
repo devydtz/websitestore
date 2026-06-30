@@ -176,7 +176,7 @@ export function LunarisCoreWorkspace() {
 
   return (
     <main className="relative h-screen overflow-hidden bg-[#fbfaff] text-slate-950">
-      <div className="relative grid h-screen lg:grid-cols-[280px_1fr]">
+      <div className="relative grid h-screen lg:grid-cols-[260px_1fr]">
         <aside className="hidden border-r border-slate-200/80 bg-white/90 p-3 backdrop-blur-xl lg:flex lg:flex-col">
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -247,7 +247,7 @@ export function LunarisCoreWorkspace() {
           </header>
 
           <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
-            <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
+            <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
               {activeChat.messages.length <= 1 && (
                 <div className="grid min-h-[34vh] place-items-center py-4 text-center">
                   <div>
@@ -276,7 +276,7 @@ export function LunarisCoreWorkspace() {
           </div>
 
           <form onSubmit={handleSubmit} className="shrink-0 border-t border-slate-200/80 bg-[#fbfaff]/95 px-4 py-3 backdrop-blur-xl sm:px-6">
-            <div className="mx-auto flex max-w-3xl items-end gap-2 rounded-[1.5rem] border border-slate-200 bg-white px-3 py-2 shadow-xl shadow-purple-950/5">
+            <div className="mx-auto flex max-w-4xl items-end gap-2 rounded-[1.25rem] border border-slate-200 bg-white px-3 py-2 shadow-xl shadow-purple-950/5">
               <textarea
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
@@ -287,7 +287,7 @@ export function LunarisCoreWorkspace() {
                   }
                 }}
                 placeholder="Ask anything about Lunaris Craft..."
-                className="h-10 max-h-28 min-h-10 flex-1 resize-none bg-transparent px-2 py-2 text-base outline-none placeholder:text-slate-400"
+                className="h-10 max-h-24 min-h-10 flex-1 resize-none bg-transparent px-2 py-2 text-[15px] outline-none placeholder:text-slate-400"
               />
               <button
                 type="submit"

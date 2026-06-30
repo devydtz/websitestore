@@ -1,4 +1,4 @@
-import { runMinecraftCommand } from "@/lib/supabase";
+import { getMinecraftNetworkStatus, runMinecraftCommand } from "@/lib/supabase";
 
 const adminTokenKey = "lunaris.admin.token.v1";
 
@@ -57,4 +57,29 @@ export async function getRconPlayerList() {
   }
 
   return [`RCON player list:`, result.response || "No response returned."].join("\n");
+}
+
+export async function getDirectMinecraftNetworkStatus() {
+  const token = savedAdminToken();
+  if (!token) return null;
+
+  const result = await getMinecraftNetworkStatus(token);
+  if (!result.ok) {
+    return `Direct public network ping failed: ${result.error}`;
+  }
+
+  const status = result.data.status;
+  const online = Number(status?.players?.online ?? 0);
+  const max = Number(status?.players?.max ?? 0);
+  const names = (status?.players?.sample ?? []).map((player) => player.name).filter(Boolean).slice(0, 20);
+  const version = status?.version?.name || "Unknown version";
+
+  return [
+    "Live public network ping:",
+    `Players online: ${online}${max ? ` / ${max}` : ""}`,
+    names.length ? `Visible players: ${names.join(", ")}` : "The server did not expose player names in the public status sample.",
+    `Server address: ${result.data.host}`,
+    `Port: ${result.data.port}`,
+    `Version: ${version}`,
+  ].join("\n");
 }

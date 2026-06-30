@@ -133,6 +133,56 @@ function uniqueResults(results: ResearchResult[]) {
   });
 }
 
+function directResearchLinks(query: string): ResearchResult[] {
+  const encoded = encodeURIComponent(query);
+  const siteQuery = (site: string) => encodeURIComponent(`site:${site} ${query}`);
+
+  return [
+    {
+      source: "DuckDuckGo direct search",
+      title: "Search the open web",
+      url: `https://duckduckgo.com/?q=${encoded}`,
+      snippet: "Best no-login search link for broad web research.",
+    },
+    {
+      source: "YouTube direct search",
+      title: "Search YouTube",
+      url: `https://www.youtube.com/results?search_query=${encoded}`,
+      snippet: "Use this for videos, tutorials, server showcases, and plugin guides.",
+    },
+    {
+      source: "TikTok direct search",
+      title: "Search TikTok",
+      url: `https://www.tiktok.com/search?q=${encoded}`,
+      snippet: "TikTok blocks most API-free scraping, so this opens the live search page directly.",
+    },
+    {
+      source: "Facebook public search",
+      title: "Search public Facebook pages/posts",
+      url: `https://duckduckgo.com/?q=${siteQuery("facebook.com")}`,
+      snippet: "Facebook usually requires login for deep results, so this searches public indexed pages.",
+    },
+    {
+      source: "GitHub direct search",
+      title: "Search GitHub",
+      url: `https://github.com/search?q=${encoded}&type=repositories`,
+      snippet: "Useful for code, plugins, open-source projects, and examples.",
+    },
+    {
+      source: "Modrinth direct search",
+      title: "Search Modrinth",
+      url: `https://modrinth.com/search?q=${encoded}`,
+      snippet: "Useful for Minecraft mods, plugins, datapacks, and resource packs.",
+    },
+    {
+      source: "Cloudflare Docs search",
+      title: "Search Cloudflare docs",
+      url: `https://developers.cloudflare.com/search/?q=${encoded}`,
+      snippet: "Useful for Pages, Workers, Workers AI, DNS, and deployment problems.",
+    },
+  ];
+}
+
 export async function searchTool(message: string) {
   const query = cleanQuery(message);
   if (!query) return "Tell me what to research and I will search free public sources.";
@@ -148,19 +198,23 @@ export async function searchTool(message: string) {
   const results = uniqueResults(
     settled.flatMap((item) => (item.status === "fulfilled" ? item.value : [])).filter((item) => item.title && item.url),
   ).slice(0, 10);
+  const links = directResearchLinks(query);
 
   if (results.length === 0) {
     return [
-      `I tried free no-key research sources for "${query}", but none returned usable results from the browser.`,
-      "Some public sources limit browser requests. For stronger research everywhere, we would need a server-side search provider later.",
+      `I could not pull live snippets for "${query}" from the free no-key APIs, but here are direct research links you can open:`,
+      ...links.map((result, index) => `${index + 1}. ${result.title}\n   ${result.url}\n   ${result.snippet}`),
+      "Some sites like TikTok and Facebook block no-key automated scraping, so Core gives you the live search page instead of inventing results.",
     ].join("\n\n");
   }
 
   return [
-    `Research results for "${query}":`,
+    `I found these useful results for "${query}":`,
     ...results.map((result, index) => {
       const snippet = result.snippet ? `\n   ${result.snippet}` : "";
-      return `${index + 1}. ${result.title}\n   ${result.url}${snippet}\n   Source: ${result.source}`;
+      return `${index + 1}. ${result.title}\n   ${result.url}${snippet}`;
     }),
+    "Direct research links:",
+    ...links.map((result, index) => `${index + 1}. ${result.title}\n   ${result.url}`),
   ].join("\n\n");
 }

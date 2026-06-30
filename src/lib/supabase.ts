@@ -573,6 +573,31 @@ export async function runMinecraftCommand(
   return { ok: true, command: res.data.command, response: res.data.response || "OK" };
 }
 
+type MinecraftStatusPayload = {
+  host: string;
+  port: number;
+  ok: boolean;
+  status?: {
+    version?: { name?: string; protocol?: number };
+    players?: { online?: number; max?: number; sample?: Array<{ name?: string; id?: string }> };
+    description?: unknown;
+  };
+  error?: string;
+};
+
+export async function getMinecraftNetworkStatus(
+  adminToken: string,
+): Promise<{ ok: true; data: MinecraftStatusPayload } | { ok: false; error: string }> {
+  if (adminToken !== "lunaris-admin-2024") return { ok: false, error: "Incorrect admin password." };
+  const res = await callAdminFunction<MinecraftStatusPayload>({
+    action: "server-status",
+    adminToken,
+  });
+  if (!res.ok) return res;
+  if (!res.data.ok) return { ok: false, error: res.data.error || "Minecraft status ping failed." };
+  return { ok: true, data: res.data };
+}
+
 function formatPhp(cents: number) {
   return new Intl.NumberFormat("en-PH", {
     style: "currency",
