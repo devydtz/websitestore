@@ -16,7 +16,6 @@ import {
   Sparkles,
   UserCog,
 } from "lucide-react";
-import { AssistantFloatingButton } from "./AssistantFloatingButton";
 import { getCurrentAdminProfile, type AdminProfile } from "@/lib/adminData";
 
 const nav = [
@@ -30,7 +29,6 @@ const nav = [
   { to: "/admin/admins", label: "Admins", icon: UserCog },
   { to: "/admin/settings", label: "Settings", icon: Settings },
   { to: "/admin/logs", label: "Logs", icon: Logs },
-  { to: "/admin/assistant", label: "Assistant", icon: Sparkles },
 ] as const;
 
 export function AdminShell({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
@@ -151,7 +149,6 @@ export function AdminShell({ title, subtitle, children }: { title: string; subti
           {children}
         </main>
       </div>
-      <AssistantFloatingButton currentPage={location.pathname} />
     </div>
   );
 }

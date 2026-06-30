@@ -1,6 +1,5 @@
 packages:
   - "."
-  - "assistant-server"
 
 allowBuilds:
   '@parcel/watcher': true

@@ -27,7 +27,6 @@ import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
 import { Route as AdminCratesRouteImport } from './routes/admin.crates'
 import { Route as AdminCosmeticsRouteImport } from './routes/admin.cosmetics'
 import { Route as AdminBundlesRouteImport } from './routes/admin.bundles'
-import { Route as AdminAssistantRouteImport } from './routes/admin.assistant'
 import { Route as AdminAdminsRouteImport } from './routes/admin.admins'
 import { Route as AdminRequestsIdRouteImport } from './routes/admin.requests.$id'
 
@@ -121,11 +120,6 @@ const AdminBundlesRoute = AdminBundlesRouteImport.update({
   path: '/bundles',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminAssistantRoute = AdminAssistantRouteImport.update({
-  id: '/assistant',
-  path: '/assistant',
-  getParentRoute: () => AdminRoute,
-} as any)
 const AdminAdminsRoute = AdminAdminsRouteImport.update({
   id: '/admins',
   path: '/admins',
@@ -146,7 +140,6 @@ export interface FileRoutesByFullPath {
   '/keys': typeof KeysRoute
   '/ranks': typeof RanksRoute
   '/admin/admins': typeof AdminAdminsRoute
-  '/admin/assistant': typeof AdminAssistantRoute
   '/admin/bundles': typeof AdminBundlesRoute
   '/admin/cosmetics': typeof AdminCosmeticsRoute
   '/admin/crates': typeof AdminCratesRoute
@@ -169,7 +162,6 @@ export interface FileRoutesByTo {
   '/keys': typeof KeysRoute
   '/ranks': typeof RanksRoute
   '/admin/admins': typeof AdminAdminsRoute
-  '/admin/assistant': typeof AdminAssistantRoute
   '/admin/bundles': typeof AdminBundlesRoute
   '/admin/cosmetics': typeof AdminCosmeticsRoute
   '/admin/crates': typeof AdminCratesRoute
@@ -193,7 +185,6 @@ export interface FileRoutesById {
   '/keys': typeof KeysRoute
   '/ranks': typeof RanksRoute
   '/admin/admins': typeof AdminAdminsRoute
-  '/admin/assistant': typeof AdminAssistantRoute
   '/admin/bundles': typeof AdminBundlesRoute
   '/admin/cosmetics': typeof AdminCosmeticsRoute
   '/admin/crates': typeof AdminCratesRoute
@@ -218,7 +209,6 @@ export interface FileRouteTypes {
     | '/keys'
     | '/ranks'
     | '/admin/admins'
-    | '/admin/assistant'
     | '/admin/bundles'
     | '/admin/cosmetics'
     | '/admin/crates'
@@ -241,7 +231,6 @@ export interface FileRouteTypes {
     | '/keys'
     | '/ranks'
     | '/admin/admins'
-    | '/admin/assistant'
     | '/admin/bundles'
     | '/admin/cosmetics'
     | '/admin/crates'
@@ -264,7 +253,6 @@ export interface FileRouteTypes {
     | '/keys'
     | '/ranks'
     | '/admin/admins'
-    | '/admin/assistant'
     | '/admin/bundles'
     | '/admin/cosmetics'
     | '/admin/crates'
@@ -418,13 +406,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminBundlesRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/assistant': {
-      id: '/admin/assistant'
-      path: '/assistant'
-      fullPath: '/admin/assistant'
-      preLoaderRoute: typeof AdminAssistantRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/admin/admins': {
       id: '/admin/admins'
       path: '/admins'
@@ -456,7 +437,6 @@ const AdminRequestsRouteWithChildren = AdminRequestsRoute._addFileChildren(
 
 interface AdminRouteChildren {
   AdminAdminsRoute: typeof AdminAdminsRoute
-  AdminAssistantRoute: typeof AdminAssistantRoute
   AdminBundlesRoute: typeof AdminBundlesRoute
   AdminCosmeticsRoute: typeof AdminCosmeticsRoute
   AdminCratesRoute: typeof AdminCratesRoute
@@ -471,7 +451,6 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminAdminsRoute: AdminAdminsRoute,
-  AdminAssistantRoute: AdminAssistantRoute,
   AdminBundlesRoute: AdminBundlesRoute,
   AdminCosmeticsRoute: AdminCosmeticsRoute,
   AdminCratesRoute: AdminCratesRoute,

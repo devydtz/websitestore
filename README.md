@@ -6,35 +6,41 @@ Private Minecraft server store and admin dashboard for `mclunaris.store`.
 
 - React + Vite + TypeScript frontend.
 - Supabase auth/database.
-- Private admin routes under `/admin`.
-- CRUD admin pages for requests, ranks, crates, crate keys, bundles, cosmetics, admins, settings, and logs.
-- Local Ollama assistant server in `assistant-server/`.
-- Safe project indexing and database scanning for the private admin assistant.
-- No fake ranks, crate keys, bundles, crates, or cosmetics are seeded.
+- Existing private admin panel under `/admin`.
+- Store systems for orders, accounts, promo codes, products, and delivery actions.
+- Lunaris Core: a private admin-only helper inside the existing admin panel.
+
+## Lunaris Core
+
+Lunaris Core is built into the website. It does not use an external AI server, OpenAI, Cloudflare AI, or paid API keys.
+
+Inside the admin panel, click the floating `Lunaris Core` button. It can answer using local tools:
+
+- Time and date in Asia/Manila.
+- Basic calculator and price math.
+- Safe project map search for website/admin/build questions.
+- Supabase data scans through the existing frontend data helpers.
+- Optional web research placeholder. If search is not configured, it says web research is not configured yet.
+
+Lunaris Core never reads `.env` files and never exposes service-role keys, tokens, passwords, or private secrets.
 
 ## Environment Variables
 
-Copy `.env.example` to your local `.env` files and fill the values.
+Copy `.env.example` to your local `.env` and fill:
 
-Frontend variables:
+```env
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+```
 
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
-- `VITE_ASSISTANT_API_URL`
-
-Backend assistant variables:
-
-- `SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `OLLAMA_BASE_URL`
-- `OLLAMA_MODEL`
-
-Never put `SUPABASE_SERVICE_ROLE_KEY` in the frontend or Cloudflare public variables.
+Do not put a Supabase service-role key in the frontend.
 
 ## Supabase Setup
 
+If this is a fresh project:
+
 1. Open Supabase SQL Editor.
-2. Run the migration in `supabase/migrations/20260630000000_lunaris_admin_assistant.sql`.
+2. Run the migrations under `supabase/migrations/`.
 3. Create or sign up your first Supabase auth user.
 4. Find that user's UUID in Authentication > Users.
 5. Insert the first owner profile:
@@ -53,41 +59,8 @@ pnpm install
 pnpm dev
 ```
 
-Open `/admin/dashboard`. If you are not signed in as a user with an `admin_profiles` row, the admin panel will block access.
-
-## Ollama Setup
-
-Install Ollama, then run:
-
-```bash
-ollama pull qwen2.5-coder:7b
-ollama serve
-```
-
-Optional supported models:
-
-```bash
-ollama pull qwen2.5-coder:3b
-ollama pull qwen3-coder
-```
-
-## Assistant Server
-
-```bash
-cd assistant-server
-pnpm install
-pnpm dev
-```
-
-Then open `/admin/dashboard` and click the glowing assistant button at bottom-right.
-
-Use these assistant buttons first:
-
-1. Rebuild Project Knowledge by calling the server endpoint or running `pnpm index:project` inside `assistant-server`.
-2. Analyze Project.
-3. Analyze Database.
-4. Scan Ranks, Keys, Bundles, Logs.
+Open `/admin`. If you are not signed in as an admin user, the admin panel blocks access.
 
 ## Safety
 
-The assistant server validates the logged-in Supabase session before returning admin data. It uses the service role only on the backend. It blocks dangerous commands, never exposes `.env` files, backs up files before applying edits, and does not run deploy or git push automatically.
+Lunaris Core is admin-only because it is mounted only inside the existing admin panel. It uses safe summaries instead of raw private files, and it relies on the current Supabase permissions already used by the admin panel.
