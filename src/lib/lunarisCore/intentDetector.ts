@@ -4,6 +4,7 @@ export type LunarisIntent =
   | "system_overview"
   | "coding_knowledge"
   | "minecraft_knowledge"
+  | "minecraft_server_status"
   | "security_knowledge"
   | "knowledge_question"
   | "data_analysis"
@@ -30,7 +31,8 @@ export function detectIntent(message: string): LunarisIntent {
   if (/\b(all knowledge|everything|world knowledge|nothing is impossible|know everything)\b/.test(text)) return "knowledge_question";
   if (/\b(analy[sz]e|analysis|report|metrics|duplicate|anomaly|trend|summary|revenue|breakdown|missing values|data)\b/.test(text)) return "data_analysis";
   if (/\b(explain the project|explain this site|whole system|architecture|how does this work|know everything|overview)\b/.test(text)) return "system_overview";
-  if (/\b(minecraft|paper|purpur|spigot|bukkit|plugin|luckperms|permission|rcon|geyser|floodgate|bedrock|java edition|crate|rank command)\b/.test(text)) return "minecraft_knowledge";
+  if (/\b(players?\s+online|online\s+players?|how many players|server status|is the server online|server online|motd|minecraft status|who is online|player count)\b/.test(text)) return "minecraft_server_status";
+  if (/\b(minecraft|paper|purpur|spigot|bukkit|plugin|luckperms|permission|rcon|geyser|floodgate|bedrock|java edition|crate|rank command|server)\b/.test(text)) return "minecraft_knowledge";
   if (/\b(coding|programming|debug|algorithm|typescript|javascript|react|vite|frontend|backend|api|function|component)\b/.test(text)) return "coding_knowledge";
   if (/\b(security|secret|token|password|api key|service role|rcon password|private)\b/.test(text)) return "security_knowledge";
   if (/\b(time|clock|what time)\b/.test(text)) return "current_time";

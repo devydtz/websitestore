@@ -4,6 +4,7 @@ import { dataAnalysisTool } from "./tools/dataAnalysisTool";
 import { dateTool } from "./tools/dateTool";
 import { databaseTool } from "./tools/databaseTool";
 import { knowledgeTool } from "./tools/knowledgeTool";
+import { minecraftServerTool } from "./tools/minecraftServerTool";
 import { projectTool } from "./tools/projectTool";
 import { searchTool } from "./tools/searchTool";
 import { timeTool } from "./tools/timeTool";
@@ -14,13 +15,13 @@ export async function routeTool(intent: LunarisIntent, message: string) {
     case "greeting":
       return {
         answer:
-          "Hi. I am Lunaris Core, the private admin assistant for Lunaris Craft. I can answer from the imported knowledge base, safe repo file catalog, project index, admin database scanner, calculator, time/date tools, and free public research sources. I will not invent files, rows, products, ranks, keys, bundles, logs, or secrets.",
+          "Yo, I am here. Ask me about the website, checkout, admin panel, Supabase, Minecraft delivery, Cloudflare, or code and I will keep it direct.",
         source: "Lunaris Core identity and imported knowledge rules.",
       };
     case "capabilities":
       return {
         answer:
-          "I can help with:\n- Heavy coding help: React, Vite, TypeScript, debugging, build errors, frontend/backend structure\n- Minecraft server ops: Paper/Purpur, LuckPerms, RCON, ranks, crates, Geyser/Floodgate, store delivery\n- Lunaris website knowledge: routes, components, checkout, account, cart, products, admin panel, Supabase, Cloudflare\n- Supabase scans: orders, accounts, promos, products, and admin data your current permissions can read\n- Security checks: secrets, service-role safety, RCON/password exposure, RLS issues\n- Time/date in Asia/Manila and calculator/price math\n- Free no-key research using public sources like DuckDuckGo Instant Answer, Wikipedia, Modrinth, GitHub, and Mojang version metadata\n- Cloudflare Workers AI response generation when the Pages AI binding is enabled\n\nI use the local knowledge/tools first, then Cloudflare Workers AI can turn that grounded context into a stronger final answer.",
+          "I can help with the Lunaris website, checkout bugs, admin data, Supabase tables, Cloudflare deploy issues, Minecraft ranks/RCON delivery, store products, code structure, security checks, reports, price math, and public research when configured. Ask normally and I will search the relevant Lunaris knowledge first.",
         source: "Lunaris Core capabilities document and imported knowledge rules.",
       };
     case "coding_knowledge":
@@ -28,6 +29,8 @@ export async function routeTool(intent: LunarisIntent, message: string) {
     case "security_knowledge":
     case "knowledge_question":
       return { answer: knowledgeTool(message), source: "Imported Lunaris Core advanced knowledge pack and built-in knowledge base." };
+    case "minecraft_server_status":
+      return { answer: await minecraftServerTool(), source: "Public Minecraft server status lookup for mclunaris.fun:19075." };
     case "data_analysis":
       return { answer: await dataAnalysisTool(message), source: "Data analysis tool using Supabase admin data helpers." };
     case "system_overview":

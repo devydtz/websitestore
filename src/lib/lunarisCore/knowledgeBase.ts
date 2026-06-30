@@ -81,6 +81,8 @@ export const knowledgeBase: KnowledgeTopic[] = [
       "Use Paper or Purpur for plugin servers; keep plugin versions compatible with the server version.",
       "LuckPerms is the standard choice for ranks and permissions. Common command pattern: lp user <player> parent add <group>.",
       "RCON needs enable-rcon=true, a matching rcon.password, and an open reachable rcon.port. The website backend must connect to the RCON port, not the public player port.",
+      "Public server status can show whether the server is online, version/MOTD, and player counts without exposing RCON.",
+      "Private in-game actions such as running commands, reading restricted plugin data, or granting ranks should go through a protected backend/Edge Function, never frontend code.",
       "If RCON times out, check firewall/allocation, whether the host exposes RCON publicly, correct port, correct password, and server.properties reload/restart.",
       "Geyser/Floodgate can allow Bedrock players, but usernames/prefixes and permission handling may differ from Java accounts.",
       "Store delivery should log every command result so admins can retry safely instead of double-granting rewards blindly.",

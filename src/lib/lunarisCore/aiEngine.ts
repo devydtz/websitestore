@@ -23,6 +23,8 @@ function sourceForIntent(intent: LunarisIntent, message: string, rawSource: stri
       return "Lunaris Core project index and safe repo file catalog.";
     case "web_research":
       return "Free public research sources: DuckDuckGo Instant Answer, Wikipedia, Modrinth, GitHub, and Mojang metadata when available.";
+    case "minecraft_server_status":
+      return "Public Minecraft server status lookup for mclunaris.fun:19075. This is live public reachability data, not private RCON.";
     case "calculator":
       return "Calculator tool.";
     case "current_time":
@@ -58,6 +60,8 @@ function nextForIntent(intent: LunarisIntent) {
       return "Open the listed file or ask me to narrow the search by exact error text, route, component, or feature name.";
     case "web_research":
       return "Open the returned links to verify details, especially if the topic is current or version-sensitive.";
+    case "minecraft_server_status":
+      return "Use RCON separately only for private in-game commands; public status can show online state and player counts.";
     case "calculator":
       return "Send another expression if you want a discount, total, percentage, or price breakdown.";
     case "current_time":
