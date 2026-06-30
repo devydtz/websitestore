@@ -5,6 +5,8 @@ import appCss from "../styles.css?url";
 import { AccountProvider } from "@/lib/account";
 import { CartProvider, useCart } from "@/lib/cart";
 
+const assetRecoveryVersion = "2026-06-30-custom-domain-cache-fix";
+
 const LazyCartDrawer = lazy(() =>
   import("@/components/CartDrawer").then((module) => ({ default: module.CartDrawer })),
 );
@@ -104,7 +106,7 @@ function RootComponent() {
             <CartDrawerGate />
           </>
         )}
-        <div className="relative">
+        <div className="relative" data-build={assetRecoveryVersion}>
           <HeadContent />
           <Outlet />
           <Scripts />

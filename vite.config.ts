@@ -9,9 +9,9 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          supabase: ["@supabase/supabase-js"],
-          router: ["@tanstack/react-router", "@tanstack/react-query"],
-          ui: [
+          lunarisSupabase: ["@supabase/supabase-js"],
+          lunarisRouter: ["@tanstack/react-router", "@tanstack/react-query"],
+          lunarisUi: [
             "@radix-ui/react-dialog",
             "@radix-ui/react-dropdown-menu",
             "@radix-ui/react-popover",
