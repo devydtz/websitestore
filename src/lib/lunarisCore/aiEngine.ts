@@ -88,6 +88,6 @@ export async function askLunarisCore(message: string) {
 
   return {
     intent,
-    content: model.ok ? model.answer : `${localAnswer}\n\nAI model note:\n${model.error}`,
+    content: model.ok ? model.answer : localAnswer,
   };
 }
