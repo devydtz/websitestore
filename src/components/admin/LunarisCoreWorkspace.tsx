@@ -3,6 +3,8 @@ import { Link } from "@tanstack/react-router";
 import {
   ArrowUp,
   ChevronLeft,
+  Pencil,
+  Trash2,
   Eraser,
   FileText,
   Home,
@@ -138,6 +140,32 @@ export function LunarisCoreWorkspace() {
 
   function clearActiveChat() {
     updateActiveChat((chat) => ({ ...chat, title: "New chat", messages: [welcome] }));
+  }
+
+  function renameChat(chatId: string) {
+    const chat = coreState.chats.find((item) => item.id === chatId);
+    const nextTitle = window.prompt("Rename chat", chat?.title || "New chat")?.trim();
+    if (!nextTitle) return;
+    commitState((current) => ({
+      ...current,
+      chats: current.chats.map((item) => (item.id === chatId ? { ...item, title: titleFrom(nextTitle), updatedAt: new Date().toISOString() } : item)),
+    }));
+  }
+
+  function deleteChat(chatId: string) {
+    const chat = coreState.chats.find((item) => item.id === chatId);
+    if (!window.confirm(`Delete "${chat?.title || "this chat"}"?`)) return;
+    commitState((current) => {
+      const remaining = current.chats.filter((item) => item.id !== chatId);
+      if (remaining.length) {
+        return {
+          chats: remaining,
+          activeId: current.activeId === chatId ? remaining[0].id : current.activeId,
+        };
+      }
+      const fresh = makeChat();
+      return { chats: [fresh], activeId: fresh.id };
+    });
   }
 
   async function ask(value = input) {
@@ -296,17 +324,23 @@ export function LunarisCoreWorkspace() {
           <div className="mb-3 px-2 text-sm font-bold text-slate-800">Chats</div>
           <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
             {visibleChats.map((chat) => (
-              <button
+              <div
                 key={chat.id}
-                type="button"
-                onClick={() => commitState((current) => ({ ...current, activeId: chat.id }))}
-                className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition ${
+                className={`group flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm transition ${
                   chat.id === activeChat.id ? "bg-[#ececec] font-semibold text-slate-950" : "text-slate-700 hover:bg-[#ececec]"
                 }`}
               >
-                <MessageSquare className="h-4 w-4 shrink-0" />
-                <span className="min-w-0 truncate">{chat.title}</span>
-              </button>
+                <button type="button" onClick={() => commitState((current) => ({ ...current, activeId: chat.id }))} className="flex min-w-0 flex-1 items-center gap-3 text-left">
+                  <MessageSquare className="h-4 w-4 shrink-0" />
+                  <span className="min-w-0 truncate">{chat.title}</span>
+                </button>
+                <button type="button" onClick={() => renameChat(chat.id)} className="rounded-lg p-1 text-slate-400 opacity-0 transition hover:bg-white hover:text-slate-900 group-hover:opacity-100" title="Rename chat">
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+                <button type="button" onClick={() => deleteChat(chat.id)} className="rounded-lg p-1 text-slate-400 opacity-0 transition hover:bg-white hover:text-red-600 group-hover:opacity-100" title="Delete chat">
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
             ))}
           </div>
           <div className="mt-3 flex items-center gap-3 rounded-xl px-3 py-2 text-sm">
@@ -432,18 +466,10 @@ export function LunarisCoreWorkspace() {
 function AnalyzingPanel({ plan }: { plan: LunarisPlan | null }) {
   const steps = plan?.steps.length ? plan.steps : ["Understanding request", "Searching Lunaris knowledge", "Building answer"];
   return (
-    <div className="w-full rounded-3xl border border-purple-200 bg-white p-4 shadow-sm">
-      <div className="mb-3 flex items-center gap-2 text-sm font-black text-purple-800">
-        <Loader2 className="h-4 w-4 animate-spin" />
-        Analyzing...
-      </div>
-      <div className="grid gap-2 sm:grid-cols-2">
-        {steps.map((step) => (
-          <div key={step} className="rounded-2xl bg-purple-50 px-3 py-2 text-sm font-bold text-slate-600">
-            {step}
-          </div>
-        ))}
-      </div>
+    <div className="mx-auto flex w-full max-w-3xl items-center gap-3 px-1 py-4 text-sm text-slate-500">
+      <Loader2 className="h-4 w-4 animate-spin text-slate-500" />
+      <span className="font-medium">Thinking...</span>
+      <span className="hidden truncate text-slate-400 sm:block">{steps[steps.length - 1]}</span>
     </div>
   );
 }
