@@ -2,6 +2,7 @@ import type { LunarisIntent } from "./intentDetector";
 import { calculatorTool } from "./tools/calculatorTool";
 import { dateTool } from "./tools/dateTool";
 import { databaseTool } from "./tools/databaseTool";
+import { knowledgeTool } from "./tools/knowledgeTool";
 import { projectTool } from "./tools/projectTool";
 import { searchTool } from "./tools/searchTool";
 import { timeTool } from "./tools/timeTool";
@@ -18,9 +19,14 @@ export async function routeTool(intent: LunarisIntent, message: string) {
     case "capabilities":
       return {
         answer:
-          "I can help with:\n- Website/frontend routes, components, cart, checkout, account, and order status\n- Admin panel systems: orders, accounts, promos, products, delivery logs, settings, and admin roles\n- Supabase data scans for orders, accounts, promos, and products\n- Backend/Edge Function/RCON file locations and explanations\n- Cloudflare/Vite/build/deploy debugging from the project map\n- Time/date in Asia/Manila\n- Basic calculator and price math\n- General questions when they do not need live internet\n\nI do not use an external AI model, and web research is disabled unless you configure a search provider later.",
+          "I can help with:\n- Heavy coding help: React, Vite, TypeScript, debugging, build errors, frontend/backend structure\n- Minecraft server ops: Paper/Purpur, LuckPerms, RCON, ranks, crates, Geyser/Floodgate, store delivery\n- Lunaris website knowledge: routes, components, checkout, account, cart, products, admin panel, Supabase, Cloudflare\n- Supabase scans: orders, accounts, promos, products, and admin data your current permissions can read\n- Security checks: secrets, service-role safety, RCON/password exposure, RLS issues\n- Time/date in Asia/Manila and calculator/price math\n- General stable knowledge and planning\n\nI do not use an external AI model. I can answer from my built-in knowledge, repo map, and database tools. For live current internet facts, web research is not configured yet.",
         source: "lunarisCore capabilities",
       };
+    case "coding_knowledge":
+    case "minecraft_knowledge":
+    case "security_knowledge":
+    case "knowledge_question":
+      return { answer: knowledgeTool(message), source: "knowledgeTool" };
     case "system_overview":
       return { answer: websiteTool(message), source: "websiteTool projectOverview" };
     case "current_time":
@@ -44,8 +50,8 @@ export async function routeTool(intent: LunarisIntent, message: string) {
       return { answer: projectTool(message), source: "projectTool" };
     case "general_question":
       return {
-        answer: `I can answer from the Lunaris project knowledge I have loaded. ${websiteTool(message)}\n\nIf you meant live internet research: ${searchTool()}`,
-        source: "websiteTool + searchTool",
+        answer: knowledgeTool(message),
+        source: "knowledgeTool",
       };
     default:
       return { answer: "I need a clearer question. Try asking about orders, accounts, promos, ranks, files, build errors, time, date, or math.", source: "intentDetector" };

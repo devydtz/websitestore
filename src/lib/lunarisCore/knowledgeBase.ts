@@ -1,0 +1,151 @@
+export type KnowledgeTopic = {
+  id: string;
+  title: string;
+  summary: string;
+  keywords: string[];
+  bullets: string[];
+};
+
+export const knowledgeBase: KnowledgeTopic[] = [
+  {
+    id: "coding-debugging",
+    title: "Coding and Debugging",
+    summary: "How to approach frontend, backend, TypeScript, build, and runtime problems.",
+    keywords: ["coding", "code", "debug", "bug", "typescript", "javascript", "error", "crash", "frontend", "backend"],
+    bullets: [
+      "Start from the exact error, then identify whether it happens at build time, page load, click/action time, or after a network request.",
+      "For React crashes, check null/undefined state, missing route data, bad async state updates, stale chunks, and unhandled rejected promises.",
+      "For TypeScript issues, fix the real shape mismatch instead of hiding it with any unless the data is truly unknown.",
+      "For slow pages, reduce repeated network calls, memoize expensive derived data, lazy-load heavy views, and avoid creating clients inside render loops.",
+      "For production-only bugs, compare environment variables, deployed assets, Cloudflare cache, route rewrites, and browser console output.",
+    ],
+  },
+  {
+    id: "react-vite",
+    title: "React + Vite",
+    summary: "Core behavior for React apps built with Vite.",
+    keywords: ["react", "vite", "component", "hook", "state", "useeffect", "bundle", "chunk", "spa", "router"],
+    bullets: [
+      "React components should keep render logic predictable: derive UI from state, keep side effects in effects/events, and guard optional data.",
+      "Vite exposes browser env variables only when they start with VITE_. Server secrets must never be imported into frontend code.",
+      "Dynamic import chunk errors often mean the browser cached an old asset after a new deploy; a reload handler or cache headers can help.",
+      "TanStack Router file routes are generated into routeTree.gen.ts; route files should be added/removed then build regenerates the tree.",
+      "A SPA on Cloudflare Pages normally needs safe fallback routing, but asset paths must not redirect into index.html.",
+    ],
+  },
+  {
+    id: "supabase",
+    title: "Supabase",
+    summary: "Auth, database, RLS, anon keys, service role, Edge Functions, and schema safety.",
+    keywords: ["supabase", "postgres", "sql", "rls", "auth", "edge function", "service role", "anon", "schema", "database"],
+    bullets: [
+      "Frontend code may use VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY; it must never use the service-role key.",
+      "RLS decides what the anon/authenticated frontend can read or write. If a table works in SQL editor but fails in browser, check RLS policies.",
+      "Service-role actions belong in Edge Functions or trusted backend code only.",
+      "Schema cache errors usually mean a table/column was just created or changed; refreshing schema/cache or waiting briefly can help.",
+      "For admin actions, validate the admin session/role before changing orders, products, accounts, or delivery status.",
+    ],
+  },
+  {
+    id: "cloudflare-pages",
+    title: "Cloudflare Pages",
+    summary: "Deploy/build/runtime behavior for the website.",
+    keywords: ["cloudflare", "pages", "deploy", "deployment", "build", "wrangler", "redirects", "headers", "cache"],
+    bullets: [
+      "A healthy build does not guarantee a healthy runtime; browser console errors still matter after deployment.",
+      "Lockfile mismatches can break dependency install. package.json and the lockfile must agree.",
+      "Use public/_headers for cache behavior and public/_redirects carefully so routes work without creating asset loops.",
+      "Cloudflare Pages serves built files from dist for Vite builds.",
+      "If a custom domain behaves differently than pages.dev, suspect DNS, SSL, caching, or stale assets.",
+    ],
+  },
+  {
+    id: "minecraft-server",
+    title: "Minecraft Server Operations",
+    summary: "Paper/Purpur server basics, plugins, permissions, RCON, and store delivery.",
+    keywords: ["minecraft", "paper", "purpur", "server", "plugin", "plugins", "luckperms", "geyser", "floodgate", "rcon", "bedrock", "java"],
+    bullets: [
+      "Use Paper or Purpur for plugin servers; keep plugin versions compatible with the server version.",
+      "LuckPerms is the standard choice for ranks and permissions. Common command pattern: lp user <player> parent add <group>.",
+      "RCON needs enable-rcon=true, a matching rcon.password, and an open reachable rcon.port. The website backend must connect to the RCON port, not the public player port.",
+      "If RCON times out, check firewall/allocation, whether the host exposes RCON publicly, correct port, correct password, and server.properties reload/restart.",
+      "Geyser/Floodgate can allow Bedrock players, but usernames/prefixes and permission handling may differ from Java accounts.",
+      "Store delivery should log every command result so admins can retry safely instead of double-granting rewards blindly.",
+    ],
+  },
+  {
+    id: "minecraft-store",
+    title: "Minecraft Store Design",
+    summary: "How ranks, keys, bundles, promos, checkout, and manual payment verification should work.",
+    keywords: ["store", "ranks", "keys", "bundles", "crate", "cosmetic", "checkout", "gcash", "promo", "receipt", "order"],
+    bullets: [
+      "Ranks should have stable slugs, clear perks, price, active/disabled state, sort order, and delivery commands.",
+      "Keys and bundles should stay hidden or coming soon until real products are added.",
+      "Manual GCash flow should collect account, GCash number/reference, amount, and clear admin verification status.",
+      "Promo codes should calculate the final price before checkout submit and store discount metadata on the order.",
+      "Admin confirm/reject/complete actions should update order status, add admin notes, and keep audit/delivery logs.",
+    ],
+  },
+  {
+    id: "security",
+    title: "Security",
+    summary: "Practical security rules for the Lunaris site and admin panel.",
+    keywords: ["security", "secret", "password", "token", "api key", "admin", "private", "safe"],
+    bullets: [
+      "Never expose service-role keys, RCON passwords, admin passwords, or private tokens in frontend code.",
+      "Admin-only UI is not enough by itself; protected data changes should also be protected by RLS or server-side checks.",
+      "Do not show real user passwords. Auth systems store password hashes and cannot safely recover original passwords.",
+      "Use least privilege: public visitors read only public store data; admins get admin tools; service role stays server-side.",
+      "Rotate any secret that has ever been pasted into chat, screenshots, commits, or public logs.",
+    ],
+  },
+  {
+    id: "general-assistant",
+    title: "General Assistant Behavior",
+    summary: "How Lunaris Core should answer normal questions.",
+    keywords: ["general", "question", "advice", "idea", "plan", "explain", "anything", "world", "knowledge"],
+    bullets: [
+      "Answer directly when the question is about stable general knowledge, project structure, coding patterns, Minecraft server ops, math, or date/time.",
+      "Be honest when a question needs live internet, current news, exact current versions, prices, laws, or external verification.",
+      "For plans, give clear steps in order and mention what data or access is needed.",
+      "For technical questions, prefer the repo knowledge map and database scanner first.",
+      "Do not pretend to know files, secrets, or live data that are not available.",
+    ],
+  },
+];
+
+export function searchKnowledge(query: string) {
+  const terms = query.toLowerCase().split(/\W+/).filter(Boolean);
+  return knowledgeBase
+    .map((topic) => {
+      const haystack = `${topic.title} ${topic.summary} ${topic.keywords.join(" ")} ${topic.bullets.join(" ")}`.toLowerCase();
+      const score = terms.reduce((sum, term) => sum + (haystack.includes(term) ? 1 : 0), 0);
+      return { ...topic, score };
+    })
+    .filter((topic) => topic.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 4);
+}
+
+export function answerFromKnowledge(query: string) {
+  const matches = searchKnowledge(query);
+  if (matches.length === 0) {
+    return [
+      "I can help with coding, Minecraft server setup, store/admin systems, Supabase, Cloudflare, checkout, security, time/date, and calculations.",
+      "For live current facts or internet research, web research is not configured yet.",
+    ].join("\n\n");
+  }
+
+  return matches
+    .map((topic) => `${topic.title}\n${topic.summary}\n${topic.bullets.map((bullet) => `- ${bullet}`).join("\n")}`)
+    .join("\n\n");
+}
+
+export function fullKnowledgeSummary() {
+  return [
+    "I have local knowledge loaded for these areas:",
+    ...knowledgeBase.map((topic) => `- ${topic.title}: ${topic.summary}`),
+    "",
+    "I can answer a lot from this built-in knowledge plus the Lunaris repo map and Supabase scanner. I still cannot know live internet facts unless web research gets configured later.",
+  ].join("\n");
+}
