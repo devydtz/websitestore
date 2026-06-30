@@ -22,7 +22,6 @@ type McSrvStatus = {
 };
 
 const serverAddress = "lunaris.ultraga.me";
-const displayAddress = "mclunaris.fun";
 const serverPort = 19075;
 
 function cleanLine(value: unknown) {
@@ -65,8 +64,7 @@ export async function minecraftServerTool() {
     return [
       `The Minecraft server is online.`,
       `Players online: ${online}${max ? ` / ${max}` : ""}`,
-      `Public status host checked: ${serverAddress}`,
-      `Player-facing address: ${displayAddress}`,
+      `Server address: ${serverAddress}`,
       `Port: ${serverPort}`,
       `Version: ${version}`,
       motd ? `MOTD: ${motd}` : "",
