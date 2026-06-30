@@ -8,6 +8,7 @@ import { appendAttachmentContext, formatLunarisAnswer } from "./answerFormatter"
 import { fileReaderTool } from "./tools/fileReaderTool";
 import { imageReaderTool } from "./tools/imageReaderTool";
 import { planLunarisCoreTask } from "./planner";
+import { humanizeCoreFallback } from "./personality";
 
 function sourceForIntent(intent: LunarisIntent, message: string, rawSource: string) {
   if (rawSource && rawSource !== "intentDetector") return rawSource;
@@ -92,14 +93,14 @@ export async function askLunarisCore(message: string, context: LunarisCoreReques
   const attachmentContext = attachments.length
     ? [fileReaderTool(attachments), imageReaderTool(attachments)].filter(Boolean).join("\n\n")
     : "";
-  const localAnswer = formatLunarisAnswer(responseEngine({
+  const localAnswer = humanizeCoreFallback(formatLunarisAnswer(responseEngine({
     answer: result.answer,
     source,
     next,
-  }) + (attachmentContext ? `\n\nUploaded file context:\n${attachmentContext}` : ""));
+  }) + (attachmentContext ? `\n\nUploaded file context:\n${attachmentContext}` : "")));
   const tools = [...plan.tools, ...(result.tools || [])];
 
-  if (intent === "minecraft_server_status" || intent === "minecraft_command" || intent === "web_research") {
+  if (intent === "minecraft_server_status" || intent === "minecraft_command" || intent === "web_research" || intent === "casual_chat") {
     return {
       intent,
       content: localAnswer,
@@ -119,7 +120,7 @@ export async function askLunarisCore(message: string, context: LunarisCoreReques
 
   return {
     intent,
-    content: model.ok ? formatLunarisAnswer(model.answer) : localAnswer,
+    content: model.ok ? humanizeCoreFallback(formatLunarisAnswer(model.answer)) : localAnswer,
     tools,
   };
 }

@@ -12,6 +12,8 @@ import { projectTool } from "./tools/projectTool";
 import { searchTool } from "./tools/searchTool";
 import { timeTool } from "./tools/timeTool";
 import { websiteTool } from "./tools/websiteTool";
+import { connectionHubTool } from "./tools/connectionHubTool";
+import { casualChatTool } from "./tools/casualChatTool";
 import type { LunarisCoreToolTrace } from "./client";
 
 export type LunarisToolResult = {
@@ -25,14 +27,25 @@ export async function routeTool(intent: LunarisIntent, message: string): Promise
     case "greeting":
       return {
         answer:
-          "Yo, I am here. Ask me about the website, checkout, admin panel, Supabase, Minecraft delivery, Cloudflare, or code and I will keep it direct.",
+          "Yo, I am here. Ask me anything about Lunaris Craft, code, Minecraft, admin data, web research, files, or ideas. If I can verify it, I will; if I cannot, I will tell you straight instead of making stuff up.",
         source: "Lunaris Core identity and imported knowledge rules.",
       };
     case "capabilities":
       return {
         answer:
-          "I can help with the Lunaris website, checkout bugs, admin data, Supabase tables, Cloudflare deploy issues, Minecraft ranks/RCON delivery, store products, code structure, security checks, reports, price math, and public research when configured. Ask normally and I will search the relevant Lunaris knowledge first.",
+          "I can help with the Lunaris website, checkout bugs, admin data, Supabase tables, Cloudflare deploy issues, Minecraft ranks/RCON delivery, store products, code structure, security checks, reports, price math, uploaded files, generated text files, and public research links. Ask normally. I will pick the right tool quietly and give you the clean answer.",
         source: "Lunaris Core capabilities document and imported knowledge rules.",
+      };
+    case "connections":
+      return {
+        answer: connectionHubTool(),
+        source: "Lunaris Core connection hub.",
+        tools: [{ name: "Connection Hub", status: "done", summary: "Listed currently connected and not-yet-connected Core capabilities." }],
+      };
+    case "casual_chat":
+      return {
+        answer: casualChatTool(message),
+        source: "Lunaris Core conversational behavior.",
       };
     case "coding_knowledge":
     case "minecraft_knowledge":

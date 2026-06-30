@@ -23,6 +23,8 @@ export type LunarisIntent =
   | "calculator"
   | "file_generation"
   | "image_generation"
+  | "connections"
+  | "casual_chat"
   | "general_question"
   | "web_research"
   | "unknown";
@@ -31,6 +33,7 @@ export function detectIntent(message: string): LunarisIntent {
   const text = message.toLowerCase();
   if (/^(hi|hello|hey|yo|sup|wassup|good morning|good afternoon|good evening)\b/.test(text.trim())) return "greeting";
   if (/\b(what can you do|help me|help|capabilities|commands|what do you know|who are you)\b/.test(text)) return "capabilities";
+  if (/\b(connect|connected|plugins?|integrations?|all data|everything connected|sync everything)\b/.test(text)) return "connections";
   if (/\b(all knowledge|everything|world knowledge|nothing is impossible|know everything)\b/.test(text)) return "knowledge_question";
   if (/\b(analy[sz]e|analysis|report|metrics|duplicate|anomaly|trend|summary|revenue|breakdown|missing values|data)\b/.test(text)) return "data_analysis";
   if (/\b(explain the project|explain this site|whole system|architecture|how does this work|know everything|overview)\b/.test(text)) return "system_overview";
@@ -45,6 +48,7 @@ export function detectIntent(message: string): LunarisIntent {
   if (/\b(generate|create|make|export|download)\b.*\b(file|document|markdown|md|txt|json|csv|html|report)\b/.test(text)) return "file_generation";
   if (/\b(generate|create|make)\b.*\b(image|picture|photo|art|logo|icon|wallpaper|banner)\b/.test(text)) return "image_generation";
   if (/\b(research|latest|current|search web|search for|look up|internet|find online|website)\b/.test(text)) return "web_research";
+  if (/^(what'?s happening|whats happening|what is happening|what'?s up|wyd|how are you|you there|talk to me|bro|gang|damn|bruh)\b/.test(text.trim())) return "casual_chat";
   if (/\b(route|url|page|where is)\b/.test(text)) return "route_search";
   if (/\b(config|vite|cloudflare|wrangler|package|env)\b/.test(text)) return "config_search";
   if (/\b(build failed|build error|npm|pnpm|vite error|typescript)\b/.test(text)) return "build_error";
