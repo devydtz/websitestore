@@ -4,16 +4,21 @@ import {
   ArrowUp,
   ChevronLeft,
   Eraser,
+  FileText,
   Home,
+  Image as ImageIcon,
   Loader2,
   MessageSquare,
   MessageSquarePlus,
   MoonStar,
+  Paperclip,
   Search,
   Sparkles,
+  X,
 } from "lucide-react";
-import { sendToLunarisCore, type LunarisCoreMessage } from "@/lib/lunarisCore/client";
+import { sendToLunarisCore, type LunarisCoreAttachment, type LunarisCoreMessage, type LunarisCoreToolTrace } from "@/lib/lunarisCore/client";
 import { LunarisCoreMessage as MessageBubble } from "./LunarisCoreMessage";
+import { planLunarisCoreTask, type LunarisPlan } from "@/lib/lunarisCore/planner";
 
 type StoredChat = {
   id: string;
@@ -88,7 +93,11 @@ export function LunarisCoreWorkspace() {
   const [input, setInput] = useState("");
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
+  const [attachments, setAttachments] = useState<LunarisCoreAttachment[]>([]);
+  const [activePlan, setActivePlan] = useState<LunarisPlan | null>(null);
+  const [dragging, setDragging] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const activeChat = coreState.chats.find((chat) => chat.id === coreState.activeId) || coreState.chats[0] || makeChat();
   const visibleChats = useMemo(() => {
@@ -131,27 +140,36 @@ export function LunarisCoreWorkspace() {
 
   async function ask(value = input) {
     const text = value.trim();
-    if (!text || loading) return;
+    if ((!text && attachments.length === 0) || loading) return;
 
     setInput("");
     setLoading(true);
-    const adminMessage: LunarisCoreMessage = { role: "admin", content: text };
+    const outgoingAttachments = attachments;
+    setAttachments([]);
+    const plan = planLunarisCoreTask(text || "Analyze uploaded files.", outgoingAttachments);
+    setActivePlan(plan);
+    const adminMessage: LunarisCoreMessage = {
+      role: "admin",
+      content: text || "Analyze these uploaded files.",
+      attachments: outgoingAttachments,
+    };
     const history = [...activeChat.messages, adminMessage].slice(-18);
 
     updateActiveChat((chat) => ({
       ...chat,
-      title: chat.title === "New chat" ? titleFrom(text) : chat.title,
+      title: chat.title === "New chat" ? titleFrom(text || outgoingAttachments[0]?.name || "Uploaded files") : chat.title,
       messages: [...chat.messages, adminMessage],
     }));
 
     try {
-      const result = await sendToLunarisCore(text, {
+      const result = await sendToLunarisCore(text || "Analyze uploaded files.", {
         mode: "general",
         history,
+        attachments: outgoingAttachments,
       });
       updateActiveChat((chat) => ({
         ...chat,
-        messages: [...chat.messages, { role: "core", content: result.content }],
+        messages: [...chat.messages, { role: "core", content: result.content, tools: result.tools as LunarisCoreToolTrace[] | undefined }],
       }));
     } catch (error) {
       updateActiveChat((chat) => ({
@@ -166,6 +184,7 @@ export function LunarisCoreWorkspace() {
       }));
     } finally {
       setLoading(false);
+      setActivePlan(null);
     }
   }
 
@@ -174,8 +193,65 @@ export function LunarisCoreWorkspace() {
     void ask();
   }
 
+  async function importFiles(fileList: FileList | File[]) {
+    const files = Array.from(fileList).slice(0, 8);
+    const imported = await Promise.all(files.map(readAttachment));
+    setAttachments((current) => [...current, ...imported].slice(0, 8));
+  }
+
+  async function readAttachment(file: File): Promise<LunarisCoreAttachment> {
+    const id = makeId();
+    const kind: LunarisCoreAttachment["kind"] = file.type.startsWith("image/")
+      ? "image"
+      : /\.(csv|json|xlsx?)$/i.test(file.name)
+        ? "data"
+        : /\.(txt|md|tsx?|jsx?|css|html|sql|log)$/i.test(file.name)
+          ? "text"
+          : "file";
+    const base = { id, name: file.name, type: file.type || "unknown", size: file.size, kind };
+
+    if (kind === "image") {
+      return { ...base, preview: await readAsDataUrl(file) };
+    }
+
+    if (kind === "text" || kind === "data") {
+      const text = await file.slice(0, 180_000).text().catch(() => "");
+      return { ...base, text: text.slice(0, 40_000) };
+    }
+
+    return base;
+  }
+
+  function readAsDataUrl(file: File) {
+    return new Promise<string>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => resolve("");
+      reader.readAsDataURL(file);
+    });
+  }
+
   return (
-    <main className="relative h-screen overflow-hidden bg-[#fbfaff] text-slate-950">
+    <main
+      className="relative h-screen overflow-hidden bg-[#fbfaff] text-slate-950"
+      onDragOver={(event) => {
+        event.preventDefault();
+        setDragging(true);
+      }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={(event) => {
+        event.preventDefault();
+        setDragging(false);
+        void importFiles(event.dataTransfer.files);
+      }}
+    >
+      {dragging && (
+        <div className="pointer-events-none absolute inset-3 z-50 grid place-items-center rounded-[2rem] border-2 border-dashed border-purple-400 bg-purple-950/10 backdrop-blur-sm">
+          <div className="rounded-3xl bg-white px-6 py-4 text-center font-black text-purple-950 shadow-2xl shadow-purple-900/20">
+            Drop files into Lunaris Core
+          </div>
+        </div>
+      )}
       <div className="relative grid h-screen lg:grid-cols-[260px_1fr]">
         <aside className="hidden border-r border-slate-200/80 bg-white/90 p-3 backdrop-blur-xl lg:flex lg:flex-col">
           <div className="mb-4 flex items-center justify-between">
@@ -267,16 +343,45 @@ export function LunarisCoreWorkspace() {
               ))}
 
               {loading && (
-                <div className="flex w-fit items-center gap-2 rounded-full border border-purple-200 bg-white px-4 py-2 text-sm font-bold text-slate-500 shadow-sm">
-                  <Loader2 className="h-4 w-4 animate-spin text-purple-600" />
-                  Thinking through the context...
-                </div>
+                <AnalyzingPanel plan={activePlan} />
               )}
             </div>
           </div>
 
           <form onSubmit={handleSubmit} className="shrink-0 border-t border-slate-200/80 bg-[#fbfaff]/95 px-4 py-3 backdrop-blur-xl sm:px-6">
+            {attachments.length > 0 && (
+              <div className="mx-auto mb-2 flex max-w-4xl gap-2 overflow-x-auto pb-1">
+                {attachments.map((file) => (
+                  <div key={file.id} className="flex max-w-xs items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm">
+                    {file.kind === "image" ? <ImageIcon className="h-4 w-4 text-purple-600" /> : <FileText className="h-4 w-4 text-purple-600" />}
+                    <span className="truncate font-bold">{file.name}</span>
+                    <button type="button" onClick={() => setAttachments((current) => current.filter((item) => item.id !== file.id))} className="rounded-full p-1 hover:bg-slate-100">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="mx-auto flex max-w-4xl items-end gap-2 rounded-[1.25rem] border border-slate-200 bg-white px-3 py-2 shadow-xl shadow-purple-950/5">
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                className="hidden"
+                accept="image/*,.txt,.md,.json,.csv,.xlsx,.xls,.pdf,.ts,.tsx,.js,.jsx,.css,.html,.sql,.log"
+                onChange={(event) => {
+                  if (event.target.files) void importFiles(event.target.files);
+                  event.currentTarget.value = "";
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-purple-700"
+                aria-label="Attach files"
+              >
+                <Paperclip className="h-5 w-5" />
+              </button>
               <textarea
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
@@ -291,7 +396,7 @@ export function LunarisCoreWorkspace() {
               />
               <button
                 type="submit"
-                disabled={loading || !input.trim()}
+                disabled={loading || (!input.trim() && attachments.length === 0)}
                 className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-purple-600 text-white shadow-sm shadow-purple-200 transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-45"
                 aria-label="Send message"
               >
@@ -303,5 +408,24 @@ export function LunarisCoreWorkspace() {
         </section>
       </div>
     </main>
+  );
+}
+
+function AnalyzingPanel({ plan }: { plan: LunarisPlan | null }) {
+  const steps = plan?.steps.length ? plan.steps : ["Understanding request", "Searching Lunaris knowledge", "Building answer"];
+  return (
+    <div className="w-full rounded-3xl border border-purple-200 bg-white p-4 shadow-sm">
+      <div className="mb-3 flex items-center gap-2 text-sm font-black text-purple-800">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        Analyzing...
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {steps.map((step) => (
+          <div key={step} className="rounded-2xl bg-purple-50 px-3 py-2 text-sm font-bold text-slate-600">
+            {step}
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

@@ -1,4 +1,4 @@
-import { Bot, Check, Copy, UserRound } from "lucide-react";
+import { Bot, Check, Copy, FileText, Image as ImageIcon, Wrench, UserRound } from "lucide-react";
 import { useState } from "react";
 import type { LunarisCoreMessage as CoreMessage } from "@/lib/lunarisCore/client";
 
@@ -78,6 +78,19 @@ export function LunarisCoreMessage({ message }: { message: CoreMessage }) {
             : "border border-purple-100/40 bg-purple-100 text-slate-950"
         }`}
       >
+        {message.attachments?.length ? (
+          <div className="mb-3 grid gap-2">
+            {message.attachments.map((file) => (
+              <div key={file.id} className="overflow-hidden rounded-2xl border border-purple-200 bg-white/80">
+                <div className="flex items-center gap-2 px-3 py-2 text-sm font-bold text-slate-600">
+                  {file.kind === "image" ? <ImageIcon className="h-4 w-4 text-purple-600" /> : <FileText className="h-4 w-4 text-purple-600" />}
+                  <span className="min-w-0 truncate">{file.name}</span>
+                </div>
+                {file.preview && <img src={file.preview} alt={file.name} className="max-h-52 w-full object-cover" />}
+              </div>
+            ))}
+          </div>
+        ) : null}
         {parts.map((part, index) =>
           part.type === "code" ? (
             <CodeBlock key={`${part.type}-${index}`} value={part.value} language={part.language} />
@@ -85,6 +98,22 @@ export function LunarisCoreMessage({ message }: { message: CoreMessage }) {
             <TextBlock key={`${part.type}-${index}`} value={part.value} />
           ),
         )}
+        {message.tools?.length ? (
+          <div className="mt-4 space-y-2">
+            <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Analyzed</div>
+            {message.tools.map((tool, index) => (
+              <details key={`${tool.name}-${index}`} className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
+                <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-black text-slate-700">
+                  <Wrench className="h-4 w-4 text-purple-600" />
+                  {tool.name}
+                  <span className="ml-auto rounded-full bg-white px-2 py-0.5 text-[11px] text-slate-500">{tool.status}</span>
+                </summary>
+                <p className="mt-2 text-sm text-slate-600">{tool.summary}</p>
+                {tool.output && <pre className="mt-2 max-h-44 overflow-auto rounded-xl bg-slate-950 p-3 text-xs text-slate-100">{tool.output}</pre>}
+              </details>
+            ))}
+          </div>
+        ) : null}
       </div>
       {!isCore && (
         <div className="mt-1 grid h-7 w-7 shrink-0 place-items-center rounded-xl border border-purple-200 bg-purple-600 text-white">

@@ -10,8 +10,15 @@ import { projectTool } from "./tools/projectTool";
 import { searchTool } from "./tools/searchTool";
 import { timeTool } from "./tools/timeTool";
 import { websiteTool } from "./tools/websiteTool";
+import type { LunarisCoreToolTrace } from "./client";
 
-export async function routeTool(intent: LunarisIntent, message: string) {
+export type LunarisToolResult = {
+  answer: string;
+  source: string;
+  tools?: LunarisCoreToolTrace[];
+};
+
+export async function routeTool(intent: LunarisIntent, message: string): Promise<LunarisToolResult> {
   switch (intent) {
     case "greeting":
       return {

@@ -4,6 +4,10 @@ import { routeTool } from "./toolRouter";
 import { responseEngine } from "./responseEngine";
 import { providerAdapter } from "./providerAdapter";
 import type { LunarisCoreRequestContext } from "./client";
+import { appendAttachmentContext, formatLunarisAnswer } from "./answerFormatter";
+import { fileReaderTool } from "./tools/fileReaderTool";
+import { imageReaderTool } from "./tools/imageReaderTool";
+import { planLunarisCoreTask } from "./planner";
 
 function sourceForIntent(intent: LunarisIntent, message: string, rawSource: string) {
   if (rawSource && rawSource !== "intentDetector") return rawSource;
@@ -77,25 +81,34 @@ function nextForIntent(intent: LunarisIntent) {
 }
 
 export async function askLunarisCore(message: string, context: LunarisCoreRequestContext = {}) {
-  const intent = detectIntent(message);
-  const result = await routeTool(intent, message);
+  const attachments = context.attachments || [];
+  const attachmentSummaries = attachments.map((file) => `${file.name} (${file.kind}, ${file.type || "unknown"}, ${file.size} bytes)`);
+  const enrichedMessage = appendAttachmentContext(message, attachmentSummaries);
+  const plan = planLunarisCoreTask(enrichedMessage, attachments);
+  const intent = detectIntent(enrichedMessage);
+  const result = await routeTool(intent, enrichedMessage);
   const source = sourceForIntent(intent, message, result.source);
   const next = nextForIntent(intent);
-  const localAnswer = responseEngine({
+  const attachmentContext = attachments.length
+    ? [fileReaderTool(attachments), imageReaderTool(attachments)].filter(Boolean).join("\n\n")
+    : "";
+  const localAnswer = formatLunarisAnswer(responseEngine({
     answer: result.answer,
     source,
     next,
-  });
+  }) + (attachmentContext ? `\n\nUploaded file context:\n${attachmentContext}` : ""));
+  const tools = [...plan.tools, ...(result.tools || [])];
 
   if (intent === "minecraft_server_status" || intent === "minecraft_command" || intent === "web_research") {
     return {
       intent,
       content: localAnswer,
+      tools,
     };
   }
 
   const model = await providerAdapter({
-    message,
+    message: enrichedMessage,
     intent,
     groundedAnswer: localAnswer,
     source,
@@ -106,6 +119,7 @@ export async function askLunarisCore(message: string, context: LunarisCoreReques
 
   return {
     intent,
-    content: model.ok ? model.answer : localAnswer,
+    content: model.ok ? formatLunarisAnswer(model.answer) : localAnswer,
+    tools,
   };
 }
