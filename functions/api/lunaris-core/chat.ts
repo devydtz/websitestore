@@ -86,6 +86,31 @@ function extractAiText(result: unknown) {
   return "";
 }
 
+async function runAiWithFallback(env: Env, input: unknown) {
+  if (!env.AI) throw new Error("Cloudflare Workers AI binding is not configured.");
+
+  const models = [
+    env.LUNARIS_AI_MODEL || "@cf/meta/llama-3.1-8b-instruct-fast",
+    "@cf/meta/llama-3.2-3b-instruct",
+    "@cf/meta/llama-3.2-1b-instruct",
+  ];
+  const uniqueModels = [...new Set(models.filter(Boolean))];
+  const errors: string[] = [];
+
+  for (const model of uniqueModels) {
+    try {
+      const result = await env.AI.run(model, input);
+      const answer = safeText(extractAiText(result));
+      if (answer) return { model, answer };
+      errors.push(`${model}: empty response`);
+    } catch (error) {
+      errors.push(`${model}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  throw new Error(errors.join(" | "));
+}
+
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const admin = await verifyAdmin(request, env);
   if (!admin.ok) return json({ error: admin.error }, { status: admin.status });
@@ -136,8 +161,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   ].join("\n\n");
 
   try {
-    const model = env.LUNARIS_AI_MODEL || "@cf/meta/llama-3.1-8b-instruct";
-    const result = await env.AI.run(model, {
+    const result = await runAiWithFallback(env, {
       messages: [
         { role: "system", content: system },
         { role: "user", content: prompt },
@@ -146,10 +170,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       max_tokens: 900,
     });
 
-    const answer = safeText(extractAiText(result));
-    if (!answer) return json({ error: "Cloudflare AI returned an empty response." }, { status: 502 });
-
-    return json({ answer, model });
+    return json({ answer: result.answer, model: result.model });
   } catch (error) {
     return json({ error: error instanceof Error ? error.message : "Cloudflare AI failed." }, { status: 502 });
   }

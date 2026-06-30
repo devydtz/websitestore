@@ -7,4 +7,4 @@ pages_build_output_dir = "dist"
 binding = "AI"
 
 [vars]
-LUNARIS_AI_MODEL = "@cf/meta/llama-3.1-8b-instruct"
+LUNARIS_AI_MODEL = "@cf/meta/llama-3.1-8b-instruct-fast"

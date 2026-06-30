@@ -43,7 +43,7 @@ Cloudflare Pages also needs the Workers AI binding:
 binding = "AI"
 ```
 
-The default model is configured in `wrangler.toml` as `LUNARIS_AI_MODEL`.
+The default model is configured in `wrangler.toml` as `LUNARIS_AI_MODEL`. The current default is `@cf/meta/llama-3.1-8b-instruct-fast`, with smaller fallback models if the first model fails.
 
 ## Supabase Setup
 

@@ -31,7 +31,10 @@ export async function providerAdapter(input: ProviderInput): Promise<{ ok: true;
       body: JSON.stringify(input),
     });
     const data = (await response.json().catch(() => null)) as { answer?: string; model?: string; error?: string } | null;
-    if (!response.ok || !data?.answer) return { ok: false, error: data?.error || `Cloudflare AI failed with HTTP ${response.status}.` };
+    if (!response.ok || !data?.answer) {
+      const detail = data?.error ? ` ${data.error}` : "";
+      return { ok: false, error: `Cloudflare AI failed with HTTP ${response.status}.${detail}` };
+    }
     return { ok: true, answer: data.answer, model: data.model };
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : "Cloudflare AI request failed." };
