@@ -658,6 +658,7 @@ function AccountsManager({
   const [emailVerified, setEmailVerified] = useState(false);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [revealedPasswordInfo, setRevealedPasswordInfo] = useState<Set<string>>(new Set());
 
   const submitAccount = async (e: FormEvent) => {
     e.preventDefault();
@@ -673,6 +674,15 @@ function AccountsManager({
       setCreateError(res.error);
     }
     setCreating(false);
+  };
+
+  const togglePasswordInfo = (accountId: string) => {
+    setRevealedPasswordInfo((current) => {
+      const next = new Set(current);
+      if (next.has(accountId)) next.delete(accountId);
+      else next.add(accountId);
+      return next;
+    });
   };
 
   return (
@@ -816,9 +826,21 @@ function AccountsManager({
                     </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground">{account.email}</td>
                     <td className="px-4 py-3">
-                      <span className="rounded-full border border-border bg-background/40 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">
-                        Protected hash
-                      </span>
+                      <div className="flex min-w-[220px] items-center gap-2">
+                        <code className="rounded-full border border-border bg-background/40 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">
+                          {revealedPasswordInfo.has(account.id)
+                            ? "Supabase encrypted - reset only"
+                            : "••••••••••••"}
+                        </code>
+                        <button
+                          type="button"
+                          onClick={() => togglePasswordInfo(account.id)}
+                          className="grid h-7 w-7 place-items-center rounded-lg border border-border bg-card/60 text-muted-foreground transition hover:text-foreground"
+                          title={revealedPasswordInfo.has(account.id) ? "Hide password info" : "Show password info"}
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1.5">
