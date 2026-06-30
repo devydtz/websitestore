@@ -1,6 +1,12 @@
-import { projectIndex } from "../projectIndexer";
+import { listAdminSystems, listRoutes, projectOverview } from "../projectSearch";
 
-export function websiteTool() {
-  const routes = projectIndex.filter((entry) => entry.kind === "route");
-  return `Website structure I know about:\n${routes.map((route) => `- ${route.path}: ${route.summary}`).join("\n")}`;
+export function websiteTool(message = "") {
+  const text = message.toLowerCase();
+  if (/\b(admin|dashboard|core|assistant)\b/.test(text)) {
+    return `Admin systems I know:\n${listAdminSystems()}`;
+  }
+  if (/\b(route|page|url)\b/.test(text)) {
+    return `Routes I know:\n${listRoutes()}`;
+  }
+  return projectOverview();
 }
