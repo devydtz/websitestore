@@ -109,14 +109,20 @@ export const projectIndex: ProjectEntry[] = [
   {
     path: "src/components/admin/LunarisCoreButton.tsx",
     kind: "lunaris-core",
-    summary: "Floating admin-only Lunaris Core launcher button.",
-    keywords: ["lunaris core", "button", "assistant", "admin only"],
+    summary: "Floating admin-only Lunaris Core launcher button that opens the dedicated /admin/core chat workspace.",
+    keywords: ["lunaris core", "button", "assistant", "admin only", "admin core"],
+  },
+  {
+    path: "src/components/admin/LunarisCoreWorkspace.tsx",
+    kind: "lunaris-core",
+    summary: "Full-page ChatGPT-style Lunaris Core workspace with chat history, search, modes, saved memory, suggestions, and bottom prompt bar.",
+    keywords: ["lunaris core", "workspace", "full page chat", "chatgpt", "memory", "modes", "history"],
   },
   {
     path: "src/components/admin/LunarisCorePanel.tsx",
     kind: "lunaris-core",
-    summary: "Chat panel UI, quick actions, loading state, clear chat, and send handling for Lunaris Core.",
-    keywords: ["lunaris core", "chat", "panel", "quick actions", "messages"],
+    summary: "Legacy floating chat panel UI for Lunaris Core.",
+    keywords: ["lunaris core", "chat", "panel", "quick actions", "messages", "legacy"],
   },
   {
     path: "src/components/admin/LunarisCoreMessage.tsx",
@@ -219,6 +225,12 @@ export const projectIndex: ProjectEntry[] = [
     kind: "route",
     summary: "Admin dashboard route, currently wired into existing admin systems.",
     keywords: ["admin dashboard", "route"],
+  },
+  {
+    path: "src/routes/admin.core.tsx",
+    kind: "route",
+    summary: "Dedicated full-page Lunaris Core admin AI chat route at /admin/core.",
+    keywords: ["admin core", "lunaris core", "route", "ai chat", "chatgpt"],
   },
   {
     path: "src/routes/admin.requests.tsx",

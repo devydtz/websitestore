@@ -10,6 +10,7 @@ import {
   ListChecks,
   Loader2,
   Logs,
+  MoonStar,
   Package,
   Settings,
   Shield,
@@ -20,6 +21,7 @@ import { getCurrentAdminProfile, type AdminProfile } from "@/lib/adminData";
 
 const nav = [
   { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/admin/core", label: "Lunaris Core", icon: MoonStar },
   { to: "/admin/requests", label: "Requests", icon: ClipboardList },
   { to: "/admin/ranks", label: "Ranks", icon: Shield },
   { to: "/admin/crates", label: "Crates", icon: Boxes },
