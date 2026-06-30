@@ -373,8 +373,14 @@ export const projectIndex: ProjectEntry[] = [
   {
     path: "src/lib/lunarisCore/providerAdapter.ts",
     kind: "lunaris-core",
-    summary: "Disabled provider adapter placeholder for future model providers. Currently returns no external AI configured.",
-    keywords: ["lunaris core", "provider", "disabled", "external ai"],
+    summary: "Cloudflare Workers AI adapter. Sends grounded local Core context to the private Pages Function when the admin has a valid Supabase session.",
+    keywords: ["lunaris core", "provider", "cloudflare ai", "workers ai", "pages function", "model"],
+  },
+  {
+    path: "functions/api/lunaris-core/chat.ts",
+    kind: "backend",
+    summary: "Cloudflare Pages Function that verifies the admin Supabase session, calls the Workers AI binding, and returns model-generated Lunaris Core answers.",
+    keywords: ["lunaris core", "cloudflare ai", "workers ai", "pages function", "api", "model", "admin auth"],
   },
   {
     path: "src/lib/store-config.ts",

@@ -2,6 +2,7 @@ import { detectIntent } from "./intentDetector";
 import type { LunarisIntent } from "./intentDetector";
 import { routeTool } from "./toolRouter";
 import { responseEngine } from "./responseEngine";
+import { providerAdapter } from "./providerAdapter";
 
 function sourceForIntent(intent: LunarisIntent, message: string, rawSource: string) {
   if (rawSource && rawSource !== "intentDetector") return rawSource;
@@ -69,12 +70,24 @@ function nextForIntent(intent: LunarisIntent) {
 export async function askLunarisCore(message: string) {
   const intent = detectIntent(message);
   const result = await routeTool(intent, message);
+  const source = sourceForIntent(intent, message, result.source);
+  const next = nextForIntent(intent);
+  const localAnswer = responseEngine({
+    answer: result.answer,
+    source,
+    next,
+  });
+
+  const model = await providerAdapter({
+    message,
+    intent,
+    groundedAnswer: localAnswer,
+    source,
+    next,
+  });
+
   return {
     intent,
-    content: responseEngine({
-      answer: result.answer,
-      source: sourceForIntent(intent, message, result.source),
-      next: nextForIntent(intent),
-    }),
+    content: model.ok ? model.answer : `${localAnswer}\n\nAI model note:\n${model.error}`,
   };
 }

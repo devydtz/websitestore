@@ -12,7 +12,7 @@ Private Minecraft server store and admin dashboard for `mclunaris.store`.
 
 ## Lunaris Core
 
-Lunaris Core is built into the website. It does not use an external AI server, OpenAI, Cloudflare AI, or paid API keys.
+Lunaris Core is built into the website. It uses the local knowledge/tool system first, then can call a Cloudflare Workers AI model through a private Pages Function when the Cloudflare `AI` binding is enabled.
 
 Inside the admin panel, click the floating `Lunaris Core` button. It can answer using local tools:
 
@@ -21,6 +21,7 @@ Inside the admin panel, click the floating `Lunaris Core` button. It can answer 
 - Safe project map search for website/admin/build questions.
 - Supabase data scans through the existing frontend data helpers.
 - Optional web research placeholder. If search is not configured, it says web research is not configured yet.
+- Cloudflare Workers AI response generation for admin users with a valid Supabase admin profile.
 
 Lunaris Core never reads `.env` files and never exposes service-role keys, tokens, passwords, or private secrets.
 
@@ -34,6 +35,15 @@ VITE_SUPABASE_ANON_KEY=
 ```
 
 Do not put a Supabase service-role key in the frontend.
+
+Cloudflare Pages also needs the Workers AI binding:
+
+```toml
+[ai]
+binding = "AI"
+```
+
+The default model is configured in `wrangler.toml` as `LUNARIS_AI_MODEL`.
 
 ## Supabase Setup
 
