@@ -43,17 +43,41 @@ export const Route = createRootRoute({
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
+  const isStaleChunk =
+    /Failed to fetch dynamically imported module|Importing a module script failed|Loading chunk|dynamically imported module/i.test(
+      error.message,
+    );
+
+  useEffect(() => {
+    if (!isStaleChunk) return;
+    const key = "lunaris.chunk-reload.v1";
+    if (sessionStorage.getItem(key) === "1") return;
+    sessionStorage.setItem(key, "1");
+    window.location.reload();
+  }, [isStaleChunk]);
+
   return (
     <div className="min-h-screen bg-background text-foreground flex items-center justify-center px-6">
       <div className="text-center max-w-md">
         <h1 className="font-display text-4xl">Something went wrong</h1>
-        <p className="mt-2 text-sm text-muted-foreground">{error.message}</p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {isStaleChunk
+            ? "The site updated while your browser had an old admin file cached. Refreshing fixes it."
+            : error.message}
+        </p>
         <div className="mt-6 flex items-center justify-center gap-3">
           <button
-            onClick={reset}
+            onClick={() => {
+              if (isStaleChunk) {
+                sessionStorage.removeItem("lunaris.chunk-reload.v1");
+                window.location.reload();
+                return;
+              }
+              reset();
+            }}
             className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-accent"
           >
-            Try again
+            {isStaleChunk ? "Refresh now" : "Try again"}
           </button>
           <button
             onClick={() => router.navigate({ to: "/" })}
