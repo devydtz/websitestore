@@ -25,6 +25,28 @@ Inside the admin panel, click the floating `Lunaris Core` button. It can answer 
 
 Lunaris Core never reads `.env` files and never exposes service-role keys, tokens, passwords, or private secrets.
 
+## Microsoft Copilot Org Integration
+
+Lunaris now includes a private Microsoft Copilot integration layer for organization use.
+
+The integration is built as secure Cloudflare Pages Functions under:
+
+- `/api/copilot/status`
+- `/api/copilot/summary`
+- `/api/copilot/orders`
+- `/api/copilot/products`
+- `/api/copilot/accounts`
+- `/api/copilot/promos`
+- `/api/copilot/search`
+- `/api/copilot/openapi.json`
+
+This is the intended Microsoft 365 Copilot path for Lunaris because Microsoft plugins can call REST APIs described by OpenAPI. The Lunaris endpoints are read-only and use a private API key plus server-side Supabase access.
+
+Plugin starter files live in:
+
+- `copilot/lunaris-m365-plugin/README.md`
+- `copilot/lunaris-m365-plugin/plugin-manifest.template.json`
+
 ## Environment Variables
 
 Copy `.env.example` to your local `.env` and fill:
@@ -32,6 +54,9 @@ Copy `.env.example` to your local `.env` and fill:
 ```env
 VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
+COPILOT_LUNARIS_API_KEY=
 ```
 
 Do not put a Supabase service-role key in the frontend.

@@ -1,0 +1,59 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/copilot/plugin/v2.4/schema.json",
+  "schema_version": "v2.4",
+  "name_for_human": "Lunaris Craft Admin",
+  "description_for_human": "Private Lunaris Craft admin data access for Microsoft Copilot in your organization.",
+  "namespace": "lunariscraft",
+  "functions": [
+    {
+      "name": "getLunarisStatus",
+      "description": "Checks whether the Lunaris Copilot API is online and configured."
+    },
+    {
+      "name": "getLunarisSummary",
+      "description": "Gets top-level order, product, account, and promo counts."
+    },
+    {
+      "name": "getLunarisOrders",
+      "description": "Gets recent Lunaris orders and can filter by status or username."
+    },
+    {
+      "name": "getLunarisProducts",
+      "description": "Gets Lunaris ranks, keys, bundles, cosmetics, and other products."
+    },
+    {
+      "name": "getLunarisAccounts",
+      "description": "Gets Lunaris customer accounts, verification status, spending, and last seen."
+    },
+    {
+      "name": "getLunarisPromos",
+      "description": "Gets Lunaris promo codes, active state, and usage limits."
+    },
+    {
+      "name": "searchLunarisData",
+      "description": "Searches orders, accounts, products, and promo codes in one request."
+    }
+  ],
+  "runtimes": [
+    {
+      "type": "OpenApi",
+      "auth": {
+        "type": "ApiKeyPluginVault",
+        "reference_id": "REPLACE_WITH_TEAMS_API_KEY_REGISTRATION_ID"
+      },
+      "spec": {
+        "url": "https://mclunaris.store/api/copilot/openapi.json"
+      },
+      "run_for_functions": [
+        "getLunarisStatus",
+        "getLunarisSummary",
+        "getLunarisOrders",
+        "getLunarisProducts",
+        "getLunarisAccounts",
+        "getLunarisPromos",
+        "searchLunarisData"
+      ]
+    }
+  ]
+}
+
