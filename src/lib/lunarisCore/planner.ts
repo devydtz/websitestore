@@ -36,6 +36,11 @@ export function planLunarisCoreTask(message: string, attachments: LunarisCoreAtt
     tools.push(tool("Web Research", "Checked free no-key research sources and direct public search links."));
   }
 
+  if (intent === "core_power_tool") {
+    steps.push("Opening admin power tool");
+    tools.push(tool("Power Tools", "Selected a Lunaris Core admin toolkit workflow."));
+  }
+
   if (intent === "minecraft_server_status") {
     steps.push("Checking Minecraft public network");
     tools.push(tool("Minecraft Status", "Used the deployed backend direct server status ping."));

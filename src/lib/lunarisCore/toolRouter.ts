@@ -15,6 +15,7 @@ import { websiteTool } from "./tools/websiteTool";
 import { connectionHubTool } from "./tools/connectionHubTool";
 import { casualChatTool } from "./tools/casualChatTool";
 import { memoryPreferenceTool } from "./tools/memoryPreferenceTool";
+import { corePowerTool } from "./tools/powerTool";
 import type { LunarisCoreGeneratedImage, LunarisCoreToolTrace } from "./client";
 
 export type LunarisToolResult = {
@@ -43,6 +44,12 @@ export async function routeTool(intent: LunarisIntent, message: string): Promise
         answer: connectionHubTool(),
         source: "Lunaris Core connection hub.",
         tools: [{ name: "Connection Hub", status: "done", summary: "Listed currently connected and not-yet-connected Core capabilities." }],
+      };
+    case "core_power_tool":
+      return {
+        answer: corePowerTool(message),
+        source: "Lunaris Core power tools registry.",
+        tools: [{ name: "Power Tools", status: "done", summary: "Matched the request to a Lunaris Core admin tool group." }],
       };
     case "casual_chat":
       return {
