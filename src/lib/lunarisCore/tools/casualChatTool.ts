@@ -1,13 +1,22 @@
 export function casualChatTool(message: string) {
   const text = message.toLowerCase();
+  const pick = (items: string[]) => items[Math.abs([...message].reduce((sum, char) => sum + char.charCodeAt(0), 0)) % items.length];
   if (/^(wsp|wsup|wassup|sup|yo|hey|hi|hello)\b/.test(text.trim())) {
-    return "Yo, I am here. What are we fixing or building next?";
+    return pick([
+      "Yo, I am here. What are we fixing or building next?",
+      "Wsp. I am locked in. Send the next thing.",
+      "I am here. Drop the problem or idea and I will work through it with you.",
+    ]);
   }
   if (/^(wyd|what you doing)\b/.test(text.trim())) {
     return "I am locked in on Lunaris Core. Send the next thing and I will work it out with you.";
   }
   if (/\b(good\s*boy|goodboy|nice|cool|thanks|thank you|ty)\b/.test(text)) {
-    return "Appreciate you. I am here and ready for the next thing.";
+    return pick([
+      "Appreciate you. I am here and ready for the next thing.",
+      "Got you. Send the next move and I will keep it clean.",
+      "Bet. We keep moving. What do you want handled next?",
+    ]);
   }
   if (/\b(what are u repeating|what are you repeating|why repeat|repeating)\b/.test(text)) {
     return "You are right. That repeat guard was firing wrong. I will answer the actual message now instead of looping that line.";

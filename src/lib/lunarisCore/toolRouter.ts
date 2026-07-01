@@ -117,7 +117,7 @@ export async function routeTool(intent: LunarisIntent, message: string): Promise
     case "general_question":
       return {
         answer:
-          "I can answer broad questions, casual messages, coding problems, Minecraft/server questions, planning, writing, math, and troubleshooting. I will use the chat memory and Lunaris context when it matters, and I will ask only if the request is truly unclear.",
+          `Respond directly to this admin message in a natural helpful way: "${message}". If it is casual, keep it short and human. If it asks for help, answer the likely request instead of listing capabilities.`,
         source: "Imported Lunaris Core knowledge base.",
       };
     default:

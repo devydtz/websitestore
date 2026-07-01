@@ -29,6 +29,13 @@ function recentCoreAnswers(history = [] as NonNullable<LunarisCoreRequestContext
   return history.filter((item) => item.role === "core").map((item) => item.content).slice(-5);
 }
 
+function localGeneralFallback(message: string) {
+  const clean = message.trim();
+  if (!clean) return "I am here. Send me what you want to build, fix, check, or ask.";
+  if (clean.length <= 24) return `I got you. For "${clean}", tell me the exact part you want handled and I will lock onto it.`;
+  return `I got you. Here is how I would handle it: ${clean}`;
+}
+
 function antiRepeat(answer: string, message: string, history: NonNullable<LunarisCoreRequestContext["history"]>) {
   const previous = recentCoreAnswers(history);
   const requestedNoRepeat = /\b(don'?t|do not|stop|never)\s+(repeat|copy|say the same|loop)\b/i.test(message);
@@ -166,7 +173,7 @@ export async function askLunarisCore(message: string, context: LunarisCoreReques
     mode: context.mode || "general",
     history: history.slice(-80),
   });
-  const modelAnswer = model.ok ? humanizeCoreFallback(formatLunarisAnswer(model.answer)) : localAnswer;
+  const modelAnswer = model.ok ? humanizeCoreFallback(formatLunarisAnswer(model.answer)) : intent === "general_question" ? localGeneralFallback(message) : localAnswer;
 
   return {
     intent,

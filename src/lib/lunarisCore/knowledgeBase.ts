@@ -159,8 +159,8 @@ export function answerFromKnowledge(query: string) {
   const matches = searchKnowledge(query);
   if (matches.length === 0) {
     return [
-      "I do not have enough specific context to answer that accurately yet.",
-      "I can help best when you ask about Lunaris code, admin data, orders, accounts, products, promos, Supabase, Cloudflare, Minecraft server ops, security, calculations, or research.",
+      `I can answer this from general reasoning, but I did not find a matching Lunaris-specific knowledge note for "${query}".`,
+      "If you want a precise website/admin answer, ask me to scan the project, database, uploaded files, Minecraft status, or web research.",
     ].join("\n\n");
   }
 
