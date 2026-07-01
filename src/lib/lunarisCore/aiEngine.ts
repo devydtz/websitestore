@@ -124,7 +124,8 @@ export async function askLunarisCore(message: string, context: LunarisCoreReques
   if (hasImages && (intent === "data_analysis" || /^analy[sz]e( these)? uploaded files\.?$/i.test(message.trim()))) {
     intent = "general_question";
   }
-  const result = await routeTool(intent, enrichedMessage);
+  const toolMessage = appendAttachmentContext(message, attachmentSummaries);
+  const result = await routeTool(intent, toolMessage);
   const source = sourceForIntent(intent, message, result.source);
   const next = nextForIntent(intent);
   const imageResult = hasImages ? await imageReaderTool(attachments, message) : null;

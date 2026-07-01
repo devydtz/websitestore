@@ -5,12 +5,14 @@ function cleanPrompt(message: string) {
   return message
     .replace(/\b(generate|create|make|draw)\b/gi, "")
     .replace(/\b(image|picture|photo|art|logo|icon|wallpaper|banner)\b/gi, "")
+    .replace(/\buploaded context:[\s\S]*$/i, "")
+    .replace(/^(of|for|about|with)\s+/i, "")
     .replace(/\s+/g, " ")
     .trim();
 }
 
 export async function imageGeneratorTool(message: string): Promise<LunarisToolResult> {
-  const prompt = cleanPrompt(message) || message.trim();
+  const prompt = (cleanPrompt(message) || message.trim()).slice(0, 900);
   if (!prompt) {
     return {
       answer: "Tell me what image you want me to generate.",
@@ -57,7 +59,7 @@ export async function imageGeneratorTool(message: string): Promise<LunarisToolRe
     }
 
     return {
-      answer: `Generated this image for: "${prompt}"`,
+      answer: `Generated image: ${prompt}`,
       source: data.model || "Cloudflare Workers AI image model.",
       generatedImages: [{ id: crypto.randomUUID?.() || `${Date.now()}`, prompt, url: data.image }],
       tools: [{ name: "Image Generator", status: "done", summary: `Generated an image with ${data.model || "Cloudflare Workers AI"}.` }],
