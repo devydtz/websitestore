@@ -39,8 +39,13 @@ export function detectIntent(message: string): LunarisIntent {
   if (/\b(what can you do|help me|help|capabilities|commands|what do you know|who are you)\b/.test(text)) return "capabilities";
   if (/\b(connect|connected|plugins?|integrations?|all data|everything connected|sync everything)\b/.test(text)) return "connections";
   if (/\b(don'?t|do not|stop|never)\s+(repeat|copy|say the same|loop)\b|\bremember\b|\bcall me\b|\bmy name is\b|\bfrom now on\b/.test(text)) return "memory_preference";
+  if (/\b(generate|create|make)\b.*\b(image|picture|photo|art|logo|icon|wallpaper|banner)\b/.test(text)) return "image_generation";
+  if (/\b(generate|create|make|export|download)\b.*\b(file|document|markdown|md|txt|json|csv|html|report)\b/.test(text)) return "file_generation";
   if (/\b(all knowledge|everything|world knowledge|nothing is impossible|know everything)\b/.test(text)) return "knowledge_question";
-  if (/\b(analy[sz]e|analysis|report|metrics|duplicate|anomaly|trend|summary|revenue|breakdown|missing values|data)\b/.test(text)) return "data_analysis";
+  if (
+    /\b(analy[sz]e|analysis|report|metrics|duplicate|anomaly|trend|summary|revenue|breakdown|missing values)\b/.test(text) &&
+    /\b(data|database|orders?|accounts?|products?|promos?|revenue|sales|checkout|payment|gcash|table|rows?|admin|store)\b/.test(text)
+  ) return "data_analysis";
   if (/\b(explain the project|explain this site|whole system|architecture|how does this work|know everything|overview)\b/.test(text)) return "system_overview";
   if (/\b(run|execute|send)\s+(minecraft\s+|server\s+|rcon\s+)?command\s*[:\-]/i.test(message) || /^\/[a-z0-9_:-]+/i.test(message.trim())) return "minecraft_command";
   if (/\b(players?\s+online|online\s+players?|how many players|server status|is the server online|server online|motd|minecraft status|who is online|player count)\b/.test(text)) return "minecraft_server_status";
@@ -50,8 +55,6 @@ export function detectIntent(message: string): LunarisIntent {
   if (/\b(time|clock|what time)\b/.test(text)) return "current_time";
   if (/\b(date|today|tomorrow|yesterday|day of week)\b/.test(text)) return "current_date";
   if (/^[\d\s+\-*/().,%]+$/.test(text) || /\b(calculate|percent|percentage|total|minus|plus)\b/.test(text)) return "calculator";
-  if (/\b(generate|create|make|export|download)\b.*\b(file|document|markdown|md|txt|json|csv|html|report)\b/.test(text)) return "file_generation";
-  if (/\b(generate|create|make)\b.*\b(image|picture|photo|art|logo|icon|wallpaper|banner)\b/.test(text)) return "image_generation";
   if (/\b(research|latest|current|search web|search for|look up|internet|find online|website)\b/.test(text)) return "web_research";
   if (/^(what'?s happening|whats happening|what is happening|what'?s up|wsp|wsup|wassup|sup|wyd|how are you|you there|talk to me)$/i.test(clean)) return "casual_chat";
   if (/\b(route|url|page|where is)\b/.test(text)) return "route_search";

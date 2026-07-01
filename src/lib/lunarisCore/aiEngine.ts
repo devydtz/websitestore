@@ -110,6 +110,7 @@ function nextForIntent(intent: LunarisIntent) {
 
 export async function askLunarisCore(message: string, context: LunarisCoreRequestContext = {}) {
   const attachments = context.attachments || [];
+  const hasImages = attachments.some((file) => file.kind === "image");
   const history = context.history || [];
   const pinnedNotes = loadPinnedCoreNotes();
   const attachmentSummaries = attachments.map((file) => `${file.name} (${file.kind}, ${file.type || "unknown"}, ${file.size} bytes)`);
@@ -119,19 +120,23 @@ export async function askLunarisCore(message: string, context: LunarisCoreReques
     : conversationMemory;
   const enrichedMessage = appendAttachmentContext([message, memoryContext ? `\nMemory context:\n${memoryContext}` : ""].join("\n"), attachmentSummaries);
   const plan = planLunarisCoreTask(enrichedMessage, attachments);
-  const intent = detectIntent(message);
+  let intent = detectIntent(message);
+  if (hasImages && (intent === "data_analysis" || /^analy[sz]e( these)? uploaded files\.?$/i.test(message.trim()))) {
+    intent = "general_question";
+  }
   const result = await routeTool(intent, enrichedMessage);
   const source = sourceForIntent(intent, message, result.source);
   const next = nextForIntent(intent);
+  const imageResult = hasImages ? await imageReaderTool(attachments, message) : null;
   const attachmentContext = attachments.length
-    ? [fileReaderTool(attachments), imageReaderTool(attachments)].filter(Boolean).join("\n\n")
+    ? [fileReaderTool(attachments), imageResult?.answer].filter(Boolean).join("\n\n")
     : "";
   const localAnswer = humanizeCoreFallback(formatLunarisAnswer(responseEngine({
     answer: result.answer,
     source,
     next,
   }) + (attachmentContext ? `\n\nUploaded file context:\n${attachmentContext}` : "")));
-  const tools = [...plan.tools, ...(result.tools || [])];
+  const tools = [...plan.tools, ...(result.tools || []), ...(imageResult?.tools || [])];
 
   if (intent === "minecraft_server_status" || intent === "minecraft_command" || intent === "web_research" || intent === "memory_preference" || intent === "image_generation") {
     return {
