@@ -144,17 +144,25 @@ export function LunarisCoreMessage({ message }: { message: CoreMessage }) {
           <div className="mt-4 grid gap-3">
             {message.generatedImages.map((image) => (
               <figure key={image.id} className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-                <img src={image.url} alt={image.prompt} className="max-h-[520px] w-full object-contain bg-slate-50" />
+                {image.url ? (
+                  <img src={image.url} alt={image.prompt} className="max-h-[520px] w-full object-contain bg-slate-50" />
+                ) : (
+                  <div className="grid min-h-36 place-items-center bg-slate-50 px-4 py-8 text-center text-sm font-semibold text-slate-500">
+                    This generated image was not saved to browser history to avoid storage crashes. Generate it again if you need the file.
+                  </div>
+                )}
                 <figcaption className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm text-slate-600">
                   <span className="min-w-0 flex-1 truncate font-semibold">{image.prompt}</span>
-                  <button
-                    type="button"
-                    onClick={() => downloadImage(image.url, image.prompt)}
-                    className="flex items-center gap-1 rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-200"
-                  >
-                    <Download className="h-4 w-4" />
-                    Image
-                  </button>
+                  {image.url ? (
+                    <button
+                      type="button"
+                      onClick={() => downloadImage(image.url, image.prompt)}
+                      className="flex items-center gap-1 rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-200"
+                    >
+                      <Download className="h-4 w-4" />
+                      Image
+                    </button>
+                  ) : null}
                 </figcaption>
               </figure>
             ))}

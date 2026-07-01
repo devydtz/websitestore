@@ -38,6 +38,8 @@ type CoreState = {
 };
 
 const storageKey = "lunaris-core-chat-memory-v3";
+const maxStoredChats = 12;
+const maxStoredMessages = 80;
 
 const welcome: LunarisCoreMessage = {
   role: "core",
@@ -70,12 +72,14 @@ function loadCoreState(): CoreState {
     const chats = Array.isArray(parsed?.chats) ? parsed.chats.filter((chat) => chat?.id && Array.isArray(chat.messages)) : [];
     if (chats.length) {
       return {
-        chats: chats.slice(0, 30),
+        chats: sanitizeCoreState({ chats, activeId: String(parsed?.activeId || chats[0].id) }).chats,
         activeId: chats.some((chat) => chat.id === parsed?.activeId) ? String(parsed?.activeId) : chats[0].id,
       };
     }
   } catch {
     window.localStorage.removeItem(storageKey);
+    const chat = makeChat();
+    return { chats: [chat], activeId: chat.id };
   }
 
   const chat = makeChat();
@@ -84,13 +88,62 @@ function loadCoreState(): CoreState {
 
 function saveCoreState(state: CoreState) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(storageKey, JSON.stringify({ ...state, chats: state.chats.slice(0, 30) }));
+  const safeState = sanitizeCoreState(state);
+  try {
+    window.localStorage.setItem(storageKey, JSON.stringify(safeState));
+  } catch {
+    const minimalState = {
+      ...safeState,
+      chats: safeState.chats.slice(0, 4).map((chat) => ({ ...chat, messages: chat.messages.slice(-30).map(stripHeavyMessageData) })),
+    };
+    try {
+      window.localStorage.setItem(storageKey, JSON.stringify(minimalState));
+    } catch {
+      window.localStorage.removeItem(storageKey);
+    }
+  }
 }
 
 function titleFrom(text: string) {
   const compact = text.replace(/\s+/g, " ").trim();
   if (!compact) return "New chat";
   return compact.length > 44 ? `${compact.slice(0, 44)}...` : compact;
+}
+
+function stripHeavyMessageData(message: LunarisCoreMessage): LunarisCoreMessage {
+  return {
+    role: message.role,
+    content: message.content.slice(0, 6000),
+    attachments: message.attachments?.map((file) => ({
+      id: file.id,
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      kind: file.kind,
+      text: file.text ? file.text.slice(0, 2000) : undefined,
+    })),
+    generatedImages: message.generatedImages?.map((image) => ({
+      id: image.id,
+      prompt: image.prompt,
+      url: "",
+    })),
+    tools: message.tools?.map((tool) => ({
+      name: tool.name,
+      status: tool.status,
+      summary: tool.summary.slice(0, 800),
+    })),
+  };
+}
+
+function sanitizeCoreState(state: CoreState): CoreState {
+  const chats = state.chats.slice(0, maxStoredChats).map((chat) => ({
+    ...chat,
+    messages: chat.messages.slice(-maxStoredMessages).map(stripHeavyMessageData),
+  }));
+  return {
+    chats,
+    activeId: chats.some((chat) => chat.id === state.activeId) ? state.activeId : chats[0]?.id || state.activeId,
+  };
 }
 
 export function LunarisCoreWorkspace() {
@@ -135,7 +188,7 @@ export function LunarisCoreWorkspace() {
 
   function startNewChat() {
     const chat = makeChat();
-    commitState((current) => ({ chats: [chat, ...current.chats].slice(0, 30), activeId: chat.id }));
+    commitState((current) => ({ chats: [chat, ...current.chats].slice(0, maxStoredChats), activeId: chat.id }));
     setInput("");
   }
 
