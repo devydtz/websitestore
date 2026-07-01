@@ -1,6 +1,6 @@
-import { answerFromKnowledge, fullKnowledgeSummary } from "../knowledgeBase";
+export async function knowledgeTool(message: string) {
+  const { answerFromKnowledge, fullKnowledgeSummary } = await import("../knowledgeBase");
 
-export function knowledgeTool(message: string) {
   if (/\b(all knowledge|everything|what do you know|knowledge base|world knowledge)\b/i.test(message)) {
     return fullKnowledgeSummary();
   }

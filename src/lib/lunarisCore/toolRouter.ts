@@ -86,7 +86,7 @@ export async function routeTool(intent: LunarisIntent, message: string): Promise
     case "minecraft_knowledge":
     case "security_knowledge":
     case "knowledge_question":
-      return { answer: knowledgeTool(message), source: "Imported Lunaris Core advanced knowledge pack and built-in knowledge base." };
+      return { answer: await knowledgeTool(message), source: "Imported Lunaris Core advanced knowledge pack and built-in knowledge base." };
     case "minecraft_server_status":
       return { answer: await minecraftServerTool(message), source: "Live Minecraft server status lookup for lunaris.ultraga.me:19075." };
     case "minecraft_command":

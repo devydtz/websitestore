@@ -1,3 +1,5 @@
+import { knowledgePacks } from "./knowledgePacks";
+
 export type KnowledgeTopic = {
   id: string;
   title: string;
@@ -6,7 +8,7 @@ export type KnowledgeTopic = {
   bullets: string[];
 };
 
-export const knowledgeBase: KnowledgeTopic[] = [
+const baseKnowledge: KnowledgeTopic[] = [
   {
     id: "data-analysis",
     title: "Data Analysis",
@@ -132,6 +134,8 @@ export const knowledgeBase: KnowledgeTopic[] = [
   },
 ];
 
+export const knowledgeBase: KnowledgeTopic[] = [...baseKnowledge, ...knowledgePacks];
+
 export function searchKnowledge(query: string) {
   const stopWords = new Set(["the", "a", "an", "and", "or", "to", "of", "in", "it", "is", "are", "be", "me", "you", "my", "what", "how", "why", "can", "do", "does", "for"]);
   const terms = query
@@ -152,7 +156,7 @@ export function searchKnowledge(query: string) {
     })
     .filter((topic) => topic.score > 1)
     .sort((a, b) => b.score - a.score)
-    .slice(0, 2);
+    .slice(0, 4);
 }
 
 export function answerFromKnowledge(query: string) {
@@ -171,7 +175,8 @@ export function answerFromKnowledge(query: string) {
 
 export function fullKnowledgeSummary() {
   return [
-    "I have local knowledge loaded for these areas:",
+    `I have ${knowledgeBase.length} local knowledge topics loaded, including the 100 Lunaris knowledge packs and the wiki dictionary.`,
+    "Main areas:",
     ...knowledgeBase.map((topic) => `- ${topic.title}: ${topic.summary}`),
     "",
     "I can answer from built-in knowledge, the Lunaris repo map, the safe repo file catalog, Supabase scanner, calculator, time/date tools, and free public research sources.",
