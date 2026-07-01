@@ -21,6 +21,16 @@ export function planLunarisCoreTask(message: string, attachments: LunarisCoreAtt
     tools.push(tool("File Reader", `${attachments.length} uploaded file${attachments.length === 1 ? "" : "s"} added to the context.`));
   }
 
+  if (intent === "file_analysis") {
+    steps.push("Reading uploaded file content");
+    tools.push(tool("File Analysis", "Using readable uploaded text/data/code as answer context."));
+  }
+
+  if (intent === "image_analysis") {
+    steps.push("Inspecting uploaded image");
+    tools.push(tool("Image Vision", "Using Cloudflare vision analysis when available."));
+  }
+
   if (["website_project_question", "code_question", "file_search", "route_search", "config_search", "build_error", "deployment_error", "system_overview"].includes(intent)) {
     steps.push("Reading project index");
     tools.push(tool("Project Search", "Checked the safe Lunaris project catalog and indexed frontend/backend files."));

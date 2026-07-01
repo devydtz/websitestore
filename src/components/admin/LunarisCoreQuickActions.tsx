@@ -3,6 +3,7 @@ const quickActionGroups = [
     label: "Core",
     actions: [
       "Show Lunaris Core upgrade pack with 30 features and 10 extra ideas",
+      "Show Lunaris Core ChatGPT upgrades 1-100",
       "Summarize this chat into long-term memory",
       "Create a one-click fix plan",
       "Save this as a reusable prompt template",
@@ -39,6 +40,8 @@ const quickActionGroups = [
       "Cloudflare deploy checker",
       "SQL generator",
       "File generation and export",
+      "Read uploaded files and answer from them",
+      "Analyze uploaded images and screenshots",
       "Knowledge upload system",
       "Mobile admin assistant checklist",
     ],

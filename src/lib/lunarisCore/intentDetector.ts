@@ -23,6 +23,8 @@ export type LunarisIntent =
   | "calculator"
   | "file_generation"
   | "image_generation"
+  | "file_analysis"
+  | "image_analysis"
   | "core_power_tool"
   | "connections"
   | "memory_preference"
@@ -39,10 +41,12 @@ export function detectIntent(message: string): LunarisIntent {
   if (/^(thanks|thank you|ty|nice|cool|good\s*boy|goodboy|lol|lmao|haha|bet|alr|alright|yup|nah|yes|no)[\s!.?]*$/i.test(clean)) return "casual_chat";
   if (/\b(what can you do|help me|help|capabilities|commands|what do you know|who are you)\b/.test(text)) return "capabilities";
   if (/\b(connect|connected|plugins?|integrations?|all data|everything connected|sync everything)\b/.test(text)) return "connections";
-  if (/\b(server[-\s]?side memory|image library|file workspace|sql generator|rcon health|live player list|tps|order troubleshoot|checkout bug scanner|product builder|promo code builder|rank command builder|bundle builder|admin logs summary|website health scanner|cloudflare deploy checker|supabase schema scanner|duplicate checker|account investigator|auth helper|password reset|gcash checklist|admin report|knowledge upload|search project files|chat memory summary|saved prompt|fix plan|mobile admin|backup|rollback|audit|seo|analytics|notification|discord|webhook|roadmap)\b/.test(text)) return "core_power_tool";
+  if (/\b(chatgpt upgrades|1-100|one hundred|100 upgrades|server[-\s]?side memory|image library|file workspace|sql generator|rcon health|live player list|tps|order troubleshoot|checkout bug scanner|product builder|promo code builder|rank command builder|bundle builder|admin logs summary|website health scanner|cloudflare deploy checker|supabase schema scanner|duplicate checker|account investigator|auth helper|password reset|gcash checklist|admin report|knowledge upload|search project files|chat memory summary|saved prompt|fix plan|mobile admin|backup|rollback|audit|seo|analytics|notification|discord|webhook|roadmap)\b/.test(text)) return "core_power_tool";
   if (/\b(don'?t|do not|stop|never)\s+(repeat|copy|say the same|loop)\b|\bremember\b|\bcall me\b|\bmy name is\b|\bfrom now on\b/.test(text)) return "memory_preference";
   if (/\b(generate|create|make)\b.*\b(image|picture|photo|art|logo|icon|wallpaper|banner)\b/.test(text)) return "image_generation";
   if (/\b(generate|create|make|export|download)\b.*\b(file|document|markdown|md|txt|json|csv|html|report)\b/.test(text)) return "file_generation";
+  if (/\b(read|analy[sz]e|inspect|explain|summarize)\b.*\b(uploaded\s+)?(files?|documents?|pdf|csv|json|txt|code|logs?)\b/.test(text)) return "file_analysis";
+  if (/\b(read|analy[sz]e|inspect|explain|describe)\b.*\b(uploaded\s+)?(images?|pictures?|photos?|screenshots?)\b/.test(text)) return "image_analysis";
   if (/\b(all knowledge|everything|world knowledge|nothing is impossible|know everything)\b/.test(text)) return "knowledge_question";
   if (
     /\b(analy[sz]e|analysis|report|metrics|duplicate|anomaly|trend|summary|revenue|breakdown|missing values)\b/.test(text) &&

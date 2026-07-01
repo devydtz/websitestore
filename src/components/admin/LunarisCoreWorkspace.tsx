@@ -1,9 +1,14 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
+  Archive,
   ArrowUp,
   ChevronLeft,
+  Download,
   Pencil,
+  Pin,
+  Share2,
+  Star,
   Trash2,
   Eraser,
   FileText,
@@ -30,6 +35,9 @@ type StoredChat = {
   title: string;
   messages: LunarisCoreMessage[];
   updatedAt: string;
+  pinned?: boolean;
+  favorite?: boolean;
+  archived?: boolean;
 };
 
 type CoreState = {
@@ -160,8 +168,12 @@ export function LunarisCoreWorkspace() {
   const activeChat = coreState.chats.find((chat) => chat.id === coreState.activeId) || coreState.chats[0] || makeChat();
   const visibleChats = useMemo(() => {
     const search = query.trim().toLowerCase();
-    if (!search) return coreState.chats;
-    return coreState.chats.filter((chat) => chat.title.toLowerCase().includes(search));
+    const sorted = coreState.chats
+      .filter((chat) => !chat.archived || search.includes("archived"))
+      .slice()
+      .sort((a, b) => Number(Boolean(b.pinned)) - Number(Boolean(a.pinned)) || Number(Boolean(b.favorite)) - Number(Boolean(a.favorite)));
+    if (!search) return sorted;
+    return sorted.filter((chat) => chat.title.toLowerCase().includes(search) || (chat.archived && search.includes("archived")));
   }, [coreState.chats, query]);
 
   useEffect(() => {
@@ -220,6 +232,37 @@ export function LunarisCoreWorkspace() {
       const fresh = makeChat();
       return { chats: [fresh], activeId: fresh.id };
     });
+  }
+
+  function toggleChatFlag(chatId: string, flag: "pinned" | "favorite" | "archived") {
+    commitState((current) => ({
+      ...current,
+      chats: current.chats.map((chat) => (chat.id === chatId ? { ...chat, [flag]: !chat[flag], updatedAt: new Date().toISOString() } : chat)),
+    }));
+  }
+
+  function chatAsMarkdown(chat = activeChat) {
+    return [
+      `# ${chat.title}`,
+      `Updated: ${chat.updatedAt}`,
+      "",
+      ...chat.messages.map((message) => `## ${message.role === "admin" ? "Admin" : "Lunaris Core"}\n\n${message.content}`),
+    ].join("\n\n");
+  }
+
+  async function copyShareText() {
+    await navigator.clipboard?.writeText(chatAsMarkdown());
+  }
+
+  function exportChat(ext: "md" | "txt") {
+    const content = chatAsMarkdown();
+    const blob = new Blob([content], { type: ext === "md" ? "text/markdown;charset=utf-8" : "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${activeChat.title.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").slice(0, 48) || "lunaris-core-chat"}.${ext}`;
+    anchor.click();
+    URL.revokeObjectURL(url);
   }
 
   async function ask(value = input) {
@@ -298,7 +341,7 @@ export function LunarisCoreWorkspace() {
       ? "image"
       : /\.(csv|json|xlsx?)$/i.test(file.name)
         ? "data"
-        : /\.(txt|md|tsx?|jsx?|css|html|sql|log)$/i.test(file.name)
+        : file.type.startsWith("text/") || /\.(txt|md|mdx|tsx?|jsx?|css|scss|html|xml|sql|log|toml|ya?ml|ini|conf|properties|env\.example)$/i.test(file.name)
           ? "text"
           : "file";
     const base = { id, name: file.name, type: file.type || "unknown", size: file.size, kind };
@@ -308,8 +351,8 @@ export function LunarisCoreWorkspace() {
     }
 
     if (kind === "text" || kind === "data") {
-      const text = await file.slice(0, 180_000).text().catch(() => "");
-      return { ...base, text: text.slice(0, 40_000) };
+      const text = await file.slice(0, 240_000).text().catch(() => "");
+      return { ...base, text: text.slice(0, 80_000) };
     }
 
     return base;
@@ -424,6 +467,15 @@ export function LunarisCoreWorkspace() {
                 <button type="button" onClick={() => renameChat(chat.id)} className="rounded-lg p-1 text-slate-400 opacity-0 transition hover:bg-white hover:text-slate-900 group-hover:opacity-100" title="Rename chat">
                   <Pencil className="h-3.5 w-3.5" />
                 </button>
+                <button type="button" onClick={() => toggleChatFlag(chat.id, "pinned")} className={`rounded-lg p-1 opacity-0 transition hover:bg-white group-hover:opacity-100 ${chat.pinned ? "text-purple-600 opacity-100" : "text-slate-400 hover:text-slate-900"}`} title="Pin chat">
+                  <Pin className="h-3.5 w-3.5" />
+                </button>
+                <button type="button" onClick={() => toggleChatFlag(chat.id, "favorite")} className={`rounded-lg p-1 opacity-0 transition hover:bg-white group-hover:opacity-100 ${chat.favorite ? "text-amber-500 opacity-100" : "text-slate-400 hover:text-slate-900"}`} title="Favorite chat">
+                  <Star className="h-3.5 w-3.5" />
+                </button>
+                <button type="button" onClick={() => toggleChatFlag(chat.id, "archived")} className="rounded-lg p-1 text-slate-400 opacity-0 transition hover:bg-white hover:text-slate-900 group-hover:opacity-100" title="Archive chat">
+                  <Archive className="h-3.5 w-3.5" />
+                </button>
                 <button type="button" onClick={() => deleteChat(chat.id)} className="rounded-lg p-1 text-slate-400 opacity-0 transition hover:bg-white hover:text-red-600 group-hover:opacity-100" title="Delete chat">
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
@@ -452,6 +504,12 @@ export function LunarisCoreWorkspace() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <button type="button" onClick={copyShareText} className="rounded-full p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-950" title="Copy share text">
+                <Share2 className="h-5 w-5" />
+              </button>
+              <button type="button" onClick={() => exportChat("md")} className="rounded-full p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-950" title="Export chat">
+                <Download className="h-5 w-5" />
+              </button>
               <button type="button" onClick={clearActiveChat} className="rounded-full p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-950" title="Clear chat">
                 <Eraser className="h-5 w-5" />
               </button>
@@ -507,7 +565,7 @@ export function LunarisCoreWorkspace() {
                 type="file"
                 multiple
                 className="hidden"
-                accept="image/*,.txt,.md,.json,.csv,.xlsx,.xls,.pdf,.ts,.tsx,.js,.jsx,.css,.html,.sql,.log"
+                accept="image/*,.txt,.md,.mdx,.json,.csv,.xlsx,.xls,.pdf,.ts,.tsx,.js,.jsx,.css,.scss,.html,.xml,.sql,.log,.toml,.yaml,.yml,.ini,.conf,.properties"
                 onChange={(event) => {
                   if (event.target.files) void importFiles(event.target.files);
                   event.currentTarget.value = "";

@@ -87,6 +87,18 @@ export async function routeTool(intent: LunarisIntent, message: string): Promise
         source: "Lunaris Core file generator helper.",
         tools: [{ name: "File Generator", status: "done", summary: "Prepared this answer for Markdown/text export from the chat." }],
       };
+    case "file_analysis":
+      return {
+        answer: "I will read the uploaded files that contain browser-readable text and answer from their content. If a file is binary or PDF-only, I will say that instead of guessing.",
+        source: "Lunaris Core uploaded file reader.",
+        tools: [{ name: "File Reader", status: "done", summary: "Prepared uploaded files for content-based analysis." }],
+      };
+    case "image_analysis":
+      return {
+        answer: "I will inspect the uploaded image or screenshot with the vision tool and describe only what is visible.",
+        source: "Lunaris Core image vision tool.",
+        tools: [{ name: "Image Vision", status: "running", summary: "Prepared uploaded image for visual analysis." }],
+      };
     case "image_generation":
       return imageGeneratorTool(message);
     case "web_research":
