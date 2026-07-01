@@ -142,7 +142,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const mode = safeText(body?.mode || "general");
   const history = Array.isArray(body?.history)
     ? body.history
-        .slice(-12)
+        .slice(-30)
         .map((item) => `${item.role === "admin" ? "Admin" : "Lunaris Core"}: ${safeText(item.content)}`)
         .join("\n")
     : "";
@@ -169,6 +169,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     "For analysis questions, summarize the main findings clearly and professionally.",
     "If the admin asks 'what happened' or 'why is this broken', explain the likely cause and the fix plainly.",
     "Use conversation history to understand follow-ups like 'that', 'it', 'the file', or 'fix it'.",
+    "Never repeat the same answer from recent conversation. If the admin says not to repeat, acknowledge briefly and change behavior.",
+    "If the admin corrects your style, obey the correction immediately instead of restating your previous response.",
+    "Keep track of admin preferences from the provided memory context, such as preferred name, tone, and 'do not repeat' instructions.",
     "Do not say 'I know everything' literally. If the admin asks anything, say you can try and you will use the tools/data you actually have.",
     "Avoid vague hype. Be concrete, calm, and useful.",
     "Keep the response focused on what the admin asked.",

@@ -9,6 +9,33 @@ import { fileReaderTool } from "./tools/fileReaderTool";
 import { imageReaderTool } from "./tools/imageReaderTool";
 import { planLunarisCoreTask } from "./planner";
 import { humanizeCoreFallback } from "./personality";
+import { loadPinnedCoreNotes, summarizeRecentChat } from "./memoryStore";
+
+function normalized(value: string) {
+  return value.toLowerCase().replace(/\s+/g, " ").replace(/[^\w\s]/g, "").trim();
+}
+
+function isTooSimilar(a: string, b: string) {
+  const left = normalized(a);
+  const right = normalized(b);
+  if (!left || !right) return false;
+  if (left === right) return true;
+  const shorter = left.length < right.length ? left : right;
+  const longer = left.length < right.length ? right : left;
+  return shorter.length > 80 && longer.includes(shorter.slice(0, Math.min(shorter.length, 220)));
+}
+
+function recentCoreAnswers(history = [] as NonNullable<LunarisCoreRequestContext["history"]>) {
+  return history.filter((item) => item.role === "core").map((item) => item.content).slice(-5);
+}
+
+function antiRepeat(answer: string, message: string, history: NonNullable<LunarisCoreRequestContext["history"]>) {
+  const previous = recentCoreAnswers(history);
+  const requestedNoRepeat = /\b(don'?t|do not|stop|never)\s+(repeat|copy|say the same|loop)\b/i.test(message);
+  if (!previous.some((old) => isTooSimilar(answer, old))) return answer;
+  if (requestedNoRepeat) return "Got it. I will not repeat that again. Tell me the exact thing you want changed or ask a new question and I will answer fresh.";
+  return "I caught myself almost repeating the same response. Give me one more detail and I will answer it from a different angle.";
+}
 
 function sourceForIntent(intent: LunarisIntent, message: string, rawSource: string) {
   if (rawSource && rawSource !== "intentDetector") return rawSource;
@@ -83,8 +110,13 @@ function nextForIntent(intent: LunarisIntent) {
 
 export async function askLunarisCore(message: string, context: LunarisCoreRequestContext = {}) {
   const attachments = context.attachments || [];
+  const history = context.history || [];
+  const pinnedNotes = loadPinnedCoreNotes();
   const attachmentSummaries = attachments.map((file) => `${file.name} (${file.kind}, ${file.type || "unknown"}, ${file.size} bytes)`);
-  const enrichedMessage = appendAttachmentContext(message, attachmentSummaries);
+  const memoryContext = pinnedNotes.length
+    ? [`Saved admin preferences:`, ...pinnedNotes.slice(0, 12).map((note) => `- ${note}`), "", `Recent chat summary:`, summarizeRecentChat(history)].join("\n")
+    : summarizeRecentChat(history);
+  const enrichedMessage = appendAttachmentContext([message, memoryContext ? `\nMemory context:\n${memoryContext}` : ""].join("\n"), attachmentSummaries);
   const plan = planLunarisCoreTask(enrichedMessage, attachments);
   const intent = detectIntent(enrichedMessage);
   const result = await routeTool(intent, enrichedMessage);
@@ -100,10 +132,10 @@ export async function askLunarisCore(message: string, context: LunarisCoreReques
   }) + (attachmentContext ? `\n\nUploaded file context:\n${attachmentContext}` : "")));
   const tools = [...plan.tools, ...(result.tools || [])];
 
-  if (intent === "minecraft_server_status" || intent === "minecraft_command" || intent === "web_research" || intent === "casual_chat") {
+  if (intent === "minecraft_server_status" || intent === "minecraft_command" || intent === "web_research" || intent === "casual_chat" || intent === "memory_preference") {
     return {
       intent,
-      content: localAnswer,
+      content: antiRepeat(localAnswer, message, history),
       tools,
     };
   }
@@ -115,12 +147,13 @@ export async function askLunarisCore(message: string, context: LunarisCoreReques
     source,
     next,
     mode: context.mode || "general",
-    history: (context.history || []).slice(-12),
+    history: history.slice(-30),
   });
+  const modelAnswer = model.ok ? humanizeCoreFallback(formatLunarisAnswer(model.answer)) : localAnswer;
 
   return {
     intent,
-    content: model.ok ? humanizeCoreFallback(formatLunarisAnswer(model.answer)) : localAnswer,
+    content: antiRepeat(modelAnswer, message, history),
     tools,
   };
 }

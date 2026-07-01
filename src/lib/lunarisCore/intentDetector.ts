@@ -24,6 +24,7 @@ export type LunarisIntent =
   | "file_generation"
   | "image_generation"
   | "connections"
+  | "memory_preference"
   | "casual_chat"
   | "general_question"
   | "web_research"
@@ -34,6 +35,7 @@ export function detectIntent(message: string): LunarisIntent {
   if (/^(hi|hello|hey|yo|sup|wassup|good morning|good afternoon|good evening)\b/.test(text.trim())) return "greeting";
   if (/\b(what can you do|help me|help|capabilities|commands|what do you know|who are you)\b/.test(text)) return "capabilities";
   if (/\b(connect|connected|plugins?|integrations?|all data|everything connected|sync everything)\b/.test(text)) return "connections";
+  if (/\b(don'?t|do not|stop|never)\s+(repeat|copy|say the same|loop)\b|\bremember\b|\bcall me\b|\bmy name is\b|\bfrom now on\b/.test(text)) return "memory_preference";
   if (/\b(all knowledge|everything|world knowledge|nothing is impossible|know everything)\b/.test(text)) return "knowledge_question";
   if (/\b(analy[sz]e|analysis|report|metrics|duplicate|anomaly|trend|summary|revenue|breakdown|missing values|data)\b/.test(text)) return "data_analysis";
   if (/\b(explain the project|explain this site|whole system|architecture|how does this work|know everything|overview)\b/.test(text)) return "system_overview";

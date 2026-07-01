@@ -14,6 +14,7 @@ import { timeTool } from "./tools/timeTool";
 import { websiteTool } from "./tools/websiteTool";
 import { connectionHubTool } from "./tools/connectionHubTool";
 import { casualChatTool } from "./tools/casualChatTool";
+import { memoryPreferenceTool } from "./tools/memoryPreferenceTool";
 import type { LunarisCoreToolTrace } from "./client";
 
 export type LunarisToolResult = {
@@ -46,6 +47,12 @@ export async function routeTool(intent: LunarisIntent, message: string): Promise
       return {
         answer: casualChatTool(message),
         source: "Lunaris Core conversational behavior.",
+      };
+    case "memory_preference":
+      return {
+        answer: memoryPreferenceTool(message),
+        source: "Lunaris Core browser conversation memory.",
+        tools: [{ name: "Memory", status: "done", summary: "Saved the admin preference in local chat memory." }],
       };
     case "coding_knowledge":
     case "minecraft_knowledge":
@@ -93,7 +100,8 @@ export async function routeTool(intent: LunarisIntent, message: string): Promise
       return { answer: projectTool(message), source: "Lunaris Core project index and safe repo file catalog." };
     case "general_question":
       return {
-        answer: knowledgeTool(message),
+        answer:
+          "This is a general question. Use safe general knowledge, the recent conversation, and any available Lunaris context to answer naturally. If live/current facts are needed, say that web research is needed.",
         source: "Imported Lunaris Core knowledge base.",
       };
     default:
