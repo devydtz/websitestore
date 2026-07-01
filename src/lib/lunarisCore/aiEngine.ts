@@ -139,6 +139,15 @@ export async function askLunarisCore(message: string, context: LunarisCoreReques
   }) + (attachmentContext ? `\n\nUploaded file context:\n${attachmentContext}` : "")));
   const tools = [...plan.tools, ...(result.tools || []), ...(imageResult?.tools || [])];
 
+  if (attachments.length) {
+    return {
+      intent,
+      content: antiRepeat(localAnswer, message, history),
+      generatedImages: result.generatedImages,
+      tools,
+    };
+  }
+
   if (intent === "minecraft_server_status" || intent === "minecraft_command" || intent === "web_research" || intent === "memory_preference" || intent === "image_generation") {
     return {
       intent,

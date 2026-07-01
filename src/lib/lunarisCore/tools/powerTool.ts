@@ -28,8 +28,8 @@ const extraIdeas = [
 export function corePowerTool(message: string) {
   const text = message.toLowerCase();
 
-  if (/100|chatgpt upgrades|1-100|one hundred/.test(text)) {
-    return `Lunaris Core ChatGPT-style 1-100 upgrade registry\n\n${renderCoreFeatureRegistry()}`;
+  if (/250|1-250|two hundred fifty|100|chatgpt upgrades|1-100|one hundred/.test(text)) {
+    return `Lunaris Core ChatGPT-style 1-250 upgrade registry\n\n${renderCoreFeatureRegistry()}`;
   }
 
   if (/30|suggestion|ideas|upgrade|what.*add/.test(text)) {

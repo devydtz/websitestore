@@ -3,7 +3,7 @@ const quickActionGroups = [
     label: "Core",
     actions: [
       "Show Lunaris Core upgrade pack with 30 features and 10 extra ideas",
-      "Show Lunaris Core ChatGPT upgrades 1-100",
+      "Show Lunaris Core ChatGPT upgrades 1-250",
       "Summarize this chat into long-term memory",
       "Create a one-click fix plan",
       "Save this as a reusable prompt template",

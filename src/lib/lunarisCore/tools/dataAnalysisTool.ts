@@ -248,8 +248,35 @@ function renderReport(title: string, sections: ReportSection[], errors: string[]
     .join("\n\n");
 }
 
+async function answerSimpleOrderCount(message: string) {
+  const text = message.toLowerCase();
+  if (!/\b(how many|count|total number|number of)\b/.test(text) || !/\b(order|orders|request|requests)\b/.test(text)) return null;
+
+  const statusAlias: Array<[OrderStatus, RegExp]> = [
+    ["pending", /\bpending\b/],
+    ["confirmed", /\bconfirmed\b/],
+    ["rejected", /\brejected|reject\b/],
+    ["delivered", /\bdelivered|completed|complete\b/],
+  ];
+  const matchedStatus = statusAlias.find(([, pattern]) => pattern.test(text))?.[0];
+  const result = await listOrders();
+  if (!result.ok) return `I tried to count orders from Supabase, but the order scan failed: ${result.error}`;
+
+  const orders = result.orders;
+  if (matchedStatus) {
+    const count = orders.filter((order) => order.status === matchedStatus).length;
+    return `There ${count === 1 ? "is" : "are"} ${count} ${matchedStatus} order${count === 1 ? "" : "s"} out of ${orders.length} total order${orders.length === 1 ? "" : "s"}.`;
+  }
+
+  const breakdown = statuses.map((status) => `${status}: ${orders.filter((order) => order.status === status).length}`).join(", ");
+  return `There are ${orders.length} total orders. Breakdown: ${breakdown}.`;
+}
+
 export async function dataAnalysisTool(message: string) {
   const text = message.toLowerCase();
+  const simpleCount = await answerSimpleOrderCount(message);
+  if (simpleCount) return simpleCount;
+
   const wantsOrders = /order|request|sale|revenue|payment|gcash|duplicate|anomal/.test(text);
   const wantsAccounts = /account|player|user|email|verified|disabled/.test(text);
   const wantsPromos = /promo|coupon|discount/.test(text);
