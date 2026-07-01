@@ -9,7 +9,7 @@ import { fileReaderTool } from "./tools/fileReaderTool";
 import { imageReaderTool } from "./tools/imageReaderTool";
 import { planLunarisCoreTask } from "./planner";
 import { humanizeCoreFallback } from "./personality";
-import { loadPinnedCoreNotes, summarizeRecentChat } from "./memoryStore";
+import { buildConversationMemory, loadPinnedCoreNotes } from "./memoryStore";
 
 function normalized(value: string) {
   return value.toLowerCase().replace(/\s+/g, " ").replace(/[^\w\s]/g, "").trim();
@@ -113,9 +113,10 @@ export async function askLunarisCore(message: string, context: LunarisCoreReques
   const history = context.history || [];
   const pinnedNotes = loadPinnedCoreNotes();
   const attachmentSummaries = attachments.map((file) => `${file.name} (${file.kind}, ${file.type || "unknown"}, ${file.size} bytes)`);
+  const conversationMemory = buildConversationMemory(history);
   const memoryContext = pinnedNotes.length
-    ? [`Saved admin preferences:`, ...pinnedNotes.slice(0, 12).map((note) => `- ${note}`), "", `Recent chat summary:`, summarizeRecentChat(history)].join("\n")
-    : summarizeRecentChat(history);
+    ? [`Saved admin preferences:`, ...pinnedNotes.slice(0, 25).map((note) => `- ${note}`), "", conversationMemory].join("\n")
+    : conversationMemory;
   const enrichedMessage = appendAttachmentContext([message, memoryContext ? `\nMemory context:\n${memoryContext}` : ""].join("\n"), attachmentSummaries);
   const plan = planLunarisCoreTask(enrichedMessage, attachments);
   const intent = detectIntent(enrichedMessage);
@@ -147,7 +148,7 @@ export async function askLunarisCore(message: string, context: LunarisCoreReques
     source,
     next,
     mode: context.mode || "general",
-    history: history.slice(-30),
+    history: history.slice(-80),
   });
   const modelAnswer = model.ok ? humanizeCoreFallback(formatLunarisAnswer(model.answer)) : localAnswer;
 

@@ -156,7 +156,7 @@ export function LunarisCorePanel({ open, onClose }: { open: boolean; onClose: ()
     setInput("");
     setLoading(true);
     const adminMessage: LunarisCoreMessage = { role: "admin", content: text };
-    const history = [...activeChat.messages, adminMessage].slice(-14);
+    const history = [...activeChat.messages, adminMessage].slice(-160);
     updateActiveChat((chat) => ({
       ...chat,
       title: chat.title === "New conversation" ? titleFrom(text) : chat.title,

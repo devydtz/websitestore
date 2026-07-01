@@ -142,7 +142,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const mode = safeText(body?.mode || "general");
   const history = Array.isArray(body?.history)
     ? body.history
-        .slice(-30)
+        .slice(-80)
         .map((item) => `${item.role === "admin" ? "Admin" : "Lunaris Core"}: ${safeText(item.content)}`)
         .join("\n")
     : "";
@@ -169,6 +169,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     "For analysis questions, summarize the main findings clearly and professionally.",
     "If the admin asks 'what happened' or 'why is this broken', explain the likely cause and the fix plainly.",
     "Use conversation history to understand follow-ups like 'that', 'it', 'the file', or 'fix it'.",
+    "Treat Memory context inside the latest admin message as the long-term conversation memory for this chat. Use it to remember preferences, previous bugs, project decisions, and unfinished tasks.",
     "Never repeat the same answer from recent conversation. If the admin says not to repeat, acknowledge briefly and change behavior.",
     "If the admin corrects your style, obey the correction immediately instead of restating your previous response.",
     "Keep track of admin preferences from the provided memory context, such as preferred name, tone, and 'do not repeat' instructions.",

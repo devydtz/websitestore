@@ -183,7 +183,7 @@ export function LunarisCoreWorkspace() {
       content: text || "Analyze these uploaded files.",
       attachments: outgoingAttachments,
     };
-    const history = [...activeChat.messages, adminMessage].slice(-18);
+    const history = [...activeChat.messages, adminMessage].slice(-160);
 
     updateActiveChat((chat) => ({
       ...chat,
