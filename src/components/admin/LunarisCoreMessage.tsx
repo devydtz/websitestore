@@ -15,7 +15,9 @@ function splitCodeBlocks(content: string) {
   }
 
   if (lastIndex < content.length) parts.push({ type: "text", value: content.slice(lastIndex) });
-  return parts.length ? parts : [{ type: "text", value: content }];
+  if (parts.length) return parts;
+  parts.push({ type: "text", value: content });
+  return parts;
 }
 
 function TextBlock({ value }: { value: string }) {
@@ -81,6 +83,13 @@ export function LunarisCoreMessage({ message }: { message: CoreMessage }) {
     URL.revokeObjectURL(url);
   }
 
+  function downloadImage(url: string, prompt: string) {
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${prompt.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").slice(0, 48) || "lunaris-core-image"}.jpg`;
+    anchor.click();
+  }
+
   return (
     <div className={`mx-auto flex w-full max-w-3xl ${isCore ? "justify-start" : "justify-end"}`}>
       <div
@@ -131,6 +140,26 @@ export function LunarisCoreMessage({ message }: { message: CoreMessage }) {
             <TextBlock key={`${part.type}-${index}`} value={part.value} />
           ),
         )}
+        {message.generatedImages?.length ? (
+          <div className="mt-4 grid gap-3">
+            {message.generatedImages.map((image) => (
+              <figure key={image.id} className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+                <img src={image.url} alt={image.prompt} className="max-h-[520px] w-full object-contain bg-slate-50" />
+                <figcaption className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm text-slate-600">
+                  <span className="min-w-0 flex-1 truncate font-semibold">{image.prompt}</span>
+                  <button
+                    type="button"
+                    onClick={() => downloadImage(image.url, image.prompt)}
+                    className="flex items-center gap-1 rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-200"
+                  >
+                    <Download className="h-4 w-4" />
+                    Image
+                  </button>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        ) : null}
         {isCore ? (
           <div className="mt-4 flex flex-wrap items-center gap-1 text-slate-500">
             <button type="button" onClick={copyAnswer} className="rounded-lg p-2 transition hover:bg-slate-100" title="Copy answer">

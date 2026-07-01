@@ -171,7 +171,7 @@ export function LunarisCorePanel({ open, onClose }: { open: boolean; onClose: ()
       learnFromCoreExchange(adminMessage.content, result.content);
       updateActiveChat((chat) => ({
         ...chat,
-        messages: [...chat.messages, { role: "core", content: result.content }],
+        messages: [...chat.messages, { role: "core", content: result.content, generatedImages: result.generatedImages }],
       }));
       setSuggestions(buildSuggestions(text, result.content));
     } catch (error) {

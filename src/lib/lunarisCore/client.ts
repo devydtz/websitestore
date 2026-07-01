@@ -4,6 +4,7 @@ export type LunarisCoreMessage = {
   role: "admin" | "core";
   content: string;
   attachments?: LunarisCoreAttachment[];
+  generatedImages?: LunarisCoreGeneratedImage[];
   tools?: LunarisCoreToolTrace[];
 };
 
@@ -24,6 +25,12 @@ export type LunarisCoreToolTrace = {
   status: "running" | "done" | "error";
   summary: string;
   output?: string;
+};
+
+export type LunarisCoreGeneratedImage = {
+  id: string;
+  prompt: string;
+  url: string;
 };
 
 export type LunarisCoreRequestContext = {

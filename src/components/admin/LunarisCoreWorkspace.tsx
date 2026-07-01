@@ -201,7 +201,15 @@ export function LunarisCoreWorkspace() {
       learnFromCoreExchange(adminMessage.content, result.content);
       updateActiveChat((chat) => ({
         ...chat,
-        messages: [...chat.messages, { role: "core", content: result.content, tools: result.tools as LunarisCoreToolTrace[] | undefined }],
+        messages: [
+          ...chat.messages,
+          {
+            role: "core",
+            content: result.content,
+            generatedImages: result.generatedImages,
+            tools: result.tools as LunarisCoreToolTrace[] | undefined,
+          },
+        ],
       }));
     } catch (error) {
       updateActiveChat((chat) => ({
@@ -243,7 +251,7 @@ export function LunarisCoreWorkspace() {
     const base = { id, name: file.name, type: file.type || "unknown", size: file.size, kind };
 
     if (kind === "image") {
-      return { ...base, preview: await readAsDataUrl(file) };
+      return { ...base, preview: await readImagePreview(file) };
     }
 
     if (kind === "text" || kind === "data") {
@@ -254,12 +262,35 @@ export function LunarisCoreWorkspace() {
     return base;
   }
 
-  function readAsDataUrl(file: File) {
+  function readAsDataUrl(file: Blob) {
     return new Promise<string>((resolve) => {
       const reader = new FileReader();
       reader.onload = () => resolve(String(reader.result || ""));
       reader.onerror = () => resolve("");
       reader.readAsDataURL(file);
+    });
+  }
+
+  async function readImagePreview(file: File) {
+    const original = await readAsDataUrl(file);
+    return new Promise<string>((resolve) => {
+      const image = new Image();
+      image.onload = () => {
+        const maxSide = 1280;
+        const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(image.width * scale));
+        canvas.height = Math.max(1, Math.round(image.height * scale));
+        const context = canvas.getContext("2d");
+        if (!context) {
+          resolve(original);
+          return;
+        }
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", 0.82));
+      };
+      image.onerror = () => resolve(original);
+      image.src = original;
     });
   }
 

@@ -25,13 +25,20 @@ export async function providerAdapter(input: ProviderInput): Promise<{ ok: true;
   }
 
   try {
+    const safeInput = {
+      ...input,
+      history: input.history?.map((message) => ({
+        role: message.role,
+        content: message.content,
+      })),
+    };
     const response = await fetch("/api/lunaris-core/chat", {
       method: "POST",
       headers: {
         "content-type": "application/json",
         authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(input),
+      body: JSON.stringify(safeInput),
     });
     const data = (await response.json().catch(() => null)) as { answer?: string; model?: string; error?: string } | null;
     if (!response.ok || !data?.answer) {

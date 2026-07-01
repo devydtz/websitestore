@@ -15,11 +15,12 @@ import { websiteTool } from "./tools/websiteTool";
 import { connectionHubTool } from "./tools/connectionHubTool";
 import { casualChatTool } from "./tools/casualChatTool";
 import { memoryPreferenceTool } from "./tools/memoryPreferenceTool";
-import type { LunarisCoreToolTrace } from "./client";
+import type { LunarisCoreGeneratedImage, LunarisCoreToolTrace } from "./client";
 
 export type LunarisToolResult = {
   answer: string;
   source: string;
+  generatedImages?: LunarisCoreGeneratedImage[];
   tools?: LunarisCoreToolTrace[];
 };
 
@@ -80,11 +81,7 @@ export async function routeTool(intent: LunarisIntent, message: string): Promise
         tools: [{ name: "File Generator", status: "done", summary: "Prepared this answer for Markdown/text export from the chat." }],
       };
     case "image_generation":
-      return {
-        answer: imageGeneratorTool(),
-        source: "Lunaris Core image generation capability check.",
-        tools: [{ name: "Image Generator", status: "error", summary: "No image model endpoint is configured yet, so no fake image was generated." }],
-      };
+      return imageGeneratorTool(message);
     case "web_research":
       return { answer: await searchTool(message), source: "Free public research tool." };
     case "database_question":
