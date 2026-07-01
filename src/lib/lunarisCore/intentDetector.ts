@@ -33,9 +33,9 @@ export type LunarisIntent =
 export function detectIntent(message: string): LunarisIntent {
   const text = message.toLowerCase();
   const clean = text.trim();
-  const wordCount = clean.split(/\s+/).filter(Boolean).length;
-  if (/^(hi+|hii+|hello+|helo+|hey+|yo+|sup+|wassup+|wsp+|wsup+|wyd+|gm+|gn+|good morning|good afternoon|good evening)\b/.test(text.trim())) return "casual_chat";
-  if (/^(bro+|bruh+|bru+|gang+|dawg+|ngl+|lowkey+|fr+|damn+|wtf+|yo+|ok+|okay+)\b/.test(text.trim())) return "casual_chat";
+  if (/^(hi+|hii+|hello+|helo+|hey+|yo+|sup+|wassup+|wsp+|wsup+|gm+|gn|good morning|good afternoon|good evening)[\s!.?]*$/i.test(clean)) return "casual_chat";
+  if (/^(wyd|how are you|you there|talk to me|what'?s up|whats up|what'?s happening|whats happening)[\s!.?]*$/i.test(clean)) return "casual_chat";
+  if (/^(thanks|thank you|ty|nice|cool|good\s*boy|goodboy|lol|lmao|haha|bet|alr|alright|yup|nah|yes|no)[\s!.?]*$/i.test(clean)) return "casual_chat";
   if (/\b(what can you do|help me|help|capabilities|commands|what do you know|who are you)\b/.test(text)) return "capabilities";
   if (/\b(connect|connected|plugins?|integrations?|all data|everything connected|sync everything)\b/.test(text)) return "connections";
   if (/\b(don'?t|do not|stop|never)\s+(repeat|copy|say the same|loop)\b|\bremember\b|\bcall me\b|\bmy name is\b|\bfrom now on\b/.test(text)) return "memory_preference";
@@ -53,7 +53,7 @@ export function detectIntent(message: string): LunarisIntent {
   if (/\b(generate|create|make|export|download)\b.*\b(file|document|markdown|md|txt|json|csv|html|report)\b/.test(text)) return "file_generation";
   if (/\b(generate|create|make)\b.*\b(image|picture|photo|art|logo|icon|wallpaper|banner)\b/.test(text)) return "image_generation";
   if (/\b(research|latest|current|search web|search for|look up|internet|find online|website)\b/.test(text)) return "web_research";
-  if (/^(what'?s happening|whats happening|what is happening|what'?s up|wsp|wsup|wassup|sup|wyd|how are you|you there|talk to me|bro|gang|damn|bruh)\b/.test(text.trim())) return "casual_chat";
+  if (/^(what'?s happening|whats happening|what is happening|what'?s up|wsp|wsup|wassup|sup|wyd|how are you|you there|talk to me)$/i.test(clean)) return "casual_chat";
   if (/\b(route|url|page|where is)\b/.test(text)) return "route_search";
   if (/\b(config|vite|cloudflare|wrangler|package|env)\b/.test(text)) return "config_search";
   if (/\b(build failed|build error|npm|pnpm|vite error|typescript)\b/.test(text)) return "build_error";
@@ -62,8 +62,6 @@ export function detectIntent(message: string): LunarisIntent {
   if (/\b(order|orders|checkout|payment|account|player|promo|admin|logs|delivery)\b/.test(text)) return "admin_data_question";
   if (/\b(file|component|function|code|source|frontend|backend)\b/.test(text)) return "file_search";
   if (/\b(rank|ranks|key|keys|bundle|bundles|crate|crates|cosmetic)\b/.test(text)) return "website_project_question";
-  if (/\b(good\s*boy|goodboy|nice|cool|lmao|lol|haha|thanks|thank you|ty|alr|alright|bet|yup|nah|yes|no)\b/.test(text)) return "casual_chat";
-  if (wordCount > 0 && wordCount <= 6 && !/[{}[\];=<>]/.test(clean)) return "casual_chat";
   if (text.trim()) return "general_question";
   return "unknown";
 }

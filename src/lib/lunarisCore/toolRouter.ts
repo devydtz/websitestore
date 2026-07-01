@@ -101,7 +101,7 @@ export async function routeTool(intent: LunarisIntent, message: string): Promise
     case "general_question":
       return {
         answer:
-          "This is a general question. Use safe general knowledge, the recent conversation, and any available Lunaris context to answer naturally. If live/current facts are needed, say that web research is needed.",
+          "I can answer broad questions, casual messages, coding problems, Minecraft/server questions, planning, writing, math, and troubleshooting. I will use the chat memory and Lunaris context when it matters, and I will ask only if the request is truly unclear.",
         source: "Imported Lunaris Core knowledge base.",
       };
     default:

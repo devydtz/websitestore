@@ -133,7 +133,7 @@ export async function askLunarisCore(message: string, context: LunarisCoreReques
   }) + (attachmentContext ? `\n\nUploaded file context:\n${attachmentContext}` : "")));
   const tools = [...plan.tools, ...(result.tools || [])];
 
-  if (intent === "minecraft_server_status" || intent === "minecraft_command" || intent === "web_research" || intent === "casual_chat" || intent === "memory_preference") {
+  if (intent === "minecraft_server_status" || intent === "minecraft_command" || intent === "web_research" || intent === "memory_preference") {
     return {
       intent,
       content: antiRepeat(localAnswer, message, history),
