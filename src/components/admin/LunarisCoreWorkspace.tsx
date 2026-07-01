@@ -3,7 +3,6 @@ import { Link } from "@tanstack/react-router";
 import {
   ArrowUp,
   ChevronLeft,
-  Database,
   Pencil,
   Trash2,
   Eraser,
@@ -24,7 +23,7 @@ import {
 import { sendToLunarisCore, type LunarisCoreAttachment, type LunarisCoreMessage, type LunarisCoreToolTrace } from "@/lib/lunarisCore/client";
 import { LunarisCoreMessage as MessageBubble } from "./LunarisCoreMessage";
 import { planLunarisCoreTask, type LunarisPlan } from "@/lib/lunarisCore/planner";
-import { learnFromCoreExchange, loadLearnedCoreMemory } from "@/lib/lunarisCore/memoryStore";
+import { learnFromCoreExchange } from "@/lib/lunarisCore/memoryStore";
 
 type StoredChat = {
   id: string;
@@ -94,22 +93,8 @@ function titleFrom(text: string) {
   return compact.length > 44 ? `${compact.slice(0, 44)}...` : compact;
 }
 
-function countLearnedMemory() {
-  const memory = loadLearnedCoreMemory();
-  return (
-    memory.preferences.length +
-    memory.projectFacts.length +
-    memory.activeProblems.length +
-    memory.codingContext.length +
-    memory.minecraftContext.length +
-    memory.adminDataContext.length +
-    memory.decisions.length
-  );
-}
-
 export function LunarisCoreWorkspace() {
   const [coreState, setCoreState] = useState<CoreState>(() => loadCoreState());
-  const [memoryCount, setMemoryCount] = useState(() => countLearnedMemory());
   const [input, setInput] = useState("");
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
@@ -214,7 +199,6 @@ export function LunarisCoreWorkspace() {
         attachments: outgoingAttachments,
       });
       learnFromCoreExchange(adminMessage.content, result.content);
-      setMemoryCount(countLearnedMemory());
       updateActiveChat((chat) => ({
         ...chat,
         messages: [...chat.messages, { role: "core", content: result.content, tools: result.tools as LunarisCoreToolTrace[] | undefined }],
@@ -339,15 +323,6 @@ export function LunarisCoreWorkspace() {
 
           <div className="mb-2 px-2 text-sm font-bold text-slate-800">Projects</div>
           <div className="mb-5 rounded-xl bg-[#ececec] px-3 py-2 text-sm font-semibold">Lunaris Craft</div>
-          <div className="mb-5 rounded-2xl border border-purple-100 bg-purple-50/80 p-3 text-sm">
-            <div className="flex items-center gap-2 font-black text-purple-950">
-              <Database className="h-4 w-4" />
-              Learning memory
-            </div>
-            <p className="mt-1 text-xs font-semibold text-purple-900/70">
-              {memoryCount} saved signals from chats, bugs, preferences, code, Minecraft, and admin data.
-            </p>
-          </div>
 
           <div className="mb-3 px-2 text-sm font-bold text-slate-800">Chats</div>
           <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">

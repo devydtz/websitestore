@@ -33,8 +33,8 @@ function antiRepeat(answer: string, message: string, history: NonNullable<Lunari
   const previous = recentCoreAnswers(history);
   const requestedNoRepeat = /\b(don'?t|do not|stop|never)\s+(repeat|copy|say the same|loop)\b/i.test(message);
   if (!previous.some((old) => isTooSimilar(answer, old))) return answer;
-  if (requestedNoRepeat) return "Got it. I will not repeat that again. Tell me the exact thing you want changed or ask a new question and I will answer fresh.";
-  return "I caught myself almost repeating the same response. Give me one more detail and I will answer it from a different angle.";
+  if (requestedNoRepeat) return "Got it. I will stop repeating that and answer fresh from here.";
+  return answer;
 }
 
 function sourceForIntent(intent: LunarisIntent, message: string, rawSource: string) {
@@ -119,7 +119,7 @@ export async function askLunarisCore(message: string, context: LunarisCoreReques
     : conversationMemory;
   const enrichedMessage = appendAttachmentContext([message, memoryContext ? `\nMemory context:\n${memoryContext}` : ""].join("\n"), attachmentSummaries);
   const plan = planLunarisCoreTask(enrichedMessage, attachments);
-  const intent = detectIntent(enrichedMessage);
+  const intent = detectIntent(message);
   const result = await routeTool(intent, enrichedMessage);
   const source = sourceForIntent(intent, message, result.source);
   const next = nextForIntent(intent);
