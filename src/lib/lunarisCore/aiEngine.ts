@@ -50,6 +50,8 @@ function sourceForIntent(intent: LunarisIntent, message: string, rawSource: stri
     case "data_analysis":
     case "database_question":
     case "admin_data_question":
+    case "order_investigator":
+    case "player_investigator":
       return "Supabase admin data scanner: orders, accounts, store_products, and promo_codes when requested.";
     case "website_project_question":
     case "code_question":
@@ -68,6 +70,8 @@ function sourceForIntent(intent: LunarisIntent, message: string, rawSource: stri
       return "Protected Supabase Edge Function RCON command runner.";
     case "calculator":
       return "Calculator tool.";
+    case "core_health":
+      return "Lunaris Core health checker.";
     case "current_time":
       return "Time tool using Asia/Manila timezone.";
     case "current_date":
@@ -90,6 +94,8 @@ function nextForIntent(intent: LunarisIntent) {
     case "data_analysis":
     case "database_question":
     case "admin_data_question":
+    case "order_investigator":
+    case "player_investigator":
       return "Review the flagged issues in the admin panel, then ask me to narrow the report to orders, accounts, products, promos, duplicates, or revenue.";
     case "website_project_question":
     case "code_question":
@@ -155,7 +161,7 @@ export async function askLunarisCore(message: string, context: LunarisCoreReques
     };
   }
 
-  if (intent === "minecraft_server_status" || intent === "minecraft_command" || intent === "web_research" || intent === "memory_preference" || intent === "image_generation") {
+  if (intent === "minecraft_server_status" || intent === "minecraft_command" || intent === "web_research" || intent === "memory_preference" || intent === "image_generation" || intent === "core_health" || intent === "order_investigator" || intent === "player_investigator") {
     return {
       intent,
       content: antiRepeat(localAnswer, message, history),

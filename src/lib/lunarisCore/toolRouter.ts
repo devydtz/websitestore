@@ -16,6 +16,8 @@ import { connectionHubTool } from "./tools/connectionHubTool";
 import { casualChatTool } from "./tools/casualChatTool";
 import { memoryPreferenceTool } from "./tools/memoryPreferenceTool";
 import { corePowerTool } from "./tools/powerTool";
+import { coreHealthTool } from "./tools/coreHealthTool";
+import { orderInvestigatorTool, playerInvestigatorTool } from "./tools/adminInvestigatorTool";
 import type { LunarisCoreGeneratedImage, LunarisCoreToolTrace } from "./client";
 
 export type LunarisToolResult = {
@@ -50,6 +52,24 @@ export async function routeTool(intent: LunarisIntent, message: string): Promise
         answer: corePowerTool(message),
         source: "Lunaris Core power tools registry.",
         tools: [{ name: "Power Tools", status: "done", summary: "Matched the request to a Lunaris Core admin tool group." }],
+      };
+    case "core_health":
+      return {
+        answer: await coreHealthTool(),
+        source: "Lunaris Core health checker.",
+        tools: [{ name: "Core Health", status: "done", summary: "Checked Supabase data helpers and Minecraft public status." }],
+      };
+    case "order_investigator":
+      return {
+        answer: await orderInvestigatorTool(message),
+        source: "Lunaris Core order investigator.",
+        tools: [{ name: "Order Investigator", status: "done", summary: "Scanned recent orders for matching order/player/payment data." }],
+      };
+    case "player_investigator":
+      return {
+        answer: await playerInvestigatorTool(message),
+        source: "Lunaris Core player investigator.",
+        tools: [{ name: "Player Investigator", status: "done", summary: "Scanned accounts and recent orders for the requested player." }],
       };
     case "casual_chat":
       return {

@@ -4,6 +4,7 @@ const quickActionGroups = [
     actions: [
       "Show Lunaris Core upgrade pack with 30 features and 10 extra ideas",
       "Show Lunaris Core ChatGPT upgrades 1-250",
+      "Run Core health check",
       "Summarize this chat into long-term memory",
       "Create a one-click fix plan",
       "Save this as a reusable prompt template",
@@ -26,6 +27,9 @@ const quickActionGroups = [
     label: "Admin",
     actions: [
       "Order troubleshooting assistant",
+      "Order investigator",
+      "Player investigator",
+      "How many rejected orders?",
       "Customer account investigator",
       "Admin logs summary",
       "Database duplicate checker",
@@ -38,12 +42,15 @@ const quickActionGroups = [
     actions: [
       "Website health scanner",
       "Cloudflare deploy checker",
+      "Database doctor",
+      "Checkout doctor",
       "SQL generator",
       "File generation and export",
       "Read uploaded files and answer from them",
       "Analyze uploaded images and screenshots",
       "Knowledge upload system",
       "Mobile admin assistant checklist",
+      "PWA iPhone install guide",
     ],
   },
   {
@@ -51,6 +58,7 @@ const quickActionGroups = [
     actions: [
       "RCON health checker",
       "Live player list",
+      "Check Minecraft server status",
       "Server TPS status monitor",
       "RCON delivery simulator",
       "Server announcement writer",

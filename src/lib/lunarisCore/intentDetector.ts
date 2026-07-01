@@ -26,6 +26,9 @@ export type LunarisIntent =
   | "file_analysis"
   | "image_analysis"
   | "core_power_tool"
+  | "core_health"
+  | "order_investigator"
+  | "player_investigator"
   | "connections"
   | "memory_preference"
   | "casual_chat"
@@ -41,6 +44,9 @@ export function detectIntent(message: string): LunarisIntent {
   if (/^(thanks|thank you|ty|nice|cool|good\s*boy|goodboy|lol|lmao|haha|bet|alr|alright|yup|nah|yes|no)[\s!.?]*$/i.test(clean)) return "casual_chat";
   if (/\b(what can you do|help me|help|capabilities|commands|what do you know|who are you)\b/.test(text)) return "capabilities";
   if (/\b(connect|connected|plugins?|integrations?|all data|everything connected|sync everything)\b/.test(text)) return "connections";
+  if (/\b(core health|health check|system health|status check|is core working|check everything|scan problems|doctor)\b/.test(text)) return "core_health";
+  if (/\b(order investigator|investigate order|check order|find order|order id|order #|lc-[a-z0-9]+)/i.test(message)) return "order_investigator";
+  if (/\b(player investigator|investigate player|check player|find player|player profile|purchase history|rank history)\b/.test(text)) return "player_investigator";
   if (/\b(chatgpt upgrades|1-250|250 upgrades|two hundred fifty|1-100|one hundred|100 upgrades|server[-\s]?side memory|image library|file workspace|sql generator|rcon health|live player list|tps|order troubleshoot|checkout bug scanner|product builder|promo code builder|rank command builder|bundle builder|admin logs summary|website health scanner|cloudflare deploy checker|supabase schema scanner|duplicate checker|account investigator|auth helper|password reset|gcash checklist|admin report|knowledge upload|search project files|chat memory summary|saved prompt|fix plan|mobile admin|backup|rollback|audit|seo|analytics|notification|discord|webhook|roadmap)\b/.test(text)) return "core_power_tool";
   if (/\b(don'?t|do not|stop|never)\s+(repeat|copy|say the same|loop)\b|\bremember\b|\bcall me\b|\bmy name is\b|\bfrom now on\b/.test(text)) return "memory_preference";
   if (/\b(generate|create|make)\b.*\b(image|picture|photo|art|logo|icon|wallpaper|banner)\b/.test(text)) return "image_generation";

@@ -272,10 +272,46 @@ async function answerSimpleOrderCount(message: string) {
   return `There are ${orders.length} total orders. Breakdown: ${breakdown}.`;
 }
 
+async function answerSimpleEntityCount(message: string) {
+  const text = message.toLowerCase();
+  if (!/\b(how many|count|total number|number of)\b/.test(text)) return null;
+
+  if (/\b(account|accounts|player|players|user|users)\b/.test(text)) {
+    const result = await listAccounts();
+    if (!result.ok) return `I tried to count accounts from Supabase, but the account scan failed: ${result.error}`;
+    const accounts = result.accounts;
+    if (/\bverified\b/.test(text)) return `There are ${accounts.filter((account) => account.email_verified).length} verified accounts out of ${accounts.length} total accounts.`;
+    if (/\bunverified\b/.test(text)) return `There are ${accounts.filter((account) => !account.email_verified).length} unverified accounts out of ${accounts.length} total accounts.`;
+    if (/\bdisabled|blocked\b/.test(text)) return `There are ${accounts.filter((account) => account.disabled).length} disabled accounts out of ${accounts.length} total accounts.`;
+    return `There are ${accounts.length} total accounts. Verified: ${accounts.filter((account) => account.email_verified).length}, unverified: ${accounts.filter((account) => !account.email_verified).length}, disabled: ${accounts.filter((account) => account.disabled).length}.`;
+  }
+
+  if (/\b(product|products|rank|ranks|key|keys|bundle|bundles|crate|crates|cosmetic|cosmetics|item|items)\b/.test(text)) {
+    const result = await listStoreProducts();
+    if (!result.ok) return `I tried to count products from Supabase, but the product scan failed: ${result.error}`;
+    const products = result.products;
+    const active = products.filter((product) => product.active);
+    const comingSoon = products.filter((product) => product.coming_soon);
+    const categories = countBy(products, (product) => product.category).map(([category, count]) => `${category}: ${count}`).join(", ");
+    return `There are ${products.length} total products. Active: ${active.length}, coming soon: ${comingSoon.length}. Categories: ${categories || "none"}.`;
+  }
+
+  if (/\b(promo|promos|coupon|coupons|discount|discounts)\b/.test(text)) {
+    const result = await listPromoCodes();
+    if (!result.ok) return `I tried to count promo codes from Supabase, but the promo scan failed: ${result.error}`;
+    const promos = result.promos;
+    return `There are ${promos.length} promo codes. Active: ${promos.filter((promo) => promo.active).length}, disabled: ${promos.filter((promo) => !promo.active).length}.`;
+  }
+
+  return null;
+}
+
 export async function dataAnalysisTool(message: string) {
   const text = message.toLowerCase();
   const simpleCount = await answerSimpleOrderCount(message);
   if (simpleCount) return simpleCount;
+  const entityCount = await answerSimpleEntityCount(message);
+  if (entityCount) return entityCount;
 
   const wantsOrders = /order|request|sale|revenue|payment|gcash|duplicate|anomal/.test(text);
   const wantsAccounts = /account|player|user|email|verified|disabled/.test(text);

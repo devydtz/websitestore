@@ -51,6 +51,21 @@ export function planLunarisCoreTask(message: string, attachments: LunarisCoreAtt
     tools.push(tool("Power Tools", "Selected a Lunaris Core admin toolkit workflow."));
   }
 
+  if (intent === "core_health") {
+    steps.push("Checking Core health");
+    tools.push(tool("Core Health", "Checking Supabase helpers, product data, promos, orders, accounts, and Minecraft status."));
+  }
+
+  if (intent === "order_investigator") {
+    steps.push("Investigating order");
+    tools.push(tool("Order Investigator", "Looking up order, payment, items, status, admin note, and delivery issues."));
+  }
+
+  if (intent === "player_investigator") {
+    steps.push("Investigating player");
+    tools.push(tool("Player Investigator", "Looking up account, verification, disabled state, orders, and spend history."));
+  }
+
   if (intent === "minecraft_server_status") {
     steps.push("Checking Minecraft public network");
     tools.push(tool("Minecraft Status", "Used the deployed backend direct server status ping."));
