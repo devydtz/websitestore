@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import {
   ArrowUp,
   ChevronLeft,
+  Database,
   Pencil,
   Trash2,
   Eraser,
@@ -23,6 +24,7 @@ import {
 import { sendToLunarisCore, type LunarisCoreAttachment, type LunarisCoreMessage, type LunarisCoreToolTrace } from "@/lib/lunarisCore/client";
 import { LunarisCoreMessage as MessageBubble } from "./LunarisCoreMessage";
 import { planLunarisCoreTask, type LunarisPlan } from "@/lib/lunarisCore/planner";
+import { learnFromCoreExchange, loadLearnedCoreMemory } from "@/lib/lunarisCore/memoryStore";
 
 type StoredChat = {
   id: string;
@@ -92,8 +94,22 @@ function titleFrom(text: string) {
   return compact.length > 44 ? `${compact.slice(0, 44)}...` : compact;
 }
 
+function countLearnedMemory() {
+  const memory = loadLearnedCoreMemory();
+  return (
+    memory.preferences.length +
+    memory.projectFacts.length +
+    memory.activeProblems.length +
+    memory.codingContext.length +
+    memory.minecraftContext.length +
+    memory.adminDataContext.length +
+    memory.decisions.length
+  );
+}
+
 export function LunarisCoreWorkspace() {
   const [coreState, setCoreState] = useState<CoreState>(() => loadCoreState());
+  const [memoryCount, setMemoryCount] = useState(() => countLearnedMemory());
   const [input, setInput] = useState("");
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
@@ -197,6 +213,8 @@ export function LunarisCoreWorkspace() {
         history,
         attachments: outgoingAttachments,
       });
+      learnFromCoreExchange(adminMessage.content, result.content);
+      setMemoryCount(countLearnedMemory());
       updateActiveChat((chat) => ({
         ...chat,
         messages: [...chat.messages, { role: "core", content: result.content, tools: result.tools as LunarisCoreToolTrace[] | undefined }],
@@ -263,7 +281,7 @@ export function LunarisCoreWorkspace() {
 
   return (
     <main
-      className="relative h-screen overflow-hidden bg-white text-slate-950"
+      className="relative h-screen overflow-hidden bg-[#fbfaff] text-slate-950"
       onDragOver={(event) => {
         event.preventDefault();
         setDragging(true);
@@ -282,8 +300,9 @@ export function LunarisCoreWorkspace() {
           </div>
         </div>
       )}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(168,85,247,0.12),transparent_26%),radial-gradient(circle_at_80%_20%,rgba(59,130,246,0.10),transparent_22%),linear-gradient(180deg,#ffffff,#fbfaff)]" />
       <div className="relative grid h-screen lg:grid-cols-[296px_1fr]">
-        <aside className="hidden border-r border-slate-200 bg-[#f9f9f9] p-3 lg:flex lg:flex-col">
+        <aside className="hidden border-r border-slate-200/80 bg-white/75 p-3 backdrop-blur-xl lg:flex lg:flex-col">
           <div className="mb-5 flex items-center justify-between px-1 pt-1">
             <div className="flex items-center gap-3">
               <span className="grid h-8 w-8 place-items-center rounded-xl bg-slate-950 text-white">
@@ -320,6 +339,15 @@ export function LunarisCoreWorkspace() {
 
           <div className="mb-2 px-2 text-sm font-bold text-slate-800">Projects</div>
           <div className="mb-5 rounded-xl bg-[#ececec] px-3 py-2 text-sm font-semibold">Lunaris Craft</div>
+          <div className="mb-5 rounded-2xl border border-purple-100 bg-purple-50/80 p-3 text-sm">
+            <div className="flex items-center gap-2 font-black text-purple-950">
+              <Database className="h-4 w-4" />
+              Learning memory
+            </div>
+            <p className="mt-1 text-xs font-semibold text-purple-900/70">
+              {memoryCount} saved signals from chats, bugs, preferences, code, Minecraft, and admin data.
+            </p>
+          </div>
 
           <div className="mb-3 px-2 text-sm font-bold text-slate-800">Chats</div>
           <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
@@ -354,7 +382,7 @@ export function LunarisCoreWorkspace() {
         </aside>
 
         <section className="flex h-screen min-h-0 flex-col">
-          <header className="z-10 flex h-16 shrink-0 items-center justify-between border-b border-slate-100 bg-white px-4 sm:px-7">
+          <header className="z-10 flex h-16 shrink-0 items-center justify-between border-b border-slate-100 bg-white/85 px-4 backdrop-blur-xl sm:px-7">
             <div className="flex min-w-0 items-center gap-3">
               <Link to="/admin/dashboard" className="rounded-xl p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-950 lg:hidden">
                 <Home className="h-5 w-5" />
@@ -400,7 +428,7 @@ export function LunarisCoreWorkspace() {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="absolute bottom-0 left-0 right-0 shrink-0 bg-gradient-to-t from-white via-white to-white/20 px-4 pb-4 pt-8 sm:px-6">
+          <form onSubmit={handleSubmit} className="absolute bottom-0 left-0 right-0 shrink-0 bg-gradient-to-t from-[#fbfaff] via-[#fbfaff]/95 to-[#fbfaff]/10 px-4 pb-4 pt-8 sm:px-6">
             {attachments.length > 0 && (
               <div className="mx-auto mb-2 flex max-w-3xl gap-2 overflow-x-auto pb-1">
                 {attachments.map((file) => (
@@ -414,7 +442,7 @@ export function LunarisCoreWorkspace() {
                 ))}
               </div>
             )}
-            <div className="mx-auto flex max-w-3xl items-end gap-2 rounded-[1.75rem] border border-slate-200 bg-white px-3 py-3 shadow-xl shadow-slate-950/10">
+            <div className="mx-auto flex max-w-3xl items-end gap-2 rounded-[1.75rem] border border-purple-100 bg-white/95 px-3 py-3 shadow-xl shadow-purple-950/10 backdrop-blur-xl">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -455,7 +483,7 @@ export function LunarisCoreWorkspace() {
                 {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ArrowUp className="h-5 w-5" />}
               </button>
             </div>
-            <p className="mt-2 text-center text-xs text-slate-400">Lunaris Core can make mistakes. Verify important server and payment actions.</p>
+            <p className="mt-2 text-center text-xs text-slate-400">Learning from this chat. Verify important server and payment actions.</p>
           </form>
         </section>
       </div>

@@ -3,6 +3,7 @@ import { BrainCircuit, Eraser, Loader2, MessageSquarePlus, Send, ShieldCheck, Sp
 import { sendToLunarisCore, type LunarisCoreMessage, type LunarisCoreMode } from "@/lib/lunarisCore/client";
 import { LunarisCoreMessage as MessageBubble } from "./LunarisCoreMessage";
 import { LunarisCoreQuickActions } from "./LunarisCoreQuickActions";
+import { learnFromCoreExchange } from "@/lib/lunarisCore/memoryStore";
 
 type StoredChat = {
   id: string;
@@ -167,6 +168,7 @@ export function LunarisCorePanel({ open, onClose }: { open: boolean; onClose: ()
         mode: activeChat.mode,
         history,
       });
+      learnFromCoreExchange(adminMessage.content, result.content);
       updateActiveChat((chat) => ({
         ...chat,
         messages: [...chat.messages, { role: "core", content: result.content }],
