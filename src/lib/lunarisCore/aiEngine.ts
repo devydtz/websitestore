@@ -10,6 +10,7 @@ import { imageReaderTool } from "./tools/imageReaderTool";
 import { planLunarisCoreTask } from "./planner";
 import { humanizeCoreFallback } from "./personality";
 import { buildConversationMemory, loadPinnedCoreNotes } from "./memoryStore";
+import { searchTool } from "./tools/searchTool";
 
 function normalized(value: string) {
   return value.toLowerCase().replace(/\s+/g, " ").replace(/[^\w\s]/g, "").trim();
@@ -34,6 +35,24 @@ function localGeneralFallback(message: string) {
   if (!clean) return "I am here. Send me what you want to build, fix, check, or ask.";
   if (clean.length <= 24) return `I got you. For "${clean}", tell me the exact part you want handled and I will lock onto it.`;
   return `I got you. Here is how I would handle it: ${clean}`;
+}
+
+function isQuestionLike(message: string) {
+  return /\?|\b(what|why|how|when|where|who|which|can|does|do|is|are|latest|current|meaning|define|explain|compare)\b/i.test(message);
+}
+
+function isWebSearchFriendlyIntent(intent: LunarisIntent) {
+  return ["knowledge_question", "coding_knowledge", "minecraft_knowledge", "security_knowledge", "general_question", "web_research"].includes(intent);
+}
+
+function soundsUncertain(answer: string) {
+  return [
+    "did not find a matching lunaris-specific knowledge note",
+    "do not have enough information",
+    "did not clearly match",
+    "ask a more specific follow-up",
+    "tell me the exact part",
+  ].some((phrase) => answer.toLowerCase().includes(phrase));
 }
 
 function antiRepeat(answer: string, message: string, history: NonNullable<LunarisCoreRequestContext["history"]>) {
@@ -152,6 +171,20 @@ export async function askLunarisCore(message: string, context: LunarisCoreReques
   }) + (attachmentContext ? `\n\nUploaded file context:\n${attachmentContext}` : "")));
   const tools = [...plan.tools, ...(result.tools || []), ...(imageResult?.tools || [])];
 
+  if (!attachments.length && isWebSearchFriendlyIntent(intent) && isQuestionLike(message) && soundsUncertain(localAnswer)) {
+    const researched = await searchTool(message);
+    const researchedAnswer = humanizeCoreFallback(formatLunarisAnswer(responseEngine({
+      answer: researched,
+      source: "Free public research sources: DuckDuckGo Instant Answer, Wikipedia, Modrinth, GitHub, and direct public search links.",
+      next: "Open the most relevant link or ask me to narrow the search.",
+    })));
+    return {
+      intent: "web_research",
+      content: antiRepeat(researchedAnswer, message, history),
+      tools: [...tools, { name: "Web Research", status: "done", summary: "Core fell back to public web research because local knowledge was not enough." }],
+    };
+  }
+
   if (attachments.length) {
     return {
       intent,
@@ -179,6 +212,20 @@ export async function askLunarisCore(message: string, context: LunarisCoreReques
     mode: context.mode || "general",
     history: history.slice(-80),
   });
+  if (!model.ok && !attachments.length && isWebSearchFriendlyIntent(intent) && isQuestionLike(message)) {
+    const researched = await searchTool(message);
+    const researchedAnswer = humanizeCoreFallback(formatLunarisAnswer(responseEngine({
+      answer: researched,
+      source: "Free public research sources: DuckDuckGo Instant Answer, Wikipedia, Modrinth, GitHub, and direct public search links.",
+      next: "Open the most relevant link or ask me to narrow the search.",
+    })));
+    return {
+      intent: "web_research",
+      content: antiRepeat(researchedAnswer, message, history),
+      tools: [...tools, { name: "Web Research", status: "done", summary: "Core used the web-research fallback because the model/backend answer was unavailable." }],
+    };
+  }
+
   const modelAnswer = model.ok ? humanizeCoreFallback(formatLunarisAnswer(model.answer)) : intent === "general_question" ? localGeneralFallback(message) : localAnswer;
 
   return {
