@@ -5,6 +5,48 @@ type ResearchResult = {
   snippet?: string;
 };
 
+function wantsLinks(message: string) {
+  return /\b(link|links|source|sources|url|urls|open it|open them|website)\b/i.test(message);
+}
+
+function isDefinitionQuestion(message: string) {
+  return /\b(meaning of|definition of|define)\b/i.test(message) || /\bwhat does\b.+\bmean\b/i.test(message) || /\bwhat is meaning of\b/i.test(message);
+}
+
+function extractDefinitionTerm(message: string) {
+  const patterns = [
+    /\bwhat is meaning of\s+(.+?)\??$/i,
+    /\bmeaning of\s+(.+?)\??$/i,
+    /\bdefinition of\s+(.+?)\??$/i,
+    /\bdefine\s+(.+?)\??$/i,
+    /\bwhat does\s+(.+?)\s+mean\??$/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = message.match(pattern);
+    if (match?.[1]) return match[1].trim().replace(/^["']|["']$/g, "");
+  }
+
+  return "";
+}
+
+function isShortLookup(message: string) {
+  const term = extractDefinitionTerm(message);
+  return Boolean(term) && term.split(/\s+/).length <= 4;
+}
+
+function compactSnippet(snippet?: string, fallback?: string) {
+  const value = (snippet || fallback || "").replace(/\s+/g, " ").trim();
+  if (!value) return "";
+  return value.length > 220 ? `${value.slice(0, 217).trimEnd()}...` : value;
+}
+
+function summarizeTopResult(query: string, result: ResearchResult) {
+  const snippet = compactSnippet(result.snippet, result.title);
+  if (!snippet) return `I found a public result for "${query}", but it did not include a clean summary.`;
+  return snippet;
+}
+
 function cleanQuery(message: string) {
   return message
     .replace(/\b(research|search web|search|look up|lookup|internet|latest|current)\b/gi, " ")
@@ -186,6 +228,9 @@ function directResearchLinks(query: string): ResearchResult[] {
 export async function searchTool(message: string) {
   const query = cleanQuery(message);
   if (!query) return "Tell me what to research and I will search free public sources.";
+  const directLinksRequested = wantsLinks(message);
+  const definitionQuestion = isDefinitionQuestion(message);
+  const shortLookup = isShortLookup(message);
 
   const settled = await Promise.allSettled([
     getMinecraftVersion(query),
@@ -201,11 +246,28 @@ export async function searchTool(message: string) {
   const links = directResearchLinks(query);
 
   if (results.length === 0) {
+    if (definitionQuestion || shortLookup) {
+      const term = extractDefinitionTerm(message) || query;
+      return `I could not verify a solid public definition for "${term}" yet. If that is slang, local language, or server-specific wording, send the context and I will narrow it properly.`;
+    }
+
+    if (!directLinksRequested) {
+      return `I could not verify a solid public answer for "${query}" from the free live sources I checked. Ask me to search deeper or ask for direct links and I will open the research path.`;
+    }
+
     return [
       `I could not pull live snippets for "${query}" from the free no-key APIs, but here are direct research links you can open:`,
       ...links.map((result, index) => `${index + 1}. ${result.title}\n   ${result.url}\n   ${result.snippet}`),
       "Some sites like TikTok and Facebook block no-key automated scraping, so Core gives you the live search page instead of inventing results.",
     ].join("\n\n");
+  }
+
+  const top = results[0];
+
+  if (definitionQuestion || shortLookup || !directLinksRequested) {
+    const directAnswer = summarizeTopResult(query, top);
+    if (!directLinksRequested) return directAnswer;
+    return `${directAnswer}\n\nSource: ${top.url}`;
   }
 
   return [

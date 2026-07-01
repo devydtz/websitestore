@@ -41,6 +41,11 @@ function isQuestionLike(message: string) {
   return /\?|\b(what|why|how|when|where|who|which|can|does|do|is|are|latest|current|meaning|define|explain|compare)\b/i.test(message);
 }
 
+function isShortDefinitionQuery(message: string) {
+  return (/\b(meaning of|definition of|define)\b/i.test(message) || /\bwhat does\b.+\bmean\b/i.test(message) || /\bwhat is meaning of\b/i.test(message))
+    && message.trim().split(/\s+/).length <= 8;
+}
+
 function isWebSearchFriendlyIntent(intent: LunarisIntent) {
   return ["knowledge_question", "coding_knowledge", "minecraft_knowledge", "security_knowledge", "general_question", "web_research"].includes(intent);
 }
@@ -171,7 +176,7 @@ export async function askLunarisCore(message: string, context: LunarisCoreReques
   }) + (attachmentContext ? `\n\nUploaded file context:\n${attachmentContext}` : "")));
   const tools = [...plan.tools, ...(result.tools || []), ...(imageResult?.tools || [])];
 
-  if (!attachments.length && isWebSearchFriendlyIntent(intent) && isQuestionLike(message) && soundsUncertain(localAnswer)) {
+  if (!attachments.length && isWebSearchFriendlyIntent(intent) && isQuestionLike(message) && soundsUncertain(localAnswer) && !isShortDefinitionQuery(message)) {
     const researched = await searchTool(message);
     const researchedAnswer = humanizeCoreFallback(formatLunarisAnswer(responseEngine({
       answer: researched,
@@ -212,7 +217,7 @@ export async function askLunarisCore(message: string, context: LunarisCoreReques
     mode: context.mode || "general",
     history: history.slice(-80),
   });
-  if (!model.ok && !attachments.length && isWebSearchFriendlyIntent(intent) && isQuestionLike(message)) {
+  if (!model.ok && !attachments.length && isWebSearchFriendlyIntent(intent) && isQuestionLike(message) && !isShortDefinitionQuery(message)) {
     const researched = await searchTool(message);
     const researchedAnswer = humanizeCoreFallback(formatLunarisAnswer(responseEngine({
       answer: researched,
